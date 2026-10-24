@@ -407,7 +407,7 @@ function ImagesModal({ product, onClose }: { product: any; onClose: () => void }
         {loading && <Loader2 className="mx-auto h-5 w-5 animate-spin text-ink-400" />}
         <div className="grid grid-cols-3 gap-2">
           {(data || []).map((img: any) => (
-            <div key={img.id} className={cx('relative overflow-hidden rounded-xl border bg-white/[.04]', product.image_url === img.url ? 'border-brand-500 ring-2 ring-brand-500/20' : 'border-white/[.08] border-white/[.08]')}>
+            <div key={img.id} className={cx('relative overflow-hidden rounded-xl border bg-white/[.04]', product.image_url === img.url ? 'border-brand-500 ring-2 ring-brand-500/20' : 'border-white/[.08]')}>
               <img src={img.url} alt="" className="h-24 w-full object-contain p-1" />
               <div className="flex items-center justify-between gap-1 border-t px-1 py-1 border-white/[.08]">
                 <button onClick={() => setMain(img.url)} className="text-[9.5px] font-bold text-brand-300">رئيسية</button>
