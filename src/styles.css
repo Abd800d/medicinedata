@@ -1,0 +1,125 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource/ibm-plex-sans-arabic/400.css';
+@import '@fontsource/ibm-plex-sans-arabic/500.css';
+@import '@fontsource/ibm-plex-sans-arabic/600.css';
+@import '@fontsource/ibm-plex-sans-arabic/700.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+html.dark { color-scheme: dark; }
+
+* { -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  @apply bg-ink-50 text-ink-900 dark:bg-ink-950 dark:text-ink-100;
+  overscroll-behavior-y: none;
+}
+#root { min-height: 100%; }
+
+::selection { @apply bg-brand-200 text-brand-900; }
+html.dark ::selection { @apply bg-brand-800 text-white; }
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { @apply bg-ink-300 dark:bg-ink-700 rounded-full; }
+::-webkit-scrollbar-track { background: transparent; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+@layer components {
+  .app-shell { @apply mx-auto w-full max-w-6xl px-4 sm:px-6; }
+  .page { @apply pb-32 pt-4 sm:pt-6; }
+  .card {
+    @apply rounded-3xl border border-ink-200/80 bg-white shadow-card dark:border-ink-800 dark:bg-ink-900/80;
+  }
+  .card-flat { @apply rounded-2xl border border-ink-200/70 bg-white dark:border-ink-800 dark:bg-ink-900; }
+  .glass {
+    @apply bg-white/80 backdrop-blur-xl dark:bg-ink-950/80;
+  }
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary { @apply btn bg-brand-700 text-white shadow-float hover:bg-brand-800; }
+  .btn-ghost { @apply btn border border-ink-200 bg-white text-ink-700 hover:bg-ink-50 dark:border-ink-800 dark:bg-ink-900 dark:text-ink-200 dark:hover:bg-ink-800; }
+  .btn-soft { @apply btn bg-brand-50 text-brand-800 hover:bg-brand-100 dark:bg-brand-900/40 dark:text-brand-200 dark:hover:bg-brand-900/60; }
+  .btn-danger { @apply btn bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300; }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-3 py-1 text-xs font-medium text-ink-600 dark:border-ink-800 dark:bg-ink-900 dark:text-ink-300;
+  }
+  .chip-active { @apply border-brand-600 bg-brand-700 text-white dark:border-brand-500 dark:bg-brand-600 dark:text-white; }
+  .input {
+    @apply w-full rounded-xl border border-ink-200 bg-white px-3.5 py-2.5 text-sm text-ink-900 outline-none transition placeholder:text-ink-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100 dark:placeholder:text-ink-500;
+  }
+  .label { @apply mb-1.5 block text-xs font-semibold text-ink-500 dark:text-ink-400; }
+  .label-ar { @apply mb-1.5 block text-xs font-semibold text-ink-500 dark:text-ink-400; }
+  .section-title { @apply text-base font-bold text-ink-900 dark:text-white; }
+  .muted { @apply text-ink-500 dark:text-ink-400; }
+  .skeleton { @apply animate-pulse-soft rounded-xl bg-ink-200/70 dark:bg-ink-800; }
+  .pill-badge { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold; }
+  .divide-soft > * + * { @apply border-t border-ink-100 dark:border-ink-800; }
+  .link { @apply text-brand-700 underline-offset-4 hover:underline dark:text-brand-300; }
+  .prose-ar { @apply text-[13.5px] leading-7 text-ink-700 dark:text-ink-300; }
+  .icon-btn { @apply inline-flex h-10 w-10 items-center justify-center rounded-full text-ink-600 transition hover:bg-ink-100 active:scale-95 dark:text-ink-300 dark:hover:bg-ink-800; }
+  .nav-item { @apply flex flex-1 flex-col items-center gap-1 rounded-2xl px-1 py-1.5 text-[10.5px] font-semibold text-ink-400 transition; }
+  .nav-item-active { @apply text-brand-700 dark:text-brand-300; }
+  .mesh {
+    background:
+      radial-gradient(1200px 500px at 10% -10%, rgba(20, 184, 166, .20), transparent 60%),
+      radial-gradient(900px 420px at 110% 10%, rgba(59, 130, 246, .16), transparent 60%),
+      linear-gradient(180deg, rgba(240, 253, 250, .9), rgba(248, 250, 252, 1));
+  }
+  html.dark .mesh {
+    background:
+      radial-gradient(1200px 500px at 10% -10%, rgba(13, 148, 136, .25), transparent 60%),
+      radial-gradient(900px 420px at 110% 10%, rgba(37, 99, 235, .18), transparent 60%),
+      linear-gradient(180deg, #041f1e 0%, #020617 55%);
+  }
+}
+
+/* Hero */
+.hero-card {
+  background: linear-gradient(135deg, #0f766e 0%, #0d9488 45%, #0e7490 100%);
+  position: relative;
+  overflow: hidden;
+}
+.hero-card::before {
+  content: '';
+  position: absolute; width: 280px; height: 280px; border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255,255,255,.28), transparent 65%);
+  top: -120px; inset-inline-end: -60px;
+}
+.hero-card::after {
+  content: '';
+  position: absolute; width: 220px; height: 220px; border-radius: 9999px;
+  border: 28px solid rgba(255,255,255,.07);
+  bottom: -110px; inset-inline-start: -40px;
+}
+
+/* Image fallbacks */
+.img-fallback { @apply flex items-center justify-center bg-gradient-to-br from-brand-50 to-brand-100 text-brand-700 dark:from-ink-800 dark:to-ink-900 dark:text-brand-300; }
+
+/* Rich text (AI answers) */
+.rich-text { @apply space-y-2 text-[13.5px] leading-7; }
+.rich-text strong { @apply font-bold text-ink-900 dark:text-white; }
+.rich-text em { @apply text-ink-500; }
+.rich-text ul { @apply list-disc space-y-1 ps-5; }
+
+/* Bottom sheet backdrop */
+.sheet-backdrop { @apply fixed inset-0 z-50 bg-ink-950/50 backdrop-blur-sm animate-fade-in; }
+.sheet { @apply fixed inset-x-0 bottom-0 z-50 max-h-[92vh] overflow-y-auto rounded-t-3xl bg-white p-5 pb-[calc(1.25rem+var(--safe-bottom))] shadow-2xl animate-fade-up dark:bg-ink-900 sm:inset-x-auto sm:left-1/2 sm:bottom-auto sm:top-1/2 sm:w-[560px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl; }
+
+/* Mobile-first main padding for the bottom nav */
+.bottom-safe { padding-bottom: calc(0.5rem + var(--safe-bottom)); }
+
+/* Print-friendly */
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+}

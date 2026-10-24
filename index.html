@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ar" dir="rtl" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5" />
+    <meta name="theme-color" content="#0f766e" />
+    <meta name="description" content="MDA — MedicineData | المرجع الدوائي الشامل: الأدوية، المنتجات التجارية، الوكلاء في اليمن، الوصفات والتحليل بالذكاء الاصطناعي." />
+    <meta name="author" content="Dr. Abdulmajeed Abdullah Almakhedhi" />
+    <meta property="og:title" content="MDA — MedicineData" />
+    <meta property="og:description" content="المرجع الدوائي الشامل للأدوية والمنتجات التجارية في اليمن والعالم العربي" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/icons/icon-512.png" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="MDA" />
+    <title>MDA — MedicineData | ميديسين داتا</title>
+    <style>
+      html { background: #f8fafc; }
+      html.dark { background: #020617; }
+      #boot { position: fixed; inset: 0; display: grid; place-items: center; background: #f8fafc; z-index: 9999; }
+      html.dark #boot { background: #020617; }
+      #boot .ring { width: 54px; height: 54px; border-radius: 999px; border: 4px solid #ccfbf1; border-top-color: #0d9488; animation: spin 0.9s linear infinite; }
+      #boot .word { position: absolute; bottom: 40%; font-family: Inter, system-ui, sans-serif; font-weight: 800; letter-spacing: 6px; color: #0f766e; font-size: 15px; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body class="font-ar antialiased">
+    <div id="boot"><div class="ring"></div><div class="word">MDA</div></div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

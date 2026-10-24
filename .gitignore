@@ -1,0 +1,25 @@
+node_modules/
+dist/
+dist-ssr/
+.DS_Store
+*.log
+npm-debug.log*
+# Local environment & secrets
+.env
+.env.local
+.env.*.local
+# Runtime data (database + uploaded images)
+data/mda.db
+data/mda.db-shm
+data/mda.db-wal
+data/uploads/
+# Android build output
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+# Editor
+.vscode/
+.idea/
+*.smoke*
+.smoke/
