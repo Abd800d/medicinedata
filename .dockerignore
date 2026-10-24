@@ -1,0 +1,13 @@
+node_modules
+dist
+.smoke
+.git
+.github
+android
+data
+uploads
+*.log
+.env
+.env.*
+!.env.example
+docs

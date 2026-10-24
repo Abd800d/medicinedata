@@ -26,6 +26,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 concurrency:
   group: android-${{ github.ref }}
   cancel-in-progress: true
@@ -35,7 +38,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      API_BASE: ${{ github.event.inputs.api_base || vars.VITE_API_BASE }}
+      # Fallback keeps tag pushes working even when the repository variable is unset;
+      # the URL can always be changed later inside the app (More → الخادم والاتصال).
+      API_BASE: ${{ github.event.inputs.api_base || vars.VITE_API_BASE || 'https://4000-if57og1dz3iqxc4tdq20a.e2b.app' }}
       BUILD_TYPE: ${{ github.event.inputs.build_type || 'debug' }}
       HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
 
@@ -118,6 +123,16 @@ jobs:
           path: out/*.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" out/*.apk \
+            --title "MDA $GITHUB_REF_NAME" \
+            --notes "APK جاهز للتثبيت — MDA · MedicineData.\n\n- الخادم الافتراضي: \`$API_BASE\`\n- يمكن تغيير عنوان الخادم من داخل التطبيق: المزيد ← الخادم والاتصال." \
+            || gh release upload "$GITHUB_REF_NAME" out/*.apk --clobber
 
       - name: Summary
         run: |

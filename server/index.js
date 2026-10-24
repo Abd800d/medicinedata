@@ -4,6 +4,7 @@
 import 'dotenv/config';
 import path from 'node:path';
 import fs from 'node:fs';
+import * as childProcess from 'node:child_process';
 import express from 'express';
 import compression from 'compression';
 import { fileURLToPath } from 'node:url';
@@ -34,6 +35,22 @@ app.use('/api', api);
 app.get('/api/health', (_req, res) => res.json({ ok: true, app: 'MDA', version: '1.0.0' }));
 
 // Serve the built SPA in production. In dev, Vite serves the UI and proxies /api here.
+// First boot on a fresh volume: seed the reference catalogue automatically.
+function autoSeed() {
+  if (process.env.AUTO_SEED === '0') return;
+  try {
+    const { n } = db.prepare('SELECT COUNT(*) AS n FROM systems').get();
+    if (n > 0) return;
+    console.log('[MDA] empty database — seeding the reference catalogue (first boot)…');
+    const { spawnSync } = childProcess;
+    const res = spawnSync(process.execPath, [path.join(ROOT, 'server', 'seed.js')], { stdio: 'inherit', env: process.env });
+    console.log('[MDA] seed exit:', res.status);
+  } catch (e) {
+    console.warn('[MDA] auto-seed skipped:', e?.message || e);
+  }
+}
+autoSeed();
+
 const dist = path.join(ROOT, 'dist');
 if (fs.existsSync(dist)) {
   app.use(express.static(dist, { maxAge: '1h', index: false }));
