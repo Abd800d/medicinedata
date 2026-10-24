@@ -24,6 +24,7 @@ const Pharmacy = lazy(() => import('./pages/Pharmacy'));
 const SubmitDrug = lazy(() => import('./pages/SubmitDrug'));
 const More = lazy(() => import('./pages/More'));
 const Offline = lazy(() => import('./pages/Offline'));
+const ServerSettings = lazy(() => import('./pages/ServerSettings'));
 const About = lazy(() => import('./pages/About'));
 const Auth = lazy(() => import('./pages/Auth'));
 const Profile = lazy(() => import('./pages/Profile'));
@@ -98,6 +99,7 @@ export default function App() {
                     <Route path="submit-drug" element={<SubmitDrug />} />
                     <Route path="more" element={<More />} />
                     <Route path="offline" element={<Offline />} />
+                    <Route path="server" element={<ServerSettings />} />
                     <Route path="about" element={<About />} />
                     <Route path="auth" element={<Auth />} />
                     <Route path="profile" element={<Profile />} />
