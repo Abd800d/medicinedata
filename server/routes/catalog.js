@@ -105,6 +105,7 @@ router.get('/products', (req, res) => {
   if (q) { where.push('(p.search_norm LIKE @q OR p.trade_name LIKE @q)'); params.q = likePattern(q); }
   if (req.query.country) { where.push('p.country = @country'); params.country = req.query.country; }
   if (req.query.verified === '1') where.push('p.verified=1');
+  if (req.query.has_image === '1') where.push("p.image_url IS NOT NULL AND p.image_url <> ''");
   const w = 'WHERE ' + where.join(' AND ');
   const data = db.prepare(`SELECT p.*, d.generic_name, d.generic_ar, m.name AS manufacturer_name, a.name AS agent_name
     FROM products p LEFT JOIN drugs d ON d.id=p.drug_id LEFT JOIN manufacturers m ON m.id=p.manufacturer_id

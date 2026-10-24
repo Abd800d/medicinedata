@@ -53,6 +53,7 @@ export default function Home() {
   const [q, setQ] = useState('');
   const { data: systems } = useApi<SystemRecord[]>('/api/catalog/systems');
   const { data: trending } = useApi<string[]>('/api/catalog/trending');
+  const { data: photoRes } = useApi<{ data: ProductRecord[] }>('/api/catalog/products', { limit: 8, verified: '1', has_image: '1' });
   const { data: productsRes } = useApi<{ data: ProductRecord[] }>('/api/catalog/products', { limit: 8, verified: '1' });
   const { data: drugsRes } = useApi<{ data: any[] }>('/api/catalog/drugs', { limit: 6 });
   const { data: catalogStats } = useApi<any>('/api/catalog/stats');
@@ -87,6 +88,12 @@ export default function Home() {
     { to: '/pharmacy', label: t('pharmacy.title'), icon: ShoppingCart, g: 'from-[#6366f1] to-[#818cf8]' },
     { to: '/submit-drug', label: t('submit.title'), icon: FilePlus2, g: 'from-[#14b8a6] to-[#2dd4bf]' },
   ];
+
+  const allProducts = productsRes?.data ?? [];
+  const photoProducts = photoRes?.data ?? [];
+  const gridProducts = photoProducts.length ? photoProducts : allProducts;
+  const featured = gridProducts[0];
+  const featuredName = featured ? (ar && featured.trade_name_ar ? featured.trade_name_ar : featured.trade_name) : '';
 
   return (
     <div className="space-y-6">
@@ -143,6 +150,52 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ── Featured product spotlight ───────────────────────── */}
+      {featured && (
+        <Link
+          to={`/products/${featured.id}`}
+          className="group relative flex items-center gap-3 overflow-hidden rounded-3xl border border-amber-400/25 bg-[linear-gradient(115deg,rgba(245,158,11,.16),rgba(27,109,255,.20)_55%,rgba(34,211,238,.12))] p-3 backdrop-blur animate-fade-up"
+        >
+          <span className="pointer-events-none absolute -end-10 -top-12 h-36 w-36 rounded-full bg-amber-400/25 blur-3xl" />
+          <span className="pointer-events-none absolute -start-8 -bottom-10 h-28 w-28 rounded-full bg-brand-500/25 blur-3xl" />
+          <div className="photo-plate relative h-[84px] w-[84px] shrink-0 overflow-hidden rounded-2xl transition duration-500 group-hover:scale-[1.03]">
+            <SmartImage
+              src={featured.image_url}
+              productId={featured.id}
+              alt={featured.trade_name}
+              className="h-full w-full object-contain p-1.5"
+              rounded=""
+            />
+          </div>
+          <div className="relative min-w-0 flex-1">
+            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-300 to-amber-500 px-2 py-0.5 text-[9.5px] font-black text-ink-950 shadow-[0_6px_16px_-8px_rgba(245,158,11,.9)]">
+              <Star className="h-2.5 w-2.5 fill-current" />
+              {ar ? 'منتج مميّز' : 'Featured product'}
+            </span>
+            <div className="mt-1 line-clamp-1 text-[14px] font-extrabold leading-tight text-white">{featuredName}</div>
+            <div className="line-clamp-1 text-[11px] font-medium text-ink-300" dir="auto">
+              {[featured.strength, featured.dosage_form, featured.manufacturer_name || featured.country].filter(Boolean).join(' · ')}
+            </div>
+          </div>
+          <div className="relative flex shrink-0 flex-col items-end gap-1.5">
+            {featured.price ? (
+              <span className="rounded-xl border border-white/15 bg-white/10 px-2 py-1 text-[12px] font-black text-white backdrop-blur num">
+                {fmt(featured.price)}
+                <span className="ms-0.5 text-[8.5px] font-semibold text-ink-300">{featured.currency || 'YER'}</span>
+              </span>
+            ) : featured.country ? (
+              <span className="rounded-xl border border-white/15 bg-white/10 px-2 py-1 text-[10px] font-bold text-white backdrop-blur">
+                {featured.country}
+              </span>
+            ) : null}
+            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/15 text-white transition group-hover:bg-white/25">
+              <ChevronLeft className="h-4 w-4 rtl:block ltr:hidden" />
+              <ArrowRight className="hidden h-4 w-4 ltr:block" />
+            </span>
+          </div>
+        </Link>
+      )}
 
       {/* ── Quick tools ─────────────────────────────────────── */}
       <section>
@@ -208,7 +261,7 @@ export default function Home() {
           action={<Link to="/search" className="inline-flex items-center gap-1 text-[11.5px] font-bold text-brand-300 transition hover:text-white">{t('common.viewAll')}<ArrowRight className="h-3 w-3 rtl:hidden" /><ChevronLeft className="hidden h-3 w-3 rtl:block" /></Link>}
         />
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
-          {(productsRes?.data || []).map((p) => <ProductCard key={p.id} product={p} />)}
+          {gridProducts.map((p) => <ProductCard key={p.id} product={p} />)}
           {!productsRes && Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton h-[230px]" />)}
         </div>
       </section>

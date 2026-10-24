@@ -157,12 +157,12 @@ export function ProductCard({ product, horizontal = false }: { product: ProductR
         horizontal ? 'flex items-center gap-3 p-2.5' : 'flex flex-col',
       )}
     >
-      <div className={cx('photo-plate relative overflow-hidden', horizontal ? 'h-[78px] w-[78px] shrink-0 rounded-2xl' : 'aspect-[4/3] w-full')}>
+      <div className={cx('photo-plate relative overflow-hidden', horizontal ? 'h-[78px] w-[78px] shrink-0 rounded-2xl' : 'aspect-square w-full')}>
         <SmartImage
           src={product.image_url}
           productId={product.id}
           alt={product.trade_name}
-          className={cx('h-full w-full object-contain transition duration-500 group-hover:scale-[1.04]', horizontal ? 'p-1' : 'p-2.5')}
+          className={cx('h-full w-full object-contain transition duration-500 group-hover:scale-[1.05]', horizontal ? 'p-1' : 'p-3')}
           rounded=""
         />
         {product.verified ? (
