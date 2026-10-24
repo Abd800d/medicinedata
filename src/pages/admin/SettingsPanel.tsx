@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Download, Loader2, RefreshCw, Save, ShieldCheck, Wrench } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Download, Loader2, RefreshCw, Save, Server, ShieldCheck, Smartphone, Wrench, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { downloadWithAuth } from '../../lib/download';
 import { useApi } from '../../lib/useApi';
@@ -54,6 +55,31 @@ export default function SettingsPanel() {
 
   return (
     <div className="space-y-3">
+      <div className="card relative overflow-hidden p-4">
+        <span className="pointer-events-none absolute -end-8 -top-10 h-28 w-28 rounded-full bg-brand-500/15 blur-2xl" />
+        <div className="relative flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-grad text-white shadow-glow"><Smartphone className="h-4 w-4" /></span>
+          <div>
+            <h2 className="text-[12.5px] font-extrabold text-white">تطبيق الأندرويد (APK)</h2>
+            <p className="text-[10px] text-ink-400">آخر نسخة تُبنى تلقائيًا من المستودع وتُنشر في Releases.</p>
+          </div>
+        </div>
+        <div className="relative mt-3 flex flex-wrap gap-2">
+          <a href="https://github.com/Abd800d/medicinedata/releases/latest" target="_blank" rel="noreferrer" className="btn-primary text-[11.5px]">
+            <Download className="h-4 w-4" />تحميل آخر APK
+          </a>
+          <a href="https://github.com/Abd800d/medicinedata/releases" target="_blank" rel="noreferrer" className="btn-ghost text-[11.5px]">
+            <ExternalLink className="h-4 w-4" />كل الإصدارات
+          </a>
+          <Link to="/server" className="btn-ghost text-[11.5px]">
+            <Server className="h-4 w-4" />عنوان الخادم داخل التطبيق
+          </Link>
+        </div>
+        <p className="relative mt-2 text-[10px] leading-5 text-ink-400">
+          بعد تثبيت الـAPK: افتح <b className="text-ink-200">المزيد ← الخادم والاتصال</b> وضع رابط هذا الموقع، ثم «اختبار الاتصال» و«حفظ».
+        </p>
+      </div>
+
       <div className="card p-4">
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-brand-300" /><h2 className="text-[12.5px] font-extrabold">إعدادات الموقع</h2></div>
