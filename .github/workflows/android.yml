@@ -31,6 +31,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: android-${{ github.ref }}
@@ -144,6 +145,26 @@ jobs:
             grep -nE "FAILURE|What went wrong|error:|Caused by:|Could not|Unsupported|SDK location|requires Java|Execution failed|> Task .* FAILED" build.log               | head -15 | while IFS= read -r line; do echo "::error::$line"; done
           fi
           exit "$STATUS"
+
+      - name: Publish gradle failure log
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BODY="$RUNNER_TEMP/body.md"
+          {
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo ""
+            echo '```'
+            tail -150 android/build.log 2>/dev/null || echo "no build.log"
+            echo '```'
+          } > "$BODY"
+          NUM=$(gh issue list --search 'in:title "APK build log"' --state open --json number --jq '.[0].number // empty' || true)
+          if [ -n "$NUM" ]; then
+            gh issue comment "$NUM" --body-file "$BODY"
+          else
+            gh issue create --title "APK build log" --body-file "$BODY"
+          fi
 
       - name: Collect artifact
         run: |
