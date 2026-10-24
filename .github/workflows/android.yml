@@ -29,6 +29,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: android-${{ github.ref }}
@@ -127,12 +128,42 @@ jobs:
         working-directory: android
         run: |
           chmod +x ./gradlew
-          # branch names contain '/', so flatten to a Play-safe versionName
           VERSION_NAME="$(printf '%s' "${GITHUB_REF_NAME:-1.0.0}" | tr -c '[:alnum:]._-' '-' | cut -c1-32)"
-          if [ "$BUILD_TYPE" = "release" ]; then
-            ./gradlew assembleRelease --no-daemon --stacktrace -PversionName="$VERSION_NAME" -PversionCode="${{ github.run_number }}"
+          VERSION_CODE="${GITHUB_RUN_NUMBER:-1}"
+          echo "versionName=$VERSION_NAME versionCode=$VERSION_CODE"
+          TASK="assembleDebug"
+          if [ "$BUILD_TYPE" = "release" ]; then TASK="assembleRelease"; fi
+          set +e
+          ./gradlew "$TASK" --no-daemon -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE" > build.log 2>&1
+          STATUS=$?
+          set -e
+          echo "----- gradle tail -----"
+          tail -80 build.log || true
+          echo "----- end -----"
+          if [ "$STATUS" -ne 0 ]; then
+            echo "::error::Gradle $TASK failed (exit $STATUS)"
+            grep -nE "FAILURE|What went wrong|error:|Caused by:|Could not|Unsupported|SDK location|requires Java|Execution failed|> Task .* FAILED" build.log               | head -15 | while IFS= read -r line; do echo "::error::$line"; done
+          fi
+          exit "$STATUS"
+
+      - name: Publish gradle failure log
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BODY="$RUNNER_TEMP/body.md"
+          {
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo ""
+            echo '```'
+            tail -150 android/build.log 2>/dev/null || echo "no build.log"
+            echo '```'
+          } > "$BODY"
+          NUM=$(gh issue list --search 'in:title "APK build log"' --state open --json number --jq '.[0].number // empty' || true)
+          if [ -n "$NUM" ]; then
+            gh issue comment "$NUM" --body-file "$BODY"
           else
-            ./gradlew assembleDebug --no-daemon --stacktrace -PversionName="$VERSION_NAME" -PversionCode="${{ github.run_number }}"
+            gh issue create --title "APK build log" --body-file "$BODY"
           fi
 
       - name: Collect artifact
