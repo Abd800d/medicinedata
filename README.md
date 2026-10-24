@@ -248,3 +248,22 @@ TOKEN=<jwt> npm run smoke    # اختبار حالة تسجيل الدخول
 ## English summary
 
 **MDA — MedicineData** is a mobile-first, bilingual (Arabic/English, RTL) pharmaceutical reference and pharmacy-management app built for Yemen and the Arab market. It ships with 18 body systems, pharmacological classes, generic monographs, commercial products with manufacturer/country/Yemeni agent, fuzzy multilingual search, offline packs, prescription-photo analysis (offline matcher + optional OpenAI-compatible vision), personal pharmacy stock, community support, a job board, a manufacturer/agent directory, and a full admin panel (CRUD, CSV/Excel/JSON import, bulk image import, users, messages, settings, backup export). Stack: React 18 + Vite + Tailwind + Express + SQLite (better-sqlite3 + FTS5). Android via Capacitor (`android/`). See [`docs/`](docs) for deployment, environment, Android and import guides.
+
+## 📱 تطبيق الأندرويد (APK)
+
+آخر نسخة جاهزة للتثبيت تُنشر تلقائيًا على GitHub Releases:
+
+**https://github.com/Abd800d/medicinedata/releases/latest**
+
+- يُبنى من `.github/workflows/android.yml` (push وسم `v*` أو تشغيل يدوي من Actions).
+- بعد التثبيت: **المزيد ← الخادم والاتصال** لإدخال رابط موقعك (مثل `https://mda.onrender.com`)
+  ثم «اختبار الاتصال» ← «حفظ وإعادة تحميل». لا حاجة لإعادة بناء التطبيق عند تغيير الخادم.
+- الأسعار الحقيقية فقط: تُدار من لوحة التحكم، ولا تُعرض أي أسعار مُولّدة.
+
+## 🖥️ الموقع ولوحة التحكم
+
+`Dockerfile` + `render.yaml` جاهزان لنشر الواجهة + الـ API + قاعدة SQLite على Render أو أي VPS.
+الدليل الكامل: [`docs/DEPLOY.md`](docs/DEPLOY.md).
+
+- واجهة المستخدم: `/`
+- لوحة التحكم: `/admin` (بحساب المدير من `.env`)
