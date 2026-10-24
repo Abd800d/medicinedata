@@ -1,6 +1,6 @@
 /* AI layer: OpenAI-compatible chat + vision, with a fully offline retrieval fallback. */
 import { db } from '../db.js';
-import { normalize, similarity } from './search.js';
+import { normalize, similarity, queryTokens } from './search.js';
 
 const BASE = process.env.AI_BASE_URL || 'https://api.openai.com/v1';
 const KEY = process.env.AI_API_KEY || process.env.OPENAI_API_KEY || '';
@@ -38,20 +38,63 @@ function safeJson(text, fallback) {
 }
 
 /* ---------- Local retrieval over the real database ---------- */
+/* Question words that carry no medicine identity ("ما جرعة …؟", "what is the dose of …") */
+const QUESTION_STOP = new Set([
+  'ما', 'ماذا', 'هل', 'كيف', 'متى', 'اين', 'لماذا', 'هي', 'هو', 'هذا', 'هذه', 'عن', 'من', 'في', 'على', 'الى', 'او', 'ثم',
+  'جرعات', 'علاج', 'دواء', 'الادويه', 'استخدام', 'استخدامات', 'دواعي', 'فوائد', 'اعراض', 'اثار', 'تحذيرات', 'موانع',
+  'سعر', 'بديل', 'بدائل', 'افضل', 'معلومات', 'نبذه', 'شرح', 'هل', 'تعريف', 'what', 'whats', 'which', 'when', 'where',
+  'why', 'how', 'who', 'is', 'are', 'was', 'were', 'the', 'a', 'an', 'of', 'for', 'to', 'and', 'or', 'with', 'about',
+  'tell', 'me', 'medicine', 'medicines', 'drug', 'drugs', 'dose', 'doses', 'dosing', 'dosage', 'use', 'uses', 'used',
+  'used?', 'side', 'effects', 'effect', 'warnings', 'warning', 'price', 'alternative', 'alternatives', 'info',
+  'information', 'please', 'can', 'you', 'give', 'explain',
+]);
+
 export function retrieve(q, limit = 8) {
   const norm = normalize(q);
   if (!norm) return { drugs: [], products: [] };
-  const tokens = norm.split(' ').filter((t) => t.length > 2);
-  const like = `%${tokens[0] || norm}%`;
-  const drugs = db.prepare(`SELECT d.id, d.generic_name, d.generic_ar, d.drug_class, d.indications_ar, d.indications_en,
+  const tokens = queryTokens(q).filter((t) => !QUESTION_STOP.has(t));
+  if (!tokens.length) return { drugs: [], products: [] };
+  const likes = tokens.slice(0, 4).map((t) => `%${t.replace(/[%_]/g, '')}%`);
+  const DRUG_SELECT = `SELECT d.id, d.generic_name, d.generic_ar, d.drug_class, d.indications_ar, d.indications_en,
       d.dosage_adult, d.dosage_child, d.contraindications, d.side_effects, d.warnings, d.interactions, d.pregnancy,
       d.mechanism_ar, d.mechanism_en, d.half_life, d.storage, d.atc_code, d.synonyms,
       s.name_ar AS system_ar, s.name_en AS system_en
-    FROM drugs d LEFT JOIN systems s ON s.id=d.system_id
-    WHERE d.search_norm LIKE ? OR d.generic_name LIKE ? OR d.generic_ar LIKE ? LIMIT 120`).all(like, like, like);
+    FROM drugs d LEFT JOIN systems s ON s.id=d.system_id`;
+  const where = likes.map(() => '(d.search_norm LIKE ? OR d.generic_name LIKE ? OR d.generic_ar LIKE ?)').join(' OR ');
+  let drugs = db.prepare(`${DRUG_SELECT} WHERE ${where} LIMIT 200`).all(...likes.flatMap((l) => [l, l, l]));
+  // Small catalogue (or a heavily misspelled Arabic name): score everything rather than miss the match
+  if (drugs.length < 40) drugs = db.prepare(`${DRUG_SELECT} LIMIT 6000`).all();
+  const scoreOf = (d) => Math.max(...tokens.map((t) => Math.max(
+    similarity(t, d.generic_name),
+    d.generic_ar ? similarity(t, d.generic_ar) : 0,
+    d.synonyms ? similarity(t, d.synonyms) * 0.9 : 0,
+  )));
+  /* Brands: a question may name the trade name ("أوجمنتين") while the monograph is the generic */
+  const PROD_SELECT = `SELECT p.drug_id, p.trade_name, p.trade_name_ar FROM products p WHERE p.active=1`;
+  let prodRows = db.prepare(`${PROD_SELECT} AND (${likes.map(() => '(p.search_norm LIKE ? OR p.trade_name LIKE ? OR p.trade_name_ar LIKE ?)').join(' OR ')}) LIMIT 300`)
+    .all(...likes.flatMap((l) => [l, l, l]));
+  if (prodRows.length < 60) prodRows = db.prepare(`${PROD_SELECT} LIMIT 20000`).all();
+  const byId = new Map(drugs.map((d) => [d.id, d]));
+  const brandScore = new Map();
+  for (const p of prodRows) {
+    if (!p.drug_id) continue;
+    const sc = Math.max(...tokens.map((t) => Math.max(similarity(t, p.trade_name), p.trade_name_ar ? similarity(t, p.trade_name_ar) : 0)));
+    if (sc > (brandScore.get(p.drug_id) || 0)) brandScore.set(p.drug_id, sc);
+  }
+  const extraIds = [...brandScore.entries()].filter(([id, sc]) => sc > 0.6 && !byId.has(id))
+    .sort((a, b) => b[1] - a[1]).slice(0, 12).map(([id]) => id);
+  if (extraIds.length) {
+    const extra = db.prepare(`SELECT d.id, d.generic_name, d.generic_ar, d.drug_class, d.indications_ar, d.indications_en,
+        d.dosage_adult, d.dosage_child, d.contraindications, d.side_effects, d.warnings, d.interactions, d.pregnancy,
+        d.mechanism_ar, d.mechanism_en, d.half_life, d.storage, d.atc_code, d.synonyms,
+        s.name_ar AS system_ar, s.name_en AS system_en
+      FROM drugs d LEFT JOIN systems s ON s.id=d.system_id WHERE d.id IN (${extraIds.map(() => '?').join(',')})`).all(...extraIds);
+    for (const d of extra) { byId.set(d.id, d); drugs.push(d); }
+  }
+
   const scored = drugs
-    .map((d) => ({ d, s: Math.max(similarity(q, d.generic_name), similarity(q, d.generic_ar), similarity(q, d.synonyms || '') * 0.9) }))
-    .filter((x) => x.s > 0.3)
+    .map((d) => ({ d, s: Math.max(scoreOf(d), brandScore.get(d.id) || 0) }))
+    .filter((x) => x.s > 0.62)
     .sort((a, b) => b.s - a.s)
     .slice(0, limit)
     .map((x) => x.d);

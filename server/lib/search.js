@@ -91,9 +91,17 @@ export const QUERY_STOP = new Set([
 
 /* Meaningful tokens of a query: no dose numbers, no form/frequency words */
 export function queryTokens(q, minLen = 3) {
-  return [...new Set(normalize(q).split(' ')
-    .map((t) => t.replace(/^[.+-]+|[.+-]+$/g, ''))
-    .filter((t) => t && t.length >= minLen && !/^\d+([.,]\d+)?$/.test(t) && !QUERY_STOP.has(t)))];
+  const out = [];
+  for (const raw of normalize(q).split(' ')) {
+    const t = raw.replace(/^[.+-]+|[.+-]+$/g, '');
+    if (!t || t.length < minLen || /^\d+([.,]\d+)?$/.test(t) || QUERY_STOP.has(t)) continue;
+    out.push(t);
+    // Arabic definite article: "الباراسيتامول" should also match "باراسيتامول"
+    if (t.length >= 5 && t.startsWith('ال')) out.push(t.slice(2));
+    // Arabic plural/ta-marbuta tails are already folded; also try without a trailing "ات"/"ين"
+    if (t.length >= 6 && /(ات|ين|ون)$/.test(t)) out.push(t.slice(0, -2));
+  }
+  return [...new Set(out)];
 }
 
 export function rankCandidates(query, rows, fields, limit = 20, minScore = 0.35) {
