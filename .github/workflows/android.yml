@@ -96,7 +96,8 @@ jobs:
         working-directory: android
         run: |
           chmod +x ./gradlew
-          VERSION_NAME="${GITHUB_REF_NAME:-1.0.0}"
+          # branch names contain '/', so flatten to a Play-safe versionName
+          VERSION_NAME="$(printf '%s' "${GITHUB_REF_NAME:-1.0.0}" | tr -c '[:alnum:]._-' '-' | cut -c1-32)"
           if [ "$BUILD_TYPE" = "release" ]; then
             ./gradlew assembleRelease --no-daemon -PversionName="$VERSION_NAME" -PversionCode="${{ github.run_number }}"
           else
