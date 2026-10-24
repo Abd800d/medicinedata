@@ -1,8 +1,5 @@
 @import '@fontsource-variable/inter';
-@import '@fontsource/ibm-plex-sans-arabic/400.css';
-@import '@fontsource/ibm-plex-sans-arabic/500.css';
-@import '@fontsource/ibm-plex-sans-arabic/600.css';
-@import '@fontsource/ibm-plex-sans-arabic/700.css';
+@import '@fontsource-variable/cairo';
 
 @tailwind base;
 @tailwind components;
@@ -233,7 +230,7 @@ body {
 .bottom-safe { padding-bottom: calc(0.5rem + var(--safe-bottom)); }
 
 /* tabular numbers in stats */
-.num { font-variant-numeric: tabular-nums; }
+.num { font-family: 'Inter Variable', 'Cairo Variable', system-ui, sans-serif; font-variant-numeric: tabular-nums; }
 
 /* print */
 @media print {

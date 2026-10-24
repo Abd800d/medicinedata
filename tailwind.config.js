@@ -18,8 +18,8 @@ export default {
         aqua: { 300: '#67e8f9', 400: '#22d3ee', 500: '#06b6d4', 600: '#0891b2' },
       },
       fontFamily: {
-        sans: ['Inter Variable', 'IBM Plex Sans Arabic', 'system-ui', 'sans-serif'],
-        ar: ['IBM Plex Sans Arabic', 'Inter Variable', 'system-ui', 'sans-serif'],
+        sans: ['Inter Variable', 'Cairo Variable', 'IBM Plex Sans Arabic', 'system-ui', 'sans-serif'],
+        ar: ['Cairo Variable', 'IBM Plex Sans Arabic', 'Inter Variable', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         card: '0 1px 2px rgba(3,10,24,.18), 0 18px 40px -26px rgba(0,0,0,.85)',
