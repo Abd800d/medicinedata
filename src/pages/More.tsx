@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import {
-  Bot, Briefcase, ChevronLeft, ChevronRight, Database, Download, FilePlus2, FileText, Globe2, Info, Languages, LayoutDashboard,
+  Bot, Briefcase, ChevronLeft, ChevronRight, CloudDownload, Database, Download, FilePlus2, FileText, Globe2, Info, Languages, LayoutDashboard,
   LogIn, LogOut, MessageCircle, ScanLine, ScrollText, Settings2, ShieldCheck, ShoppingCart, Smartphone, UserRound, Users, Mail, Phone,
 } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
@@ -8,6 +8,7 @@ import { useConfig } from '../lib/config';
 import { useAuth } from '../lib/auth';
 import { Avatar, Badge, useToast } from '../components/ui';
 import { requestInstall } from '../components/install';
+import { useOnline } from '../lib/offline';
 import { downloadPack } from '../lib/offline';
 import { useState } from 'react';
 
@@ -98,6 +99,11 @@ export default function More() {
           <div className="flex-1"><div className="text-[12.5px] font-bold text-white">{lang === 'ar' ? 'تثبيت التطبيق' : 'Install the app'}</div><div className="text-[10.5px] text-ink-400">{lang === 'ar' ? 'أضف MDA إلى الشاشة الرئيسية' : 'Add MDA to your home screen'}</div></div>
           <Download className="h-3.5 w-3.5 text-ink-500" />
         </button>
+        <Link to="/offline" className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start transition hover:bg-white/[.04]">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[.05] text-ink-300"><CloudDownload className="h-4 w-4" /></span>
+          <div className="flex-1"><div className="text-[12.5px] font-bold text-white">{lang === 'ar' ? 'العمل بدون إنترنت' : 'Offline mode'}</div><div className="text-[10px] text-ink-400">{lang === 'ar' ? 'حالة الحزمة والمساحة المستخدمة' : 'Pack status and storage'}</div></div>
+          <ChevronLeft className="h-3.5 w-3.5 text-ink-500 rtl:block ltr:hidden" /><ChevronRight className="hidden h-3.5 w-3.5 text-ink-500 ltr:block" />
+        </Link>
         <button onClick={download} disabled={busy} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start transition hover:bg-white/[.04]">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[.05] text-ink-300"><Download className="h-4 w-4" /></span>
           <div className="flex-1"><div className="text-[12.5px] font-bold">{t('more.offlinePack')}</div><div className="text-[10.5px] text-ink-400">{busy ? t('common.loading') : t('more.offlineDesc')}</div></div>

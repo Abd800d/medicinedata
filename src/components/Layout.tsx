@@ -153,9 +153,9 @@ export function OfflineBanner() {
   const { t } = useI18n();
   if (online) return null;
   return (
-    <div className="sticky top-[62px] z-30 border-b border-amber-400/20 bg-amber-500/10 px-4 py-2 text-center text-[11.5px] font-bold text-amber-200 backdrop-blur">
+    <Link to="/offline" className="sticky top-[62px] z-30 block border-b border-amber-400/20 bg-amber-500/10 px-4 py-2 text-center text-[11.5px] font-bold text-amber-200 backdrop-blur">
       <span className="inline-flex items-center gap-1.5"><WifiOff className="h-3.5 w-3.5" />{t('offline.banner')}</span>
-    </div>
+    </Link>
   );
 }
 

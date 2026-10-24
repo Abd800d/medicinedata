@@ -56,6 +56,20 @@ export async function downloadPack() {
   return pack;
 }
 
+export async function deletePack() {
+  try {
+    const db = await openDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).delete('catalog');
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } finally {
+    localStorage.removeItem('mda.pack.meta');
+  }
+}
+
 export function useOnline() {
   const [online, setOnline] = useState(navigator.onLine);
   useEffect(() => {

@@ -27,7 +27,8 @@ const [drugId, productId] = [await firstId('/api/catalog/drugs?limit=1'), await 
 const DEFAULT_ROUTES = ['/', '/systems', '/systems/nervous', '/search', '/search?q=panadol',
   drugId ? `/drugs/${drugId}` : '/drugs/1', productId ? `/products/${productId}` : '/products/1',
   '/prescriptions', '/scan', '/ai', '/community', '/jobs', '/directories', '/pharmacy', '/submit-drug',
-  '/about', '/profile', '/auth', '/admin'];
+  '/about', '/profile', '/auth', '/admin', '/offline'];
+
 
 const routes = process.argv.slice(2).length ? process.argv.slice(2) : DEFAULT_ROUTES;
 const results = [];
