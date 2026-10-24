@@ -1,0 +1,34 @@
+# Render Blueprint — the MDA control site (web app + API + SQLite)
+# Deploy: Render dashboard → New → Blueprint → pick this repo.
+services:
+  - type: web
+    name: mda
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: frankfurt
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: JWT_SECRET
+        generateValue: true
+      - key: OWNER_EMAIL
+        value: 7a8b1d@gmail.com
+      - key: OWNER_NAME
+        value: د. عبدالمجيد عبدالله الماخذي
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: WHATSAPP_NUMBER
+        value: '+967781733795'
+      - key: SUPPORT_EMAIL
+        value: 7a8b1d@gmail.com
+      - key: AUTO_SEED
+        value: '1'
+    disk:
+      name: mda-data
+      mountPath: /app/data
+      sizeGB: 1
