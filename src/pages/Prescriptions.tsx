@@ -112,7 +112,7 @@ export default function Prescriptions() {
       <div className="rounded-3xl page-hero page-hero-rose p-5 text-white">
         <div className="flex items-center gap-2"><ScanText className="h-5 w-5" /><h1 className="text-[21px] font-extrabold">{t('rx.title')}</h1></div>
         <p className="mt-1 max-w-lg text-[11.5px] leading-6 text-white/80">{t('rx.subtitle')}</p>
-        <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] font-semibold">
+        <div className="mt-3 flex flex-wrap gap-1.5 text-[10.5px] font-semibold">
           <span className="rounded-full bg-white/15 px-2 py-1"><Camera className="me-1 inline h-3 w-3" /> صوّر الوصفة</span>
           <span className="rounded-full bg-white/15 px-2 py-1"><Bot className="me-1 inline h-3 w-3" /> استخراج ذكي</span>
           <span className="rounded-full bg-white/15 px-2 py-1"><Pill className="me-1 inline h-3 w-3" /> مطابقة مع {lang === 'ar' ? 'المنتجات' : 'products'}</span>
@@ -124,7 +124,7 @@ export default function Prescriptions() {
           <span className="flex h-10 w-10 items-center justify-center rounded-xl text-ink-500 bg-white/[.05]"><Lock className="h-5 w-5" /></span>
           <div className="min-w-0 flex-1">
             <div className="text-[12.5px] font-bold">{t('common.loginRequired')}</div>
-            <div className="text-[10.5px] text-ink-500">حفظ الوصفات وتاريخها متاح بعد تسجيل الدخول — يمكنك تحليل النص كزائر.</div>
+            <div className="text-[11px] text-ink-500">حفظ الوصفات وتاريخها متاح بعد تسجيل الدخول — يمكنك تحليل النص كزائر.</div>
           </div>
           <Link to="/auth" className="btn-primary shrink-0 px-3 py-2 text-[11.5px]">{t('common.login')}</Link>
         </div>
@@ -138,7 +138,7 @@ export default function Prescriptions() {
           <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-rose-400/30 bg-rose-500/[.05] px-4 py-8 text-center">
             <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-pink-500 text-white shadow-tile"><UploadCloud className="h-6 w-6" /></span>
             <div className="text-[13px] font-bold text-ink-100">{t('rx.upload')}</div>
-            <p className="mt-1 max-w-xs text-[10.5px] leading-5 text-ink-500">صورة واضحة، إضاءة جيدة، وبدون انعكاس — يمكنك التصوير مباشرة أو اختيار صورة من المعرض.</p>
+            <p className="mt-1 max-w-xs text-[11px] leading-5 text-ink-500">صورة واضحة، إضاءة جيدة، وبدون انعكاس — يمكنك التصوير مباشرة أو اختيار صورة من المعرض.</p>
             <div className="mt-3 flex gap-2">
               <button onClick={() => cameraRef.current?.click()} className="btn-primary"><Camera className="h-4 w-4" />{t('rx.camera')}</button>
               <button onClick={() => fileRef.current?.click()} className="btn-ghost"><ImageIcon className="h-4 w-4" />{t('rx.choose')}</button>
@@ -164,8 +164,8 @@ export default function Prescriptions() {
       {showManual && (
         <div className="card p-4">
           <div className="mb-2 flex items-center gap-2 text-violet-300"><Bot className="h-4 w-4" /><h2 className="text-[12.5px] font-extrabold">{t('rx.manualTitle')}</h2></div>
-          <p className="mb-2 text-[10.5px] leading-5 text-ink-500">{t('rx.manualHint')}</p>
-          {!current?.ai && <div className="mb-2 rounded-xl p-2.5 text-[10.5px] leading-5 bg-amber-500/10 text-amber-200">{t('rx.noAi')}</div>}
+          <p className="mb-2 text-[11px] leading-5 text-ink-500">{t('rx.manualHint')}</p>
+          {!current?.ai && <div className="mb-2 rounded-xl p-2.5 text-[11px] leading-5 bg-amber-500/10 text-amber-200">{t('rx.noAi')}</div>}
           <TextArea value={manualText} onChange={(e) => setManualText(e.target.value)} placeholder={lang === 'ar' ? 'مثال: Augmentin 1g tablet – 1 tablet twice daily for 7 days…' : 'e.g. Augmentin 1g tablet — one tablet twice daily for 7 days…'} />
           <button onClick={analyzeText} disabled={analyzing || !manualText.trim()} className="btn-primary mt-2 w-full">
             {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanText className="h-4 w-4" />}{t('rx.analyzeText')}
@@ -185,7 +185,7 @@ export default function Prescriptions() {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="text-[13.5px] font-extrabold text-white">{item.name || item.matched?.generic_name || '—'}</div>
-                  <div className="mt-0.5 flex flex-wrap gap-1.5 text-[10px] text-ink-500">
+                  <div className="mt-0.5 flex flex-wrap gap-1.5 text-[10.5px] text-ink-500">
                     {item.strength && <span className="rounded px-1.5 py-0.5 bg-white/[.05]">{item.strength}</span>}
                     {item.form && <span>{item.form}</span>}
                     {item.dose && <span>• {item.dose}</span>}
@@ -196,20 +196,20 @@ export default function Prescriptions() {
                 <Badge tone="emerald"><CheckCircle2 className="h-2.5 w-2.5" />{item.matched ? `${Math.round((item.matched.score || 0) * 100)}%` : '—'}</Badge>
               </div>
               {item.matched?.warnings && (
-                <div className="mt-2 flex items-start gap-1.5 rounded-xl p-2.5 text-[10px] leading-5 bg-amber-500/10 text-amber-200">
+                <div className="mt-2 flex items-start gap-1.5 rounded-xl p-2.5 text-[10.5px] leading-5 bg-amber-500/10 text-amber-200">
                   <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />{item.matched.warnings}
                 </div>
               )}
               {item.matched?.products?.length > 0 && (
                 <div className="mt-2">
-                  <div className="mb-1 text-[10px] font-bold text-ink-500">{t('rx.matchedProducts')}</div>
+                  <div className="mb-1 text-[10.5px] font-bold text-ink-500">{t('rx.matchedProducts')}</div>
                   <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
                     {item.matched.products.slice(0, 4).map((mp: any) => (
                       <Link key={mp.id} to={`/products/${mp.id}`} className="flex w-[132px] shrink-0 items-center gap-2 rounded-xl border p-1.5 border-white/[.08]">
                         <SmartImage src={mp.image_url} productId={mp.id} alt={mp.trade_name} className="h-10 w-10 bg-white/[.05]" rounded="rounded-lg" />
                         <div className="min-w-0">
-                          <div className="line-clamp-1 text-[10.5px] font-bold">{mp.trade_name}</div>
-                          <div className="line-clamp-1 text-[9px] text-ink-400">{mp.strength} · {mp.country}</div>
+                          <div className="line-clamp-1 text-[11px] font-bold">{mp.trade_name}</div>
+                          <div className="line-clamp-1 text-[9.5px] text-ink-400">{mp.strength} · {mp.country}</div>
                         </div>
                       </Link>
                     ))}
@@ -217,13 +217,13 @@ export default function Prescriptions() {
                 </div>
               )}
               {item.matched?.drug_id && (
-                <Link to={`/drugs/${item.matched.drug_id}`} className="mt-2 inline-flex items-center gap-1 text-[10.5px] font-bold text-brand-300">
+                <Link to={`/drugs/${item.matched.drug_id}`} className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-brand-300">
                   {t('rx.viewDrug')} <ChevronLeft className="h-3 w-3 rtl:block ltr:hidden" /><ChevronRight className="hidden h-3 w-3 ltr:block" />
                 </Link>
               )}
             </div>
           ))}
-          <div className="flex items-start gap-2 rounded-xl border border-amber-400/25 bg-amber-500/10 p-3 text-[10px] leading-5 text-amber-200">
+          <div className="flex items-start gap-2 rounded-xl border border-amber-400/25 bg-amber-500/10 p-3 text-[10.5px] leading-5 text-amber-200">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{t('rx.disclaimer')}
           </div>
         </div>
@@ -245,8 +245,8 @@ export default function Prescriptions() {
                     <span className="text-[12px] font-bold">وصفة #{h.id}</span>
                     <Badge tone={h.status === 'analyzed' ? 'emerald' : 'amber'}>{h.status === 'analyzed' ? t('rx.status.analyzed') : t('rx.status.pending')}</Badge>
                   </div>
-                  <div className="line-clamp-1 text-[10.5px] text-ink-500">{h.analysis?.items?.map((i: any) => i.name).join('، ') || h.extracted_text || '—'}</div>
-                  <div className="mt-0.5 inline-flex items-center gap-1 text-[9.5px] text-ink-400"><Clock className="h-2.5 w-2.5" />{dateFmt(h.created_at)}</div>
+                  <div className="line-clamp-1 text-[11px] text-ink-500">{h.analysis?.items?.map((i: any) => i.name).join('، ') || h.extracted_text || '—'}</div>
+                  <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-ink-400"><Clock className="h-2.5 w-2.5" />{dateFmt(h.created_at)}</div>
                 </div>
                 <span onClick={(e) => { e.stopPropagation(); remove(h.id); }} className="icon-btn h-8 w-8 text-rose-500"><Trash2 className="h-4 w-4" /></span>
               </button>

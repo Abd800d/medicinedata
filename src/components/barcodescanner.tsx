@@ -136,10 +136,10 @@ export default function BarcodeScanner({ onDetect, busy = false }: { onDetect: (
             <video ref={videoRef} playsInline muted className="h-[220px] w-full object-cover" />
             <div className="pointer-events-none absolute inset-8 rounded-xl border-2 border-emerald-400/80" />
             <div className="pointer-events-none absolute inset-x-8 top-1/2 h-0.5 animate-pulse bg-emerald-400/80" />
-            <div className="pointer-events-none absolute bottom-2 start-2 rounded-full bg-black/50 px-2 py-0.5 text-[9px] font-bold text-white/80">
+            <div className="pointer-events-none absolute bottom-2 start-2 rounded-full bg-black/50 px-2 py-0.5 text-[9.5px] font-bold text-white/80">
               {engine === 'zxing' ? 'ZXing' : engine === 'native' ? 'BarcodeDetector' : '…'}
             </div>
-            <button onClick={stop} className="absolute end-2 top-2 flex h-8 items-center gap-1 rounded-full bg-black/55 px-2.5 text-[10px] font-bold text-white">
+            <button onClick={stop} className="absolute end-2 top-2 flex h-8 items-center gap-1 rounded-full bg-black/55 px-2.5 text-[10.5px] font-bold text-white">
               <CameraOff className="h-3.5 w-3.5" /> {lang === 'ar' ? 'إيقاف' : 'Stop'}
             </button>
           </>
@@ -147,7 +147,7 @@ export default function BarcodeScanner({ onDetect, busy = false }: { onDetect: (
           <div className="flex flex-col items-center justify-center gap-2 px-4 py-7 text-center">
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 text-white"><Camera className="h-6 w-6" /></span>
             <div className="text-[12.5px] font-bold text-white">{lang === 'ar' ? 'امسح باركود العلبة' : 'Scan the pack barcode'}</div>
-            <p className="max-w-xs text-[10.5px] leading-5 text-white/60">
+            <p className="max-w-xs text-[11px] leading-5 text-white/60">
               {lang === 'ar' ? 'وجّه الكاميرا إلى الباركود (EAN-13 / UPC) ليظهر المنتج مباشرة.' : 'Point the camera at an EAN-13 / UPC barcode to open the product.'}
             </p>
             <button onClick={start} disabled={busy} className="mt-1 flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-[11.5px] font-bold text-white hover:bg-emerald-700 disabled:opacity-60">
@@ -157,7 +157,7 @@ export default function BarcodeScanner({ onDetect, busy = false }: { onDetect: (
         )}
       </div>
 
-      {error && <p className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-[10.5px] leading-5 text-amber-200">{error}</p>}
+      {error && <p className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-[11px] leading-5 text-amber-200">{error}</p>}
 
       <form onSubmit={submitManual} className="flex gap-2">
         <div className="relative flex-1">

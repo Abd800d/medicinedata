@@ -53,7 +53,7 @@ export default function SubmitDrug() {
       <div className="rounded-3xl page-hero page-hero-emerald p-5 text-white">
         <div className="flex items-center gap-2"><FilePlus2 className="h-5 w-5" /><h1 className="text-[21px] font-extrabold">{t('submit.title')}</h1></div>
         <p className="mt-1 max-w-lg text-[11.5px] leading-6 text-white/80">{t('submit.subtitle')}</p>
-        <div className="mt-2 flex flex-wrap gap-1.5 text-[9.5px]">
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
           <span className="rounded-full bg-white/15 px-2 py-0.5">{t('submit.b1')}</span>
           <span className="rounded-full bg-white/15 px-2 py-0.5">{t('submit.b2')}</span>
           <span className="rounded-full bg-white/15 px-2 py-0.5">{t('submit.b3')}</span>
@@ -88,7 +88,7 @@ export default function SubmitDrug() {
         <button type="submit" disabled={busy} className="btn-primary w-full">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 rtl:-scale-x-100" />}{t('submit.send')}
         </button>
-        <p className="flex items-start gap-1.5 text-[9.5px] leading-5 text-ink-400"><ShieldCheck className="mt-0.5 h-3 w-3 shrink-0" />{t('submit.review')}</p>
+        <p className="flex items-start gap-1.5 text-[10px] leading-5 text-ink-400"><ShieldCheck className="mt-0.5 h-3 w-3 shrink-0" />{t('submit.review')}</p>
       </form>
 
       <section>
@@ -103,13 +103,13 @@ export default function SubmitDrug() {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[11.5px] font-bold">{s.name_en} {s.strength || ''}</div>
-                <div className="truncate text-[9.5px] text-ink-400">{[s.name_ar, s.company, s.system_ar || s.system_en].filter(Boolean).join(' · ') || '—'}</div>
+                <div className="truncate text-[10px] text-ink-400">{[s.name_ar, s.company, s.system_ar || s.system_en].filter(Boolean).join(' · ') || '—'}</div>
               </div>
               <div className="flex flex-col items-end gap-0.5">
                 <Badge tone={s.status === 'approved' ? 'emerald' : s.status === 'rejected' ? 'rose' : 'amber'}>{t(`submit.status.${s.status}`)}</Badge>
                 <span className="text-[8.5px] text-ink-400">{timeAgo(s.created_at, lang)}</span>
               </div>
-              {s.status === 'approved' && s.created_drug_id && <Link to={`/drugs/${s.created_drug_id}`} className="text-[9px] font-bold text-brand-300"><Search className="h-3 w-3" /></Link>}
+              {s.status === 'approved' && s.created_drug_id && <Link to={`/drugs/${s.created_drug_id}`} className="text-[9.5px] font-bold text-brand-300"><Search className="h-3 w-3" /></Link>}
             </div>
           ))}
         </div>

@@ -70,16 +70,16 @@ export default function Jobs() {
                 {j.type === 'seeker' ? <UserRound className="h-2.5 w-2.5" /> : <Building2 className="h-2.5 w-2.5" />}
                 {j.type === 'seeker' ? t('jobs.seekers') : t('jobs.offers')}
               </Badge>
-              <span className="inline-flex items-center gap-1 text-[9px] text-ink-400"><Clock className="h-2.5 w-2.5" />{timeAgo(j.created_at, lang)}</span>
+              <span className="inline-flex items-center gap-1 text-[9.5px] text-ink-400"><Clock className="h-2.5 w-2.5" />{timeAgo(j.created_at, lang)}</span>
             </div>
             <h3 className="text-[13.5px] font-extrabold text-white">{j.title}</h3>
             {j.description && <p className="mt-1 line-clamp-3 whitespace-pre-line text-[11px] leading-5 text-ink-500">{j.description}</p>}
-            <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-ink-500">
+            <div className="mt-2 flex flex-wrap gap-1.5 text-[10.5px] text-ink-500">
               {j.specialty && <span className="chip">{j.specialty}</span>}
               {j.city && <span className="chip"><MapPin className="h-2.5 w-2.5" />{j.city}</span>}
             </div>
             <div className="mt-2 flex items-center justify-between gap-2">
-              <div className="flex flex-wrap gap-2 text-[10.5px]">
+              <div className="flex flex-wrap gap-2 text-[11px]">
                 {j.phone && <a href={`tel:${j.phone}`} className="inline-flex items-center gap-1 font-semibold text-brand-300"><Phone className="h-3 w-3" />{j.phone}</a>}
                 {j.email && <a href={`mailto:${j.email}`} className="inline-flex items-center gap-1 font-semibold text-brand-300"><Mail className="h-3 w-3" />{j.email}</a>}
               </div>
@@ -87,7 +87,7 @@ export default function Jobs() {
                 <button onClick={() => remove(j.id)} className="text-rose-500"><Trash2 className="h-3.5 w-3.5" /></button>
               )}
             </div>
-            <div className="mt-1.5 text-[9.5px] text-ink-400">{lang === 'ar' ? 'نُشر بواسطة' : 'Posted by'} {j.author_name || '—'}</div>
+            <div className="mt-1.5 text-[10px] text-ink-400">{lang === 'ar' ? 'نُشر بواسطة' : 'Posted by'} {j.author_name || '—'}</div>
           </div>
         ))}
       </div>

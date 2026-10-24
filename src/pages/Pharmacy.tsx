@@ -145,7 +145,7 @@ export default function Pharmacy() {
             <button key={id} onClick={() => setTab(id)} className={cx('chip', tab === id && 'chip-active')}>{label}</button>
           ))}
         </div>
-        {items.length > 0 && <button onClick={exportCsv} className="btn-ghost px-2.5 py-1.5 text-[10.5px]"><Download className="h-3.5 w-3.5" />CSV</button>}
+        {items.length > 0 && <button onClick={exportCsv} className="btn-ghost px-2.5 py-1.5 text-[11px]"><Download className="h-3.5 w-3.5" />CSV</button>}
       </div>
 
       {loading && !data && <PageLoader />}
@@ -163,10 +163,10 @@ export default function Pharmacy() {
                 <span className="truncate text-[12px] font-extrabold">{i.trade_name || i.name} {i.strength || ''}</span>
                 {i.status === 'expired' ? <Badge tone="rose">{t('pharmacy.expired')}</Badge> : i.status === 'soon' ? <Badge tone="amber">{t('pharmacy.soon')}</Badge> : null}
               </div>
-              <div className="truncate text-[9.5px] text-ink-400">
+              <div className="truncate text-[10px] text-ink-400">
                 {[i.generic_name, i.form, i.batch ? `#${i.batch}` : null, i.supplier].filter(Boolean).join(' · ') || '—'}
               </div>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[9.5px] text-ink-400">
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10px] text-ink-400">
                 {i.expiry_date && <span className="inline-flex items-center gap-0.5"><CalendarClock className="h-2.5 w-2.5" />{i.expiry_date}</span>}
                 {i.buy_price ? <span>{t('pharmacy.buy')}: {fmt(i.buy_price)}</span> : null}
                 {i.sell_price ? <span>{t('pharmacy.sell')}: {fmt(i.sell_price)}</span> : null}
@@ -199,7 +199,7 @@ export default function Pharmacy() {
         <p className="text-[12px] leading-6 text-ink-500">{del?.name}</p>
       </Modal>
 
-      <p className="text-center text-[9.5px] leading-5 text-ink-400">{t('pharmacy.note')}</p>
+      <p className="text-center text-[10px] leading-5 text-ink-400">{t('pharmacy.note')}</p>
     </div>
   );
 }
@@ -242,7 +242,7 @@ function ItemForm({ form, setForm, systems, onClose, onSave, busy }: {
                     <SmartImage src={p.image_url} productId={p.id} alt={p.trade_name} className="h-8 w-8 bg-white/[.06]" rounded="rounded-md" />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[11px] font-bold">{p.trade_name} <span className="font-normal text-ink-400">{p.strength}</span></div>
-                      <div className="truncate text-[9px] text-ink-400">{p.generic_name} · {p.manufacturer_name || '—'}</div>
+                      <div className="truncate text-[9.5px] text-ink-400">{p.generic_name} · {p.manufacturer_name || '—'}</div>
                     </div>
                   </button>
                 ))}

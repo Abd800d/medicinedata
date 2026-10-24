@@ -98,7 +98,7 @@ export default function Home() {
         <div className="relative z-10">
           <div className="flex flex-wrap items-center gap-2">
             <span className="eyebrow"><HeroDot /> {t('app.tagline') || 'MDA · MedicineData'}</span>
-            <span className="hidden rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[9.5px] font-bold text-white/80 backdrop-blur sm:inline-flex">
+            <span className="hidden rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[10px] font-bold text-white/80 backdrop-blur sm:inline-flex">
               عبدالمجيد الماخذي · Abdulmajeed Almakhedhi
             </span>
           </div>
@@ -127,7 +127,7 @@ export default function Home() {
           <div className="no-scrollbar mt-3 flex gap-1.5 overflow-x-auto pb-0.5">
             {popular.map((term) => (
               <button key={term} onClick={() => navigate(`/search?q=${encodeURIComponent(term)}`)}
-                className="shrink-0 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/90 backdrop-blur transition hover:bg-white/20">
+                className="shrink-0 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold text-white/90 backdrop-blur transition hover:bg-white/20">
                 {term}
               </button>
             ))}
@@ -137,7 +137,7 @@ export default function Home() {
             {stats.map((s) => (
               <div key={s.label} className="min-w-0 text-center">
                 <div className="num text-[15px] font-black leading-tight sm:text-[18px]">{fmt(s.value)}</div>
-                <div className="truncate text-[8.5px] font-semibold text-white/65 sm:text-[9.5px]">{s.label}</div>
+                <div className="truncate text-[8.5px] font-semibold text-white/65 sm:text-[10px]">{s.label}</div>
               </div>
             ))}
           </div>
@@ -149,7 +149,7 @@ export default function Home() {
         <SectionHead
           title={t('home.quickTools')}
           subtitle={ar ? 'كل ما تحتاجه في نقرة واحدة' : 'Everything one tap away'}
-          action={<span className="hidden items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[9.5px] font-bold text-emerald-300 sm:inline-flex"><Zap className="h-2.5 w-2.5" />{ar ? 'سريع' : 'Fast'}</span>}
+          action={<span className="hidden items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-bold text-emerald-300 sm:inline-flex"><Zap className="h-2.5 w-2.5" />{ar ? 'سريع' : 'Fast'}</span>}
         />
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-8 sm:gap-3">
           {tools.map((tool) => (
@@ -161,7 +161,7 @@ export default function Home() {
                 <span className="absolute inset-0 rounded-[18px] bg-white/0 transition group-hover:bg-white/10" />
                 <tool.icon className="relative h-[21px] w-[21px]" strokeWidth={2.1} />
               </span>
-              <span className="line-clamp-1 text-[10px] font-bold text-ink-200 sm:text-[11px]">{tool.label}</span>
+              <span className="line-clamp-1 text-[10.5px] font-bold text-ink-200 sm:text-[11px]">{tool.label}</span>
             </Link>
           ))}
         </div>
@@ -190,7 +190,7 @@ export default function Home() {
               {t('ai.title')}
               <Badge tone="emerald" className="!py-0 text-[8.5px]">{ar ? 'مجاني' : 'Free'}</Badge>
             </div>
-            <p className="mt-0.5 line-clamp-2 text-[10.5px] leading-5 text-white/70">
+            <p className="mt-0.5 line-clamp-2 text-[11px] leading-5 text-white/70">
               {ar ? 'اسأل عن الجرعة، التداخل الدوائي، أو البدائل — إجابات من قاعدة بيانات موثوقة.' : 'Ask about dosing, interactions or alternatives — grounded in a trusted database.'}
             </p>
           </div>
@@ -230,7 +230,7 @@ export default function Home() {
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-grad text-white shadow-float"><CloudDownload className="h-5 w-5" /></span>
           <div className="min-w-0 flex-1">
             <div className="text-[12.5px] font-bold text-white">{t('more.offlineTitle')}</div>
-            <div className="text-[10.5px] text-ink-400">{t('more.offlineDesc')}</div>
+            <div className="text-[11px] text-ink-400">{t('more.offlineDesc')}</div>
           </div>
           <ChevronLeft className="h-4 w-4 text-brand-300 rtl:block ltr:hidden" />
           <ArrowRight className="hidden h-4 w-4 text-brand-300 ltr:block" />
@@ -243,7 +243,7 @@ export default function Home() {
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-grad text-white shadow-float"><ShieldCheck className="h-4.5 w-4.5" /></span>
           <div>
             <h2 className="text-[14.5px] font-extrabold text-white">{t('home.trustTitle')}</h2>
-            <p className="text-[10px] text-ink-400">{ar ? 'مصادر علمية وتحديث مستمر' : 'Evidence-based, always current'}</p>
+            <p className="text-[10.5px] text-ink-400">{ar ? 'مصادر علمية وتحديث مستمر' : 'Evidence-based, always current'}</p>
           </div>
         </div>
         <div className="grid gap-2 sm:grid-cols-3">
@@ -255,11 +255,11 @@ export default function Home() {
             <div key={x.title} className="rounded-2xl border border-white/[.06] bg-white/[.03] p-3.5">
               <x.icon className="mb-2 h-4.5 w-4.5 text-brand-300" />
               <div className="text-[12px] font-bold text-white">{x.title}</div>
-              <p className="mt-1 text-[10.5px] leading-5 text-ink-400">{x.desc}</p>
+              <p className="mt-1 text-[11px] leading-5 text-ink-400">{x.desc}</p>
             </div>
           ))}
         </div>
-        <div className="mt-3 flex items-start gap-2 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-3 text-[10.5px] leading-5 text-amber-200">
+        <div className="mt-3 flex items-start gap-2 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-3 text-[11px] leading-5 text-amber-200">
           <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span><b>{t('home.disclaimer')}:</b> {ar ? config.disclaimer_ar : config.disclaimer_en}</span>
         </div>
@@ -271,7 +271,7 @@ export default function Home() {
             <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[.07] text-brand-300"><Activity className="h-5 w-5" /></span>
             <div>
               <div className="text-[13px] font-bold text-white">{t('common.admin')}</div>
-              <div className="text-[10.5px] text-ink-400">{ar ? 'إدارة الأدوية والمنتجات والاستيراد والمستخدمين' : 'Catalogue, imports, media and users'}</div>
+              <div className="text-[11px] text-ink-400">{ar ? 'إدارة الأدوية والمنتجات والاستيراد والمستخدمين' : 'Catalogue, imports, media and users'}</div>
             </div>
           </div>
           <ChevronLeft className="h-5 w-5 text-ink-400 rtl:block ltr:hidden" />
@@ -279,7 +279,7 @@ export default function Home() {
         </Link>
       )}
 
-      <p className="flex items-center justify-center gap-1.5 pt-1 text-center text-[9.5px] font-semibold text-ink-500">
+      <p className="flex items-center justify-center gap-1.5 pt-1 text-center text-[10px] font-semibold text-ink-500">
         <Star className="h-3 w-3 text-amber-400" />
         {ar ? 'صُنع بعناية للصيادلة والأطباء والطلاب في اليمن والعالم العربي' : 'Built for pharmacists, doctors and students across the Arab world'}
       </p>

@@ -102,7 +102,7 @@ export default function InstallPrompt() {
         <div className="text-[12.5px] font-extrabold text-white">
           {lang === 'ar' ? 'ثبّت MDA على جهازك' : 'Install MDA on your phone'}
         </div>
-        <div className="line-clamp-1 text-[10px] text-ink-400">
+        <div className="line-clamp-1 text-[10.5px] text-ink-400">
           {lang === 'ar' ? 'وصول أسرع ويعمل بدون إنترنت' : 'Faster access, works offline'}
         </div>
       </div>

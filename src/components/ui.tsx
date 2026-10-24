@@ -43,10 +43,14 @@ export function Logo({ compact = false, className = '', light = false }: { compa
       </span>
       <div className="leading-none">
         <div className="flex items-baseline gap-1.5">
-          <span className={cx('text-[20px] font-black tracking-[-.02em]', light ? 'text-white' : 'text-white')}>MDA</span>
-          {!compact && <span className="text-[10.5px] font-bold tracking-wide text-brand-300">MedicineData</span>}
+          <span className={cx(
+            'bg-gradient-to-r from-white via-brand-100 to-brand-300 bg-clip-text text-[20px] font-black tracking-[-.03em] text-transparent',
+            light && 'from-white via-white to-brand-100',
+          )}>MDA</span>
+          <span className="mb-[3px] h-1.5 w-1.5 rounded-full bg-gradient-to-br from-amber-300 to-amber-500 shadow-[0_0_10px_rgba(251,191,36,.85)]" aria-hidden="true" />
+          {!compact && <span className="hidden text-[11px] font-bold tracking-wide text-brand-300 sm:inline">MedicineData</span>}
         </div>
-        {!compact && <div className="mt-1 text-[9px] font-semibold tracking-[.12em] text-ink-400">ميديسين داتا · PHARMA</div>}
+        {!compact && <div className="mt-1 hidden text-[9.5px] font-semibold tracking-[.12em] text-ink-400 sm:block">ميديسين داتا · PHARMA</div>}
       </div>
     </div>
   );
@@ -65,7 +69,7 @@ export function BrandHero({ className = '' }: { className?: string }) {
       </span>
       <div className="text-[30px] font-black leading-none tracking-[-.03em] text-white">MDA</div>
       <div className="mt-1 text-[12.5px] font-bold text-brand-300">MedicineData</div>
-      <div className="mt-1 text-[10.5px] font-semibold text-ink-400">جميع الأدوية في مكان واحد</div>
+      <div className="mt-1 text-[11px] font-semibold text-ink-400">جميع الأدوية في مكان واحد</div>
     </div>
   );
 }

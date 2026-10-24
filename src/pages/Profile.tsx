@@ -67,7 +67,7 @@ export default function Profile() {
             <h1 className="text-[17px] font-extrabold text-white">{user.name}</h1>
             {user.role === 'admin' && <Badge tone="amber"><ShieldCheck className="h-2.5 w-2.5" />{t('more.admin')}</Badge>}
           </div>
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10.5px] text-ink-500">
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-ink-500">
             <span className="inline-flex items-center gap-1"><Mail className="h-3 w-3" />{user.email}</span>
             {user.phone && <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3" /><span dir="ltr">{user.phone}</span></span>}
             {user.city && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{user.city}</span>}
@@ -86,9 +86,9 @@ export default function Profile() {
       </div>
 
       <div className="grid grid-cols-3 gap-2">
-        <Link to="/prescriptions" className="card flex flex-col items-center gap-1 p-3 text-center"><ScrollText className="h-4 w-4 text-rose-300" /><span className="text-[10px] font-bold">{t('rx.title')}</span></Link>
-        <Link to="/community" className="card flex flex-col items-center gap-1 p-3 text-center"><Users className="h-4 w-4 text-emerald-300" /><span className="text-[10px] font-bold">{threads?.length ?? 0} {t('community.threads')}</span></Link>
-        <button onClick={() => setPwOpen((v) => !v)} className="card flex flex-col items-center gap-1 p-3 text-center"><KeyRound className="h-4 w-4 text-amber-300" /><span className="text-[10px] font-bold">{t('profile.password')}</span></button>
+        <Link to="/prescriptions" className="card flex flex-col items-center gap-1 p-3 text-center"><ScrollText className="h-4 w-4 text-rose-300" /><span className="text-[10.5px] font-bold">{t('rx.title')}</span></Link>
+        <Link to="/community" className="card flex flex-col items-center gap-1 p-3 text-center"><Users className="h-4 w-4 text-emerald-300" /><span className="text-[10.5px] font-bold">{threads?.length ?? 0} {t('community.threads')}</span></Link>
+        <button onClick={() => setPwOpen((v) => !v)} className="card flex flex-col items-center gap-1 p-3 text-center"><KeyRound className="h-4 w-4 text-amber-300" /><span className="text-[10.5px] font-bold">{t('profile.password')}</span></button>
       </div>
 
       {pwOpen && (
@@ -118,7 +118,7 @@ export default function Profile() {
         <h2 className="section-title flex items-center gap-1.5"><Users className="h-4 w-4 text-emerald-300" />{t('profile.myThreads')}</h2>
         {(threads || []).slice(0, 6).map((th) => (
           <Link key={th.id} to={`/community/${th.id}`} className="flex items-center gap-2 rounded-xl border p-3 border-white/[.08] bg-ink-900">
-            <div className="min-w-0 flex-1"><div className="line-clamp-1 text-[12px] font-bold">{th.subject}</div><div className="text-[9.5px] text-ink-400">{th.messages_count} {t('community.replies')}</div></div>
+            <div className="min-w-0 flex-1"><div className="line-clamp-1 text-[12px] font-bold">{th.subject}</div><div className="text-[10px] text-ink-400">{th.messages_count} {t('community.replies')}</div></div>
             <Badge tone={th.status === 'open' ? 'amber' : 'emerald'}>{th.status}</Badge>
           </Link>
         ))}

@@ -86,7 +86,7 @@ export default function ScanPage() {
         <div className="flex items-center gap-2"><ScanLine className="h-4 w-4 text-emerald-300" /><h2 className="text-[12.5px] font-extrabold">{lang === 'ar' ? 'البحث بالباركود' : 'Search by barcode'}</h2></div>
         <BarcodeScanner onDetect={lookupBarcode} busy={codeBusy} />
         {codeMiss && (
-          <div className="flex flex-wrap items-center gap-2 rounded-xl px-3 py-2 text-[10.5px] bg-white/[.055] text-ink-300">
+          <div className="flex flex-wrap items-center gap-2 rounded-xl px-3 py-2 text-[11px] bg-white/[.055] text-ink-300">
             <span>{lang === 'ar' ? 'غير موجود في القاعدة:' : 'Not in the catalogue:'} <b dir="ltr">{codeMiss}</b></span>
             <Link to={`/search?q=${encodeURIComponent(codeMiss)}`} className="font-bold underline text-brand-400">{lang === 'ar' ? 'ابحث بالرقم' : 'Search this code'}</Link>
           </div>
@@ -104,7 +104,7 @@ export default function ScanPage() {
               <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-grad text-white shadow-glow"><Camera className="h-7 w-7" /></span>
             </div>
             <div className="text-[13px] font-bold text-ink-100">{lang === 'ar' ? 'صوّر علبة الدواء' : 'Photograph the medicine pack'}</div>
-            <p className="mt-1 max-w-xs text-[10.5px] leading-5 text-ink-500">{lang === 'ar' ? 'ضع الاسم التجاري في منتصف الإطار مع إضاءة جيدة.' : 'Centre the brand name with good lighting.'}</p>
+            <p className="mt-1 max-w-xs text-[11px] leading-5 text-ink-500">{lang === 'ar' ? 'ضع الاسم التجاري في منتصف الإطار مع إضاءة جيدة.' : 'Centre the brand name with good lighting.'}</p>
             <div className="mt-3 flex gap-2">
               <button onClick={() => cameraRef.current?.click()} className="btn-primary"><Camera className="h-4 w-4" />{t('rx.camera')}</button>
               <button onClick={() => galleryRef.current?.click()} className="btn-ghost"><ImageIcon className="h-4 w-4" />{t('rx.choose')}</button>
@@ -159,7 +159,7 @@ export default function ScanPage() {
           <button onClick={() => window.open(googleSearch(manual || 'medicine box'), '_blank')} className="btn-ghost text-[11px]"><Search className="h-3.5 w-3.5" />Google Images</button>
           <button onClick={() => window.open(lensUrl, '_blank')} className="btn-ghost text-[11px]"><ExternalLink className="h-3.5 w-3.5" />Google Lens</button>
         </div>
-        <p className="text-[10px] leading-5 text-ink-400">{lang === 'ar' ? 'يُفتح Google Lens لرفع الصورة والبحث عنها بصريًا، ثم يمكنك نسخ الاسم هنا.' : 'Google Lens opens for visual search, then paste the name here.'}</p>
+        <p className="text-[10.5px] leading-5 text-ink-400">{lang === 'ar' ? 'يُفتح Google Lens لرفع الصورة والبحث عنها بصريًا، ثم يمكنك نسخ الاسم هنا.' : 'Google Lens opens for visual search, then paste the name here.'}</p>
       </div>
 
       {!result && <EmptyState icon={<ScanLine className="h-6 w-6" />} title={lang === 'ar' ? 'التعرف البصري على الأدوية' : 'Visual medicine recognition'} text={lang === 'ar' ? 'ارفع صورة واضحة لعلبة الدواء للحصول على أفضل نتيجة.' : 'Upload a clear pack photo for best results.'} />}

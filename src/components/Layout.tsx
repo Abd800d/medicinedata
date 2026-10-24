@@ -34,7 +34,7 @@ const DESKTOP_NAV = [
 function CreditBadge() {
   const { lang } = useI18n();
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-brand-400/25 bg-brand-500/10 px-2 py-0.5 text-[9.5px] font-bold text-brand-200 backdrop-blur">
+    <span className="inline-flex items-center gap-1 rounded-full border border-brand-400/25 bg-brand-500/10 px-2 py-0.5 text-[10px] font-bold text-brand-200 backdrop-blur">
       <ShieldCheck className="h-2.5 w-2.5" />
       {lang === 'ar' ? 'عبدالمجيد الماخذي' : 'Abdulmajeed Almakhedhi'}
     </span>
@@ -84,7 +84,7 @@ export function TopBar() {
           <div className="flex items-center gap-1.5">
             <span className="hidden md:inline-flex"><CreditBadge /></span>
             <button onClick={toggleLang} className="icon-btn h-9 w-9" title={t('common.language')} aria-label={t('common.language')}>
-              <span className="text-[10px] font-black tracking-wide">{lang === 'ar' ? 'EN' : 'ع'}</span>
+              <span className="text-[10.5px] font-black tracking-wide">{lang === 'ar' ? 'EN' : 'ع'}</span>
             </button>
             <button onClick={() => setOpen((v) => !v)} className="icon-btn h-9 w-9 lg:hidden" aria-label="menu">
               {open ? <X className="h-[18px] w-[18px]" /> : <Menu className="h-[18px] w-[18px]" />}
@@ -174,12 +174,12 @@ export function Footer() {
               {lang === 'ar' ? config.about_ar : config.about_en}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="rounded-lg bg-brand-500/15 px-2 py-1 text-[10px] font-bold text-brand-200">MDA v1.0</span>
+              <span className="rounded-lg bg-brand-500/15 px-2 py-1 text-[10.5px] font-bold text-brand-200">MDA v1.0</span>
               <CreditBadge />
             </div>
           </div>
           <div className="text-[12px]">
-            <div className="mb-2 text-[10px] font-bold uppercase tracking-[.14em] text-ink-500">{t('common.more')}</div>
+            <div className="mb-2 text-[10.5px] font-bold uppercase tracking-[.14em] text-ink-500">{t('common.more')}</div>
             <div className="grid gap-1.5">
               {[
                 ['/about', t('more.about')],
@@ -193,19 +193,19 @@ export function Footer() {
             </div>
           </div>
           <div className="text-[12px]">
-            <div className="mb-2 text-[10px] font-bold uppercase tracking-[.14em] text-ink-500">{t('more.contact')}</div>
+            <div className="mb-2 text-[10.5px] font-bold uppercase tracking-[.14em] text-ink-500">{t('more.contact')}</div>
             <a href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 py-1 text-ink-300 transition hover:text-white">
               <MessageCircle className="h-4 w-4 text-emerald-400" /> {config.whatsapp}
             </a>
             <a href={`mailto:${config.support_email}`} className="flex items-center gap-2 py-1 text-ink-300 transition hover:text-white">
               <Mail className="h-4 w-4 text-brand-300" /> {config.support_email}
             </a>
-            <div className="mt-3 rounded-xl border border-white/[.06] bg-white/[.03] p-2.5 text-[10.5px] leading-5 text-ink-400">
+            <div className="mt-3 rounded-xl border border-white/[.06] bg-white/[.03] p-2.5 text-[11px] leading-5 text-ink-400">
               {lang === 'ar' ? config.disclaimer_ar : config.disclaimer_en}
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-center justify-between gap-1 border-t border-white/[.06] px-4 py-3 text-center text-[10.5px] text-ink-500 sm:flex-row sm:text-start">
+        <div className="flex flex-col items-center justify-between gap-1 border-t border-white/[.06] px-4 py-3 text-center text-[11px] text-ink-500 sm:flex-row sm:text-start">
           <span>{t('home.footerRights', { year })}</span>
           <span className="inline-flex items-center gap-1.5"><MDAIcon size={14} /> MDA · MedicineData</span>
         </div>

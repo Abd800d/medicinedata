@@ -51,22 +51,22 @@ export default function Directories() {
                 </span>
                 <div className="min-w-0">
                   <h3 className="text-[13px] font-extrabold leading-snug text-white">{o.name}</h3>
-                  {o.name_ar && <div className="text-[10.5px] text-ink-400" dir="auto">{o.name_ar}</div>}
+                  {o.name_ar && <div className="text-[11px] text-ink-400" dir="auto">{o.name_ar}</div>}
                 </div>
               </div>
               <Badge tone="brand">{o.products_count ?? 0} {t('dir.products')}</Badge>
             </div>
-            <div className="mt-2 space-y-1 text-[10.5px] text-ink-500">
+            <div className="mt-2 space-y-1 text-[11px] text-ink-500">
               <div className="flex items-center gap-1.5"><Globe2 className="h-3 w-3" />{o.country || '—'}{o.city ? ` · ${o.city}` : ''}</div>
               {o.phone && <a href={`tel:${o.phone}`} className="flex items-center gap-1.5 font-semibold text-brand-300"><Phone className="h-3 w-3" /><span dir="ltr">{o.phone}</span></a>}
               {o.email && <a href={`mailto:${o.email}`} className="flex items-center gap-1.5 font-semibold text-brand-300"><Mail className="h-3 w-3" />{o.email}</a>}
               {o.website && <a href={o.website.startsWith('http') ? o.website : `https://${o.website}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 font-semibold text-sky-200"><ExternalLink className="h-3 w-3" />{o.website.replace(/^https?:\/\//, '')}</a>}
             </div>
-            {o.notes && <p className="mt-2 line-clamp-2 text-[10px] leading-5 text-ink-400">{o.notes}</p>}
+            {o.notes && <p className="mt-2 line-clamp-2 text-[10.5px] leading-5 text-ink-400">{o.notes}</p>}
           </div>
         ))}
       </div>
-      <p className="text-center text-[10px] leading-5 text-ink-400">{lang === 'ar' ? 'تُحدَّث بيانات الوكلاء والمصنّعين من لوحة الإدارة.' : 'Agent and manufacturer data is managed from the admin panel.'}</p>
+      <p className="text-center text-[10.5px] leading-5 text-ink-400">{lang === 'ar' ? 'تُحدَّث بيانات الوكلاء والمصنّعين من لوحة الإدارة.' : 'Agent and manufacturer data is managed from the admin panel.'}</p>
     </div>
   );
 }

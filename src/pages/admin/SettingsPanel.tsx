@@ -93,13 +93,13 @@ export default function SettingsPanel() {
           <button onClick={rebuild} disabled={busy} className="btn-ghost text-[11px]"><RefreshCw className="h-3.5 w-3.5" />إعادة بناء فهرس البحث</button>
           <button onClick={async () => { try { await downloadWithAuth('/api/admin/export', `mda-export-${Date.now()}.json`); push('تم تجهيز الملف'); } catch (e: any) { push(e.message || 'خطأ', 'error'); } }} className="btn-ghost text-[11px]"><Download className="h-3.5 w-3.5" />تصدير قاعدة البيانات (JSON)</button>
         </div>
-        <div className="mt-2 rounded-xl p-2.5 text-[10px] leading-5 text-ink-500 bg-white/[.055]">
+        <div className="mt-2 rounded-xl p-2.5 text-[10.5px] leading-5 text-ink-500 bg-white/[.055]">
           <div>Node: {data?.env?.node} · DB: {data?.env?.db_file}</div>
           <div>مفاتيح البيئة تُدار من ملف <code>.env</code> على الخادم (AI_API_KEY، GOOGLE_CLIENT_ID، GOOGLE_CSE_KEY، GOOGLE_CSE_CX…).</div>
         </div>
       </div>
 
-      <div className="flex items-start gap-2 rounded-2xl border p-3 text-[10.5px] leading-5 border-amber-400/25 bg-amber-500/10 text-amber-200">
+      <div className="flex items-start gap-2 rounded-2xl border p-3 text-[11px] leading-5 border-amber-400/25 bg-amber-500/10 text-amber-200">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
         <span>تغيير اسم التطبيق أو معلومات التواصل ينعكس فورًا على الواجهة والتذييل بعد الحفظ. إيقاف التسجيل يمنع إنشاء حسابات جديدة فقط.</span>
       </div>

@@ -47,13 +47,13 @@ export default function ThreadDetail() {
       <div className="card p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="mb-1 flex items-center gap-1.5 text-[10px] text-ink-400">
+            <div className="mb-1 flex items-center gap-1.5 text-[10.5px] text-ink-400">
               {data.is_public ? <Globe2 className="h-3 w-3 text-emerald-300" /> : <Lock className="h-3 w-3" />}
               <span>{data.is_public ? t('community.public') : t('community.private')}</span>
               <span>·</span><span>{timeAgo(data.created_at, lang)}</span>
             </div>
             <h1 className="text-[17px] font-extrabold leading-snug text-white">{data.subject}</h1>
-            <div className="mt-1 flex items-center gap-2 text-[10.5px] text-ink-500"><Avatar name={data.author_name} src={data.author_avatar} size={20} />{data.author_name}</div>
+            <div className="mt-1 flex items-center gap-2 text-[11px] text-ink-500"><Avatar name={data.author_name} src={data.author_avatar} size={20} />{data.author_name}</div>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <Badge tone={data.status === 'open' ? 'amber' : 'emerald'}>{data.status}</Badge>
@@ -74,7 +74,7 @@ export default function ThreadDetail() {
             <div key={m.id} className={cx('flex gap-2', mine ? 'flex-row-reverse' : '')}>
               <Avatar name={m.author_name} src={m.author_avatar} size={30} />
               <div className={cx('max-w-[84%] rounded-2xl px-3.5 py-2.5', mine ? 'bg-brand-700 text-white' : 'border border-white/[.08] bg-white/[.04] border-white/[.08] bg-ink-900')}>
-                <div className={cx('mb-1 flex items-center gap-1.5 text-[9.5px] font-bold', mine ? 'text-white/70' : 'text-ink-400')}>
+                <div className={cx('mb-1 flex items-center gap-1.5 text-[10px] font-bold', mine ? 'text-white/70' : 'text-ink-400')}>
                   {m.is_staff ? <span className="inline-flex items-center gap-0.5 rounded bg-white/20 px-1 py-0.5"><ShieldCheck className="h-2.5 w-2.5" />{lang === 'ar' ? 'الإدارة' : 'Admin'}</span> : <UserRound className="h-2.5 w-2.5" />}
                   <span>{m.author_name}</span><span>·</span><span>{timeAgo(m.created_at, lang)}</span>
                 </div>

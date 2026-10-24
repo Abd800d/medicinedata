@@ -48,13 +48,13 @@ export default function AiAssistant() {
       <div className="rounded-3xl page-hero page-hero-violet p-5 text-white">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15"><Bot className="h-5 w-5" /></span><h1 className="text-[21px] font-extrabold">{t('ai.title')}</h1></div>
-          <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-1 text-[9.5px] font-semibold backdrop-blur">
+          <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-1 text-[10px] font-semibold backdrop-blur">
             {status?.enabled ? <Wifi className="h-2.5 w-2.5" /> : <Database className="h-2.5 w-2.5" />}
             {status?.enabled ? t('ai.onlineMode') : t('ai.offlineMode')}
           </span>
         </div>
         <p className="mt-1.5 max-w-lg text-[11.5px] leading-6 text-white/80">{t('ai.subtitle')}</p>
-        <div className="mt-2 flex flex-wrap gap-1.5 text-[9.5px] text-white/70">
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-white/70">
           <span className="rounded-full bg-white/10 px-2 py-0.5">WHO</span>
           <span className="rounded-full bg-white/10 px-2 py-0.5">BNF</span>
           <span className="rounded-full bg-white/10 px-2 py-0.5">FDA</span>
@@ -68,10 +68,10 @@ export default function AiAssistant() {
           <div className="py-6 text-center">
             <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-tile"><Sparkles className="h-6 w-6" /></span>
             <div className="text-[13px] font-bold text-ink-100">{lang === 'ar' ? 'اسألني عن أي دواء' : 'Ask me about any medicine'}</div>
-            <p className="mx-auto mt-1 max-w-sm text-[10.5px] leading-5 text-ink-500">{lang === 'ar' ? 'الجرعات، البدائل التجارية في اليمن، التفاعلات، الحمل، التحذيرات…' : 'Dosing, Yemeni brand alternatives, interactions, pregnancy, warnings…'}</p>
+            <p className="mx-auto mt-1 max-w-sm text-[11px] leading-5 text-ink-500">{lang === 'ar' ? 'الجرعات، البدائل التجارية في اليمن، التفاعلات، الحمل، التحذيرات…' : 'Dosing, Yemeni brand alternatives, interactions, pregnancy, warnings…'}</p>
             <div className="mt-4 grid gap-1.5 sm:grid-cols-2">
               {examples.map((ex) => (
-                <button key={ex} onClick={() => ask(ex)} className="rounded-xl border border-white/[.08] bg-white/[.03] px-3 py-2 text-start text-[10.5px] font-medium text-ink-300 transition hover:border-violet-400/40 hover:bg-violet-500/10 hover:text-white">{ex}</button>
+                <button key={ex} onClick={() => ask(ex)} className="rounded-xl border border-white/[.08] bg-white/[.03] px-3 py-2 text-start text-[11px] font-medium text-ink-300 transition hover:border-violet-400/40 hover:bg-violet-500/10 hover:text-white">{ex}</button>
               ))}
             </div>
           </div>
@@ -89,18 +89,18 @@ export default function AiAssistant() {
                 ) : (
                   <>
                     <RichText text={m.text} />
-                    {m.mode && <div className="mt-1.5 flex items-center gap-1 text-[9px] text-ink-400"><Database className="h-2.5 w-2.5" />{m.mode === 'ai' ? t('ai.onlineMode') : t('ai.offlineMode')}</div>}
+                    {m.mode && <div className="mt-1.5 flex items-center gap-1 text-[9.5px] text-ink-400"><Database className="h-2.5 w-2.5" />{m.mode === 'ai' ? t('ai.onlineMode') : t('ai.offlineMode')}</div>}
                     {m.sources?.length ? (
                       <div className="mt-2 border-t border-white/[.09] pt-1.5">
-                        <div className="mb-1 text-[9px] font-bold uppercase tracking-wide text-ink-400">{t('ai.sources')}</div>
+                        <div className="mb-1 text-[9.5px] font-bold uppercase tracking-wide text-ink-400">{t('ai.sources')}</div>
                         <div className="flex flex-wrap gap-1">
                           {m.sources.filter((s: any) => s?.name).slice(0, 5).map((s: any, idx: number) => (
-                            <span key={idx} className="rounded-md border border-white/[.08] bg-white/[.05] px-1.5 py-0.5 text-[9px] font-semibold text-ink-300">{s.name}{s.atc ? ` · ${s.atc}` : ''}</span>
+                            <span key={idx} className="rounded-md border border-white/[.08] bg-white/[.05] px-1.5 py-0.5 text-[9.5px] font-semibold text-ink-300">{s.name}{s.atc ? ` · ${s.atc}` : ''}</span>
                           ))}
                         </div>
                       </div>
                     ) : null}
-                    <button onClick={async () => { await copyText(m.text); push(t('common.copied')); }} className="mt-1.5 inline-flex items-center gap-1 text-[9px] font-semibold text-ink-400 hover:text-brand-300"><Copy className="h-2.5 w-2.5" />{t('common.copy')}</button>
+                    <button onClick={async () => { await copyText(m.text); push(t('common.copied')); }} className="mt-1.5 inline-flex items-center gap-1 text-[9.5px] font-semibold text-ink-400 hover:text-brand-300"><Copy className="h-2.5 w-2.5" />{t('common.copy')}</button>
                   </>
                 )}
               </div>
@@ -129,9 +129,9 @@ export default function AiAssistant() {
           <button type="submit" disabled={!input.trim() || busy} className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-tile transition active:scale-95 disabled:opacity-40"><Send className="h-4 w-4 rtl:-scale-x-100" /></button>
         </form>
         <div className="mt-1.5 flex items-center justify-between gap-2 px-1">
-          <span className="inline-flex items-center gap-1 text-[9px] text-ink-400"><ShieldCheck className="h-2.5 w-2.5" />{t('ai.disclaimer')}</span>
+          <span className="inline-flex items-center gap-1 text-[9.5px] text-ink-400"><ShieldCheck className="h-2.5 w-2.5" />{t('ai.disclaimer')}</span>
           {messages.length > 0 && (
-            <button onClick={() => { setMessages([]); sessionStorage.removeItem('mda.aiChat'); }} className="inline-flex items-center gap-1 text-[9.5px] font-semibold text-ink-400 hover:text-rose-500"><RefreshCw className="h-2.5 w-2.5" />{t('ai.newChat')}</button>
+            <button onClick={() => { setMessages([]); sessionStorage.removeItem('mda.aiChat'); }} className="inline-flex items-center gap-1 text-[10px] font-semibold text-ink-400 hover:text-rose-500"><RefreshCw className="h-2.5 w-2.5" />{t('ai.newChat')}</button>
           )}
         </div>
       </div>

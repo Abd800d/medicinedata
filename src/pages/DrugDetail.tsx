@@ -84,16 +84,16 @@ export default function DrugDetail() {
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap items-center gap-1.5">
               {drug.system_slug && (
-                <Link to={`/systems/${drug.system_slug}`} className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">
+                <Link to={`/systems/${drug.system_slug}`} className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-[10.5px] font-semibold backdrop-blur">
                   <SystemIcon slug={drug.system_slug} className="h-3 w-3" />{arabic ? drug.system_ar : drug.system_en}
                 </Link>
               )}
-              {drug.prescription_required ? <span className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[9.5px] font-bold">Rx · {t('common.rxOnly')}</span> : <span className="rounded-full bg-emerald-500/90 px-2 py-0.5 text-[9.5px] font-bold">{t('common.otc')}</span>}
-              {drug.verified ? <span className="inline-flex items-center gap-0.5 rounded-full bg-white/15 px-2 py-0.5 text-[9.5px] font-semibold"><BadgeCheck className="h-2.5 w-2.5" />{t('common.verified')}</span> : null}
+              {drug.prescription_required ? <span className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-bold">Rx · {t('common.rxOnly')}</span> : <span className="rounded-full bg-emerald-500/90 px-2 py-0.5 text-[10px] font-bold">{t('common.otc')}</span>}
+              {drug.verified ? <span className="inline-flex items-center gap-0.5 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-semibold"><BadgeCheck className="h-2.5 w-2.5" />{t('common.verified')}</span> : null}
             </div>
             <h1 className="text-[23px] font-extrabold leading-tight">{name}</h1>
             <p className="mt-0.5 text-[12px] font-medium text-white/70" dir="ltr">{altName}</p>
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-white/75">
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/75">
               {drug.drug_class && <span>{drug.drug_class}</span>}
               {drug.atc_code && <span className="font-mono">ATC {drug.atc_code}</span>}
               {drug.category_ar && <span>· {arabic ? drug.category_ar : drug.category_en}</span>}
@@ -107,7 +107,7 @@ export default function DrugDetail() {
         </div>
         <div className="relative mt-4 flex items-center gap-2">
           <div className="flex-1 rounded-xl bg-black/15 px-3 py-2 backdrop-blur">
-            <div className="text-[9.5px] text-white/60">{t('drug.productsAvailable')}</div>
+            <div className="text-[10px] text-white/60">{t('drug.productsAvailable')}</div>
             <div className="text-[16px] font-extrabold">{fmt(drug.products?.length || 0)}</div>
           </div>
           <a href={`https://wa.me/${wa}?text=${encodeURIComponent(askText)}`} target="_blank" rel="noreferrer" className="flex-1 rounded-xl bg-white/15 px-3 py-2 text-[11px] font-bold backdrop-blur hover:bg-white/25">
@@ -151,13 +151,13 @@ export default function DrugDetail() {
                 {drug.related.map((r: any) => (
                   <Link key={r.id} to={`/drugs/${r.id}`} className="flex items-center justify-between rounded-xl px-3 py-2 text-[11.5px] bg-white/[.055] hover:bg-white/[.09]">
                     <span className="font-semibold text-ink-200">{r.generic_name}</span>
-                    <span className="text-[10px] text-ink-400">{r.products_count} {t('system.products')}</span>
+                    <span className="text-[10.5px] text-ink-400">{r.products_count} {t('system.products')}</span>
                   </Link>
                 ))}
               </div>
             </section>
           )}
-          <div className="flex items-start gap-2 rounded-2xl border p-3.5 text-[10.5px] leading-5 border-amber-400/25 bg-amber-500/10 text-amber-200">
+          <div className="flex items-start gap-2 rounded-2xl border p-3.5 text-[11px] leading-5 border-amber-400/25 bg-amber-500/10 text-amber-200">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{t('drug.disclaimer')} {drug.source ? `— ${drug.source}` : ''}</span>
           </div>
@@ -215,7 +215,7 @@ export default function DrugDetail() {
                   {p.verified ? <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-brand-300" /> : null}
                 </div>
                 <p className="truncate text-[11px] text-ink-500">{[p.strength, p.dosage_form, p.pack_size].filter(Boolean).join(' · ')}</p>
-                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-ink-400">
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10.5px] text-ink-400">
                   {p.manufacturer_name && <span className="inline-flex items-center gap-0.5"><PackageSearch className="h-2.5 w-2.5" />{p.manufacturer_name}</span>}
                   {p.country && <span className="inline-flex items-center gap-0.5"><MapPin className="h-2.5 w-2.5" />{p.country}</span>}
                   {p.agent_name && <span className="hidden sm:inline-flex"><Users className="h-2.5 w-2.5" />{p.agent_name}</span>}
@@ -232,7 +232,7 @@ export default function DrugDetail() {
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 text-white"><Bot className="h-5 w-5" /></span>
         <div className="min-w-0 flex-1">
           <div className="text-[12.5px] font-bold text-violet-200">{t('ai.title')}</div>
-          <div className="text-[10.5px] text-violet-300/70">{arabic ? `اسأل عن ${drug.generic_name}: الجرعات، البدائل، التفاعلات` : `Ask about ${drug.generic_name}: dosing, alternatives, interactions`}</div>
+          <div className="text-[11px] text-violet-300/70">{arabic ? `اسأل عن ${drug.generic_name}: الجرعات، البدائل، التفاعلات` : `Ask about ${drug.generic_name}: dosing, alternatives, interactions`}</div>
         </div>
         <Sparkles className="h-4 w-4 text-violet-300" />
       </Link>

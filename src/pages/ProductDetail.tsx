@@ -67,11 +67,11 @@ export default function ProductDetail() {
 
             <div className="absolute start-3 top-3 flex flex-col items-start gap-1.5">
               {p.verified ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-ink-950/85 px-2 py-1 text-[9px] font-bold text-brand-200 shadow-sm backdrop-blur">
+                <span className="inline-flex items-center gap-1 rounded-full bg-ink-950/85 px-2 py-1 text-[9.5px] font-bold text-brand-200 shadow-sm backdrop-blur">
                   <BadgeCheck className="h-3 w-3" />{t('common.verified')}
                 </span>
               ) : null}
-              <span className="rounded-full bg-ink-950/75 px-2 py-1 text-[9px] font-bold text-white backdrop-blur">{p.dosage_form || '—'}</span>
+              <span className="rounded-full bg-ink-950/75 px-2 py-1 text-[9.5px] font-bold text-white backdrop-blur">{p.dosage_form || '—'}</span>
             </div>
 
             <div className="absolute end-3 top-3 flex gap-1.5">
@@ -109,7 +109,7 @@ export default function ProductDetail() {
                 <ChevronRight className="hidden h-3 w-3 ltr:block" />
               </Link>
             )}
-            <p className="mt-2 text-[9px] text-ink-500">{t('product.noPhotoNote')}</p>
+            <p className="mt-2 text-[9.5px] text-ink-500">{t('product.noPhotoNote')}</p>
           </div>
         </div>
       </div>
@@ -153,12 +153,12 @@ export default function ProductDetail() {
             <Copy className="h-3.5 w-3.5" /> <span dir="ltr">{p.barcode}</span>
           </button>
           {p.barcode_source === 'internal-ean13' && (
-            <p className="text-center text-[9.5px] leading-4 text-ink-400">
+            <p className="text-center text-[10px] leading-4 text-ink-400">
               {arabic ? 'رمز داخلي للمتجر (غير مطبوع على العلبة)' : 'Internal store code (not printed on the pack)'}
             </p>
           )}
           {p.barcode_verified === 1 && (
-            <p className="text-center text-[9.5px] font-semibold leading-4 text-emerald-400">{arabic ? 'باركود موثّق من العلبة' : 'Barcode verified from the pack'}</p>
+            <p className="text-center text-[10px] font-semibold leading-4 text-emerald-400">{arabic ? 'باركود موثّق من العلبة' : 'Barcode verified from the pack'}</p>
           )}
         </div>
       )}
@@ -192,7 +192,7 @@ export default function ProductDetail() {
         </div>
       )}
 
-      <div className="flex items-start gap-2 rounded-2xl border p-3.5 text-[10.5px] leading-5 border-amber-400/25 bg-amber-500/10 text-amber-200">
+      <div className="flex items-start gap-2 rounded-2xl border p-3.5 text-[11px] leading-5 border-amber-400/25 bg-amber-500/10 text-amber-200">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
         <span>{config.disclaimer_ar}</span>
       </div>

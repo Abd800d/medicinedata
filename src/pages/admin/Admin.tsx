@@ -62,7 +62,7 @@ export default function Admin() {
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-tile ring-1 ring-white/20"><LayoutDashboard className="h-4.5 w-4.5" /></span>
             <div className="min-w-0">
               <div className="truncate text-[13.5px] font-extrabold text-white">لوحة تحكم MDA</div>
-              <div className="truncate text-[9.5px] text-ink-400">{user.email}</div>
+              <div className="truncate text-[10px] text-ink-400">{user.email}</div>
             </div>
           </div>
           <Badge tone="amber">admin</Badge>
@@ -127,7 +127,7 @@ function Dashboard() {
           <div key={k.label} className={`overflow-hidden rounded-2xl bg-gradient-to-br ${k.tone} p-3.5 text-white`}>
             <k.icon className="mb-2 h-4 w-4 opacity-80" />
             <div className="text-[22px] font-black leading-none">{num(k.value || 0)}</div>
-            <div className="mt-0.5 text-[10px] font-semibold opacity-80">{k.label}</div>
+            <div className="mt-0.5 text-[10.5px] font-semibold opacity-80">{k.label}</div>
           </div>
         ))}
       </div>
@@ -140,8 +140,8 @@ function Dashboard() {
               <div key={s.name_en} className="flex items-center gap-2">
                 <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: s.color || '#0f766e' }} />
                 <span className="min-w-0 flex-1 truncate text-[11px] text-ink-300">{s.name_ar || s.name_en}</span>
-                <span className="text-[10px] font-bold text-ink-500">{s.drugs} دواء</span>
-                <span className="w-14 text-end text-[10px] text-ink-400">{s.products} منتج</span>
+                <span className="text-[10.5px] font-bold text-ink-500">{s.drugs} دواء</span>
+                <span className="w-14 text-end text-[10.5px] text-ink-400">{s.products} منتج</span>
               </div>
             ))}
           </div>
@@ -153,7 +153,7 @@ function Dashboard() {
             {(data?.top_searches || []).length === 0 && <p className="text-[11px] text-ink-400">لا توجد بيانات بحث بعد.</p>}
             <div className="flex flex-wrap gap-1.5">
               {(data?.top_searches || []).map((s: any) => (
-                <span key={s.term} className="rounded-lg px-2 py-1 text-[10.5px] font-semibold bg-white/[.05] text-ink-300">{s.term} <span className="text-ink-400">×{s.hits}</span></span>
+                <span key={s.term} className="rounded-lg px-2 py-1 text-[11px] font-semibold bg-white/[.05] text-ink-300">{s.term} <span className="text-ink-400">×{s.hits}</span></span>
               ))}
             </div>
           </div>
@@ -163,7 +163,7 @@ function Dashboard() {
               <button onClick={rebuild} disabled={busy} className="btn-ghost text-[11px]">{busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}إعادة بناء البحث</button>
               <button onClick={async () => { try { await downloadWithAuth('/api/admin/export', `mda-export-${Date.now()}.json`); push('تم تجهيز الملف'); } catch (e: any) { push(e.message || 'خطأ', 'error'); } }} className="btn-ghost text-[11px]"><Download className="h-3.5 w-3.5" />تصدير قاعدة البيانات</button>
             </div>
-            <div className="mt-2 space-y-1 text-[10px] text-ink-400">
+            <div className="mt-2 space-y-1 text-[10.5px] text-ink-400">
               <div>Node {diag?.node} · {diag?.db_file}</div>
               <div>الصور المرفوعة: {diag?.uploads_mb ?? 0} MB</div>
               <div>منتجات بصور: {diag?.images?.products_with_image ?? 0} / {diag?.images?.products_total ?? 0}</div>
@@ -182,7 +182,7 @@ function Dashboard() {
         {(data?.recent_imports || []).length === 0 && <p className="text-[11px] text-ink-400">لم يتم استيراد ملفات بعد — استخدم تبويب «الاستيراد والصور».</p>}
         <div className="space-y-1.5">
           {(data?.recent_imports || []).map((im: any) => (
-            <div key={im.id} className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-[10.5px] bg-white/[.055]">
+            <div key={im.id} className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-[11px] bg-white/[.055]">
               <Badge tone={im.status === 'completed' ? 'emerald' : im.status === 'failed' ? 'rose' : 'amber'}>{im.status}</Badge>
               <span className="min-w-0 flex-1 truncate font-semibold">{im.filename}</span>
               <span className="text-ink-400">{im.rows_ok}/{im.rows_ok + im.rows_failed}</span>
@@ -191,7 +191,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="flex items-start gap-2 rounded-2xl border p-3 text-[10.5px] leading-5 border-amber-400/25 bg-amber-500/10 text-amber-200">
+      <div className="flex items-start gap-2 rounded-2xl border p-3 text-[11px] leading-5 border-amber-400/25 bg-amber-500/10 text-amber-200">
         <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
         <span>كل التعديلات تُحفظ فورًا في قاعدة البيانات (SQLite) وتظهر للمستخدمين مباشرة. الصور المرفوعة تُخزّن في مجلد <code>/uploads</code>.</span>
       </div>

@@ -55,7 +55,7 @@ function UsersPanel() {
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث بالاسم أو البريد…" className="min-w-0 flex-1 bg-transparent text-[12px] outline-none" />
       </div>
       {loading && !data && <PageLoader />}
-      <div className="text-[10.5px] text-ink-400">{data?.length || 0} مستخدم</div>
+      <div className="text-[11px] text-ink-400">{data?.length || 0} مستخدم</div>
       <div className="space-y-1.5">
         {(data || []).map((u) => (
           <div key={u.id} className="card p-2.5">
@@ -67,11 +67,11 @@ function UsersPanel() {
                   {u.role === 'admin' && <Badge tone="amber">admin</Badge>}
                   {!u.active && <Badge tone="rose">موقوف</Badge>}
                 </div>
-                <div className="truncate text-[9.5px] text-ink-400" dir="ltr">{u.email}</div>
-                <div className="text-[9px] text-ink-300">{dateFmt(u.created_at)} · {u.threads} موضوع · {u.prescriptions} وصفة</div>
+                <div className="truncate text-[10px] text-ink-400" dir="ltr">{u.email}</div>
+                <div className="text-[9.5px] text-ink-300">{dateFmt(u.created_at)} · {u.threads} موضوع · {u.prescriptions} وصفة</div>
               </div>
               <div className="flex shrink-0 items-center gap-1">
-                <select value={u.role} onChange={(e) => patch(u, { role: e.target.value })} className="rounded-lg border px-1 py-1 text-[9.5px] font-bold border-white/[.09] bg-white/[.05]">
+                <select value={u.role} onChange={(e) => patch(u, { role: e.target.value })} className="rounded-lg border px-1 py-1 text-[10px] font-bold border-white/[.09] bg-white/[.05]">
                   <option value="user">user</option><option value="admin">admin</option>
                 </select>
                 <button onClick={() => patch(u, { active: u.active ? 0 : 1 })} className={cx('icon-btn h-7 w-7', u.active ? 'text-emerald-300' : 'text-ink-400')} title={u.active ? 'تعطيل' : 'تفعيل'}>{u.active ? <CheckCircle2 className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}</button>
@@ -140,7 +140,7 @@ function ThreadsPanel() {
             <span className={cx('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', t.is_public ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/[.05] text-ink-400')}><MessageSquare className="h-3.5 w-3.5" /></span>
             <div className="min-w-0 flex-1">
               <div className="truncate text-[11.5px] font-bold">{t.subject}</div>
-              <div className="truncate text-[9.5px] text-ink-400">{t.author_name} · {timeAgo(t.updated_at)} · {t.messages} رد</div>
+              <div className="truncate text-[10px] text-ink-400">{t.author_name} · {timeAgo(t.updated_at)} · {t.messages} رد</div>
             </div>
             <Badge tone={t.status === 'open' ? 'amber' : t.status === 'closed' ? 'neutral' : 'emerald'}>{t.status}</Badge>
           </button>
@@ -152,12 +152,12 @@ function ThreadsPanel() {
         <Modal open onClose={() => { setOpenId(null); setThread(null); }} wide title={thread?.subject || 'الموضوع'}>
           {!thread ? <Loader2 className="mx-auto h-5 w-5 animate-spin text-ink-400" /> : (
             <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2 text-[10px] text-ink-400">
+              <div className="flex flex-wrap items-center gap-2 text-[10.5px] text-ink-400">
                 <Badge tone={thread.is_public ? 'emerald' : 'neutral'}>{thread.is_public ? 'مرئي للجميع' : 'خاص'}</Badge>
                 <span>{thread.author_name} · {thread.author_email}</span>
                 <div className="ms-auto flex gap-1">
-                  {['open', 'answered', 'closed'].map((s) => <button key={s} onClick={() => setStatusOf(thread.id, s)} className={cx('rounded-md px-1.5 py-0.5 text-[9px] font-bold', thread.status === s ? 'bg-white/20 text-white' : 'bg-white/[.05] text-ink-400')}>{s}</button>)}
-                  <button onClick={() => remove(thread.id)} className="rounded-md px-1.5 py-0.5 text-[9px] font-bold text-rose-300 bg-rose-500/15"><Trash2 className="h-2.5 w-2.5" /></button>
+                  {['open', 'answered', 'closed'].map((s) => <button key={s} onClick={() => setStatusOf(thread.id, s)} className={cx('rounded-md px-1.5 py-0.5 text-[9.5px] font-bold', thread.status === s ? 'bg-white/20 text-white' : 'bg-white/[.05] text-ink-400')}>{s}</button>)}
+                  <button onClick={() => remove(thread.id)} className="rounded-md px-1.5 py-0.5 text-[9.5px] font-bold text-rose-300 bg-rose-500/15"><Trash2 className="h-2.5 w-2.5" /></button>
                 </div>
               </div>
               <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-xl p-2 bg-white/[.055]">
@@ -200,9 +200,9 @@ function JobsPanel() {
           <Briefcase className="h-4 w-4 text-amber-300" />
           <div className="min-w-0 flex-1">
             <div className="truncate text-[11.5px] font-bold">{j.title}</div>
-            <div className="truncate text-[9.5px] text-ink-400">{j.author_name} · {j.type === 'offer' ? 'عرض وظيفة' : 'باحث عن عمل'} · {j.city || '—'}</div>
+            <div className="truncate text-[10px] text-ink-400">{j.author_name} · {j.type === 'offer' ? 'عرض وظيفة' : 'باحث عن عمل'} · {j.city || '—'}</div>
           </div>
-          <button onClick={() => toggle(j)} className="rounded-lg px-2 py-1 text-[9.5px] font-bold bg-white/[.05]">{j.status === 'published' ? 'إخفاء' : 'نشر'}</button>
+          <button onClick={() => toggle(j)} className="rounded-lg px-2 py-1 text-[10px] font-bold bg-white/[.05]">{j.status === 'published' ? 'إخفاء' : 'نشر'}</button>
           <button onClick={() => remove(j)} className="icon-btn h-7 w-7 text-rose-500"><Trash2 className="h-3 w-3" /></button>
         </div>
       ))}

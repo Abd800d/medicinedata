@@ -98,7 +98,7 @@ export default function SearchPage() {
             <button onClick={onBarcode} className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-grad text-white shadow-float" title={t('product.barcode')}><Barcode className="h-4 w-4" /></button>
           </div>
         </div>
-        {!online && <div className="flex items-center gap-1.5 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-[10.5px] font-semibold text-amber-200"><WifiOff className="h-3.5 w-3.5" />{t('offline.banner')}</div>}
+        {!online && <div className="flex items-center gap-1.5 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-200"><WifiOff className="h-3.5 w-3.5" />{t('offline.banner')}</div>}
         <div className="flex flex-wrap items-center gap-1.5">
           {result?.suggestions?.slice(0, 8).map((s) => (
             <button key={s} onClick={() => setTerm(s)} className="chip hover:border-brand-400">
@@ -114,7 +114,7 @@ export default function SearchPage() {
             <div>
               <div className="mb-2 flex items-center justify-between">
                 <span className="inline-flex items-center gap-1.5 text-[11.5px] font-bold text-ink-300"><Clock className="h-3.5 w-3.5" />{t('search.recent')}</span>
-                <button onClick={() => { setRecent([]); localStorage.removeItem(RECENT_KEY); }} className="text-[10.5px] font-semibold text-ink-400 hover:text-rose-500">{t('search.clear')}</button>
+                <button onClick={() => { setRecent([]); localStorage.removeItem(RECENT_KEY); }} className="text-[11px] font-semibold text-ink-400 hover:text-rose-500">{t('search.clear')}</button>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {recent.map((r) => <button key={r} onClick={() => setTerm(r)} className="chip">{r}</button>)}
@@ -139,7 +139,7 @@ export default function SearchPage() {
           <div className="flex items-center justify-between gap-2">
             <div className="text-[11.5px] text-ink-500">
               {t('search.resultsFor')} <b className="text-white">“{debounced}”</b>
-              {result && <span className="ms-2 text-[10px] text-ink-400">({result.drugs.length + result.products.length})</span>}
+              {result && <span className="ms-2 text-[10.5px] text-ink-400">({result.drugs.length + result.products.length})</span>}
             </div>
             {offlineRes && <Badge tone="amber"><WifiOff className="h-2.5 w-2.5" /> offline</Badge>}
           </div>

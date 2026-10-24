@@ -37,7 +37,7 @@ function GoogleButton({ onCredential }: { onCredential: (c: string) => void }) {
 
   if (!config.google_client_id) {
     return (
-      <div className="rounded-xl border border-dashed border-white/15 p-3 text-center text-[10.5px] leading-5 text-ink-400">
+      <div className="rounded-xl border border-dashed border-white/15 p-3 text-center text-[11px] leading-5 text-ink-400">
         {t('auth.googleUnavailable')}
       </div>
     );
@@ -134,7 +134,7 @@ export default function Auth() {
           </button>
         </form>
 
-        <div className="my-4 flex items-center gap-3"><span className="hairline flex-1" /><span className="text-[10px] font-semibold text-ink-500">{t('auth.or')}</span><span className="hairline flex-1" /></div>
+        <div className="my-4 flex items-center gap-3"><span className="hairline flex-1" /><span className="text-[10.5px] font-semibold text-ink-500">{t('auth.or')}</span><span className="hairline flex-1" /></div>
         <GoogleButton onCredential={google} />
         <div className="mt-4 text-center text-[11px] text-ink-500">
           {mode === 'login' ? t('auth.noAccount') : t('auth.hasAccount')}{' '}
@@ -144,7 +144,7 @@ export default function Auth() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center gap-2 rounded-2xl border border-brand-400/20 bg-brand-500/10 p-3 text-[10px] font-medium text-brand-200">
+      <div className="flex items-center justify-center gap-2 rounded-2xl border border-brand-400/20 bg-brand-500/10 p-3 text-[10.5px] font-medium text-brand-200">
         <ShieldCheck className="h-3.5 w-3.5" />
         {lang === 'ar' ? 'بياناتك محمية ولا تُشارك مع أي طرف ثالث.' : 'Your data is private and never shared.'}
       </div>

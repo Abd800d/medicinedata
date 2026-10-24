@@ -105,7 +105,7 @@ function Drugs() {
         <div className="flex-1"><SearchBar value={q} onChange={(v) => { setQ(v); setPage(1); }} placeholder="ابحث بالاسم العلمي أو العربي أو الفئة…" /></div>
         <button onClick={() => setCreating(true)} className="btn-primary shrink-0 px-3 text-[11.5px]"><Plus className="h-4 w-4" />دواء</button>
       </div>
-      <div className="text-[10.5px] text-ink-400">{num(data?.total || 0)} دواء</div>
+      <div className="text-[11px] text-ink-400">{num(data?.total || 0)} دواء</div>
       {loading && !data && <PageLoader />}
       <div className="space-y-1.5">
         {(data?.data || []).map((d: Drug) => (
@@ -116,7 +116,7 @@ function Drugs() {
                 <span className="truncate text-[12px] font-extrabold">{d.generic_name}</span>
                 {d.prescription_required ? <Badge tone="rose">Rx</Badge> : <Badge tone="emerald">OTC</Badge>}
               </div>
-              <div className="truncate text-[10px] text-ink-400" dir="auto">{d.generic_ar} · {d.system_ar || d.system_en || '—'} · {d.products_count} منتج</div>
+              <div className="truncate text-[10.5px] text-ink-400" dir="auto">{d.generic_ar} · {d.system_ar || d.system_en || '—'} · {d.products_count} منتج</div>
             </div>
             <button onClick={() => setEditing(d)} className="icon-btn h-8 w-8 text-sky-300"><Edit3 className="h-3.5 w-3.5" /></button>
             <button onClick={() => setDel(d)} className="icon-btn h-8 w-8 text-rose-500"><Trash2 className="h-3.5 w-3.5" /></button>
@@ -229,8 +229,8 @@ function Products() {
         <button onClick={() => setCreating(true)} className="btn-primary shrink-0 px-3 text-[11.5px]"><Plus className="h-4 w-4" />منتج</button>
       </div>
       <div className="flex items-center justify-between">
-        <div className="text-[10.5px] text-ink-400">{num(data?.total || 0)} منتج</div>
-        <label className="flex items-center gap-1.5 text-[10.5px] font-semibold text-ink-500"><input type="checkbox" checked={onlyMissing} onChange={(e) => { setOnlyMissing(e.target.checked); setPage(1); }} className="h-3.5 w-3.5 accent-brand-700" />بدون صورة فقط</label>
+        <div className="text-[11px] text-ink-400">{num(data?.total || 0)} منتج</div>
+        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-ink-500"><input type="checkbox" checked={onlyMissing} onChange={(e) => { setOnlyMissing(e.target.checked); setPage(1); }} className="h-3.5 w-3.5 accent-brand-700" />بدون صورة فقط</label>
       </div>
       {loading && !data && <PageLoader />}
       <div className="space-y-1.5">
@@ -239,7 +239,7 @@ function Products() {
             <SmartImage src={p.image_url} productId={p.id} alt={p.trade_name} className="h-10 w-10 shrink-0 bg-white/[.05]" rounded="rounded-lg" />
             <div className="min-w-0 flex-1">
               <div className="truncate text-[12px] font-extrabold">{p.trade_name} <span className="font-medium text-ink-400">{p.strength}</span></div>
-              <div className="truncate text-[10px] text-ink-400">{p.generic_name} · {p.manufacturer_name || '—'} · {p.country || '—'}</div>
+              <div className="truncate text-[10.5px] text-ink-400">{p.generic_name} · {p.manufacturer_name || '—'} · {p.country || '—'}</div>
             </div>
             <div className="flex shrink-0 items-center gap-0.5">
               {p.verified ? <Badge tone="emerald">✓</Badge> : null}
@@ -382,7 +382,7 @@ function ImagesModal({ product, onClose }: { product: any; onClose: () => void }
           </label>
           <div className="flex flex-1 items-center gap-1.5 rounded-xl border px-2 py-1.5 border-white/[.08]">
             <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="رابط صورة…" className="min-w-0 flex-1 bg-transparent text-[11px] outline-none" dir="ltr" />
-            <button onClick={() => url && download(url)} disabled={!url || busy} className="rounded-lg bg-brand-grad px-2 py-1 text-[10px] font-bold text-white shadow-glow">تنزيل</button>
+            <button onClick={() => url && download(url)} disabled={!url || busy} className="rounded-lg bg-brand-grad px-2 py-1 text-[10.5px] font-bold text-white shadow-glow">تنزيل</button>
           </div>
         </div>
 
@@ -401,7 +401,7 @@ function ImagesModal({ product, onClose }: { product: any; onClose: () => void }
               ))}
             </div>
           )}
-          {results && results.length === 0 && <p className="mt-1 text-[10px] text-ink-400">لا توجد نتائج — افتح Google Images والصق رابط الصورة أعلاه.</p>}
+          {results && results.length === 0 && <p className="mt-1 text-[10.5px] text-ink-400">لا توجد نتائج — افتح Google Images والصق رابط الصورة أعلاه.</p>}
         </div>
 
         {loading && <Loader2 className="mx-auto h-5 w-5 animate-spin text-ink-400" />}
@@ -410,8 +410,8 @@ function ImagesModal({ product, onClose }: { product: any; onClose: () => void }
             <div key={img.id} className={cx('relative overflow-hidden rounded-xl border bg-white/[.04]', product.image_url === img.url ? 'border-brand-500 ring-2 ring-brand-500/20' : 'border-white/[.08] border-white/[.08]')}>
               <img src={img.url} alt="" className="h-24 w-full object-contain p-1" />
               <div className="flex items-center justify-between gap-1 border-t px-1 py-1 border-white/[.08]">
-                <button onClick={() => setMain(img.url)} className="text-[9px] font-bold text-brand-300">رئيسية</button>
-                <button onClick={() => remove(img.id)} className="text-[9px] font-bold text-rose-500">حذف</button>
+                <button onClick={() => setMain(img.url)} className="text-[9.5px] font-bold text-brand-300">رئيسية</button>
+                <button onClick={() => remove(img.id)} className="text-[9.5px] font-bold text-rose-500">حذف</button>
               </div>
             </div>
           ))}
@@ -442,7 +442,7 @@ function Systems() {
         {(data || []).map((s) => (
           <button key={s.id} onClick={() => setEditing(s)} className="card flex items-center gap-2 p-2.5 text-start">
             <span className="h-8 w-8 shrink-0 rounded-lg" style={{ background: s.color || '#0f766e' }} />
-            <div className="min-w-0 flex-1"><div className="truncate text-[12px] font-extrabold">{s.name_ar}</div><div className="truncate text-[10px] text-ink-400">{s.name_en} · {s.slug}</div></div>
+            <div className="min-w-0 flex-1"><div className="truncate text-[12px] font-extrabold">{s.name_ar}</div><div className="truncate text-[10.5px] text-ink-400">{s.name_en} · {s.slug}</div></div>
             <Edit3 className="h-3.5 w-3.5 text-ink-300" />
           </button>
         ))}
@@ -489,7 +489,7 @@ function Categories() {
           <button key={c.id} onClick={() => setEditing(c)} className="flex w-full items-center gap-2 rounded-xl border px-2.5 py-2 text-start border-white/[.08] bg-ink-900">
             <Layers className="h-3.5 w-3.5 text-brand-300" />
             <span className="min-w-0 flex-1 truncate text-[11.5px] font-bold">{c.name_ar}</span>
-            <span className="shrink-0 text-[9.5px] text-ink-400">{c.system_ar || c.system_en}</span>
+            <span className="shrink-0 text-[10px] text-ink-400">{c.system_ar || c.system_en}</span>
             <Badge>{c.drugs}</Badge>
           </button>
         ))}
@@ -553,7 +553,7 @@ function Companies() {
             {tab === 'manufacturers' ? <Building2 className="h-3.5 w-3.5 text-ink-400" /> : <Truck className="h-3.5 w-3.5 text-ink-400" />}
             <div className="min-w-0 flex-1">
               <div className="truncate text-[11.5px] font-bold">{row.name}</div>
-              <div className="truncate text-[9.5px] text-ink-400">{[row.country, row.city, row.phone].filter(Boolean).join(' · ') || '—'}</div>
+              <div className="truncate text-[10px] text-ink-400">{[row.country, row.city, row.phone].filter(Boolean).join(' · ') || '—'}</div>
             </div>
             <Badge>{row.products_count}</Badge>
             <button onClick={() => setEditing(row)} className="icon-btn h-7 w-7 text-sky-300"><Edit3 className="h-3 w-3" /></button>

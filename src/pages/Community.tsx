@@ -43,7 +43,7 @@ export default function Community() {
       <div className="rounded-3xl page-hero page-hero-emerald p-5 text-white">
         <div className="flex items-center gap-2"><Users className="h-5 w-5" /><h1 className="text-[21px] font-extrabold">{t('community.title')}</h1></div>
         <p className="mt-1 max-w-lg text-[11.5px] leading-6 text-white/80">{lang === 'ar' ? 'اسأل عن دواء أو مشكلة في التطبيق، وشارك الخبرات مع الصيادلة والمستخدمين. ردود الإدارة تظهر للجميع.' : 'Ask about a medicine or app issue and share experience with pharmacists. Admin replies are public.'}</p>
-        <div className="mt-3 flex gap-2 text-[10px] font-semibold">
+        <div className="mt-3 flex gap-2 text-[10.5px] font-semibold">
           <span className="rounded-full bg-white/15 px-2.5 py-1">{stats?.threads ?? 0} {lang === 'ar' ? 'موضوع' : 'threads'}</span>
           <span className="rounded-full bg-white/15 px-2.5 py-1">{stats?.users ?? 0} {lang === 'ar' ? 'عضو' : 'members'}</span>
           <span className="rounded-full bg-white/15 px-2.5 py-1">{stats?.jobs ?? 0} {lang === 'ar' ? 'وظيفة' : 'jobs'}</span>
@@ -53,11 +53,11 @@ export default function Community() {
       <div className="grid gap-2 sm:grid-cols-2">
         <button onClick={() => user ? setOpen(true) : push(t('common.loginRequired'), 'info')} className="group flex items-center gap-3 rounded-2xl border border-brand-400/30 bg-brand-500/10 p-3.5 text-start transition hover:border-brand-400/60 hover:bg-brand-500/15">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-grad text-white shadow-glow"><Plus className="h-5 w-5" /></span>
-          <div><div className="text-[12.5px] font-bold text-white">{t('community.newThread')}</div><div className="text-[10px] text-brand-200/70">{t('community.board')}</div></div>
+          <div><div className="text-[12.5px] font-bold text-white">{t('community.newThread')}</div><div className="text-[10.5px] text-brand-200/70">{t('community.board')}</div></div>
         </button>
         <Link to="/jobs" className="group flex items-center gap-3 rounded-2xl border border-amber-400/30 bg-amber-500/10 p-3.5 text-start transition hover:border-amber-400/60 hover:bg-amber-500/15">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-ink-950 shadow-tile"><Briefcase className="h-5 w-5" /></span>
-          <div><div className="text-[12.5px] font-bold text-white">{t('jobs.title')}</div><div className="text-[10px] text-amber-200/70">{t('jobs.subtitle')}</div></div>
+          <div><div className="text-[12.5px] font-bold text-white">{t('jobs.title')}</div><div className="text-[10.5px] text-amber-200/70">{t('jobs.subtitle')}</div></div>
         </Link>
       </div>
 
@@ -81,8 +81,8 @@ export default function Community() {
                   <h3 className="line-clamp-1 text-[13px] font-bold text-white">{th.subject}</h3>
                   {th.is_public ? <Globe2 className="h-3 w-3 shrink-0 text-emerald-300" /> : <Lock className="h-3 w-3 shrink-0 text-ink-400" />}
                 </div>
-                <p className="line-clamp-1 text-[10.5px] text-ink-500">{th.last_message || '—'}</p>
-                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[9.5px] text-ink-400">
+                <p className="line-clamp-1 text-[11px] text-ink-500">{th.last_message || '—'}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-ink-400">
                   <span className="font-semibold text-ink-500">{th.author_name || '—'}</span>
                   <span>·</span><span>{timeAgo(th.updated_at, lang)}</span>
                   <span>·</span><span>{th.messages_count} {t('community.replies')}</span>
@@ -109,7 +109,7 @@ export default function Community() {
             <span className="flex items-center gap-2 text-[11.5px] font-semibold text-ink-300">{form.is_public ? <Globe2 className="h-4 w-4 text-emerald-300" /> : <Lock className="h-4 w-4" />}{t('community.public')}</span>
             <input type="checkbox" checked={form.is_public} onChange={(e) => setForm({ ...form, is_public: e.target.checked })} className="h-4 w-4 accent-brand-700" />
           </label>
-          <div className="flex items-start gap-2 rounded-xl border border-sky-400/25 bg-sky-500/10 p-2.5 text-[10px] leading-5 text-sky-200"><ShieldQuestion className="mt-0.5 h-3.5 w-3.5 shrink-0" />{lang === 'ar' ? 'لا تشارك بيانات شخصية حساسة. الاستفسارات الطبية الطارئة يجب أن تُوجه للطبيب.' : 'Avoid sensitive personal data. Urgent medical issues need a clinician.'}</div>
+          <div className="flex items-start gap-2 rounded-xl border border-sky-400/25 bg-sky-500/10 p-2.5 text-[10.5px] leading-5 text-sky-200"><ShieldQuestion className="mt-0.5 h-3.5 w-3.5 shrink-0" />{lang === 'ar' ? 'لا تشارك بيانات شخصية حساسة. الاستفسارات الطبية الطارئة يجب أن تُوجه للطبيب.' : 'Avoid sensitive personal data. Urgent medical issues need a clinician.'}</div>
         </div>
       </Modal>
     </div>

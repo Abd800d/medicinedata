@@ -46,7 +46,7 @@ export default function SystemDetail() {
             <p className="mt-2 max-w-lg text-[11.5px] leading-6 text-white/85">{lang === 'ar' ? data.description_ar : data.description_en}</p>
           </div>
         </div>
-        <div className="relative mt-4 flex flex-wrap gap-2 text-[10.5px]">
+        <div className="relative mt-4 flex flex-wrap gap-2 text-[11px]">
           <span className="rounded-full bg-white/15 px-2.5 py-1 font-semibold">{fmt(totalDrugs)} {t('system.drugs')}</span>
           <span className="rounded-full bg-white/15 px-2.5 py-1 font-semibold">{classes.length} {t('system.classes')}</span>
         </div>
