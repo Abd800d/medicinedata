@@ -67,3 +67,21 @@
 - **الوصفة بدون AI**: `POST /api/prescriptions` (صورة + text) → `status:'analyzed', ai:false, mode:'manual'` مع `items[].matched.products`.
 - **الحسابات**: المدير `7a8b1d@gmail.com` / `MDAadmin@2026` (id 1). حساب الاختبار `test.ph@example.com` أُزيل.
 - **الروابط/الهوية**: واتساب `+967781733795`، بريد `7a8b1d@gmail.com`، الحقوق «د. عبدالمجيد عبدالله الماخذي»، الهوية اللونية `#0f766e`، مصادر البيانات المرجعية موثّقة في `docs/DATA.md`.
+
+## 2026-10 — الصور والباركود والتكاملات والـ APK
+
+- **صور حقيقية:** `public/seed-images/products/` (27 صورة/18 منتجًا) + `server/data/product-images.js`
+  كمصدر وحيد للمطابقة (trade_name + strength). تُطبَّق بـ `npm run images:apply` ومن داخل `server/seed.js`.
+  سكربت `scripts/fetch-images.mjs` + `server/lib/product-images.js` يجلب الباقي من Google CSE (يحتاج مفاتيح
+  وشبكة على جهاز المستخدم — لا تعمل داخل الصندوق المعزول).
+- **الباركود:** أعمدة جديدة `products.barcode_source` و`barcode_verified` تُضاف تلقائيًا في `server/db.js`
+  (دالة `ensureColumn`). التوليد في `server/lib/barcodes.js` (EAN-13 ببادئة 20–29، ثابت عبر إعادة البذر).
+  كل الـ493 منتجًا لها باركود؛ لا تُستبدل أكواد المصدر إلا بـ `--all`.
+- **التكاملات:** `server/lib/integrations.js` + لوحة `/admin?tab=integrations` + `POST /api/admin/integrations/test`
+  (اختبار شبكي حقيقي). الدليل `docs/INTEGRATIONS.md`.
+- **الباركود في الواجهة:** `src/components/barcodescanner.tsx` — BarcodeDetector وإلا ZXing
+  (`@zxing/browser`، تحميل كسول) وإلا إدخال يدوي. صلاحية CAMERA مضافة في `AndroidManifest.xml`.
+- **APK:** `.github/workflows/android.yml` (workflow_dispatch + وسوم v*)، يبني debug افتراضيًا وrelease موقّعًا
+  عند وجود أسرار `ANDROID_KEYSTORE_*`. `android/app/build.gradle` يقرأ `MDA_KEYSTORE_PATH` و
+  `-PversionName/-PversionCode`.
+- **تنبيه:** لا يوجد JDK/SDK في الصندوق — لا يمكن تجربة `gradlew` محليًا؛ التحقق الفعلي يتم في CI.

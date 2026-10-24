@@ -6,6 +6,8 @@ import crypto from 'node:crypto';
 import { db, UPLOAD_DIR, getSetting, setSetting } from '../db.js';
 import { adminRequired, hashPassword } from '../auth.js';
 import { makeUploader } from '../lib/upload.js';
+import { autoFillImages, cseConfigured, searchImages, downloadImage, attachImage, productsWithoutPhoto } from '../lib/product-images.js';
+import { integrations, testIntegration, bundledImages } from '../lib/integrations.js';
 import { searchNorm, normalize } from '../lib/search.js';
 import {
   createImporter, csvRows, xlsxRows, jsonRows, detectKind, countRows,
@@ -350,6 +352,62 @@ router.get('/image-search', async (req, res) => {
     });
   } catch (e) {
     res.status(502).json({ error: e.message, configured: true, searchUrl });
+  }
+});
+
+/* Optional integrations: status + one-click connectivity test */
+router.get('/integrations', (_req, res) => {
+  res.json({ integrations: integrations(), bundled_images: bundledImages(), env_file: process.env.ENV_FILE || '.env' });
+});
+router.post('/integrations/test', async (req, res) => {
+  try {
+    const target = String(req.body?.target || '');
+    if (!['google', 'ai', 'cse'].includes(target)) return res.status(400).json({ error: 'target must be google | ai | cse' });
+    res.json(await testIntegration(target));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/* Batch: pull real photos from Google Custom Search for products that only have placeholders */
+router.post('/images/auto-fill', async (req, res) => {
+  try {
+    const limit = Math.min(50, Math.max(1, Number(req.body?.limit) || 10));
+    const out = await autoFillImages({ limit, dryRun: Boolean(req.body?.dry_run) });
+    if (!out.configured) return res.status(400).json({ ...out, configured: false });
+    res.json(out);
+  } catch (e) {
+    res.status(502).json({ error: 'فشل جلب الصور', detail: e.message });
+  }
+});
+router.get('/images/status', (_req, res) => {
+  const missing = db.prepare(`SELECT COUNT(*) n FROM products p WHERE p.active=1
+    AND (p.image_url IS NULL OR p.image_url='' OR p.image_source IN ('generated','seed'))
+    AND NOT EXISTS (SELECT 1 FROM product_images pi WHERE pi.product_id=p.id AND pi.source NOT IN ('generated'))`).get().n;
+  const real = db.prepare("SELECT COUNT(*) n FROM products WHERE active=1 AND image_source IS NOT NULL AND image_source NOT IN ('generated','seed')").get().n;
+  res.json({ configured: cseConfigured(), with_real_photo: real, without_photo: missing, next: productsWithoutPhoto(5) });
+});
+router.post('/products/:id/image-search', async (req, res) => {
+  const p = db.prepare(`SELECT p.*, m.name AS manufacturer FROM products p
+    LEFT JOIN manufacturers m ON m.id=p.manufacturer_id WHERE p.id=?`).get(req.params.id);
+  if (!p) return res.status(404).json({ error: 'Not found' });
+  const q = String(req.body?.q || '').trim() || [p.trade_name, p.strength, p.manufacturer, 'box'].filter(Boolean).join(' ');
+  try {
+    const out = await searchImages(q, 8);
+    if (!out.configured) return res.status(400).json({ ...out, hint: 'أضف GOOGLE_CSE_KEY و GOOGLE_CSE_CX إلى .env' });
+    res.json({ query: q, items: out.items.map((i) => ({ link: i.link, thumb: i.image?.thumbnailLink, title: i.title, score: i.score })) });
+  } catch (e) {
+    res.status(502).json({ error: e.message });
+  }
+});
+router.post('/products/:id/attach-url', async (req, res) => {
+  try {
+    const url = String(req.body?.url || '').trim();
+    if (!/^https?:\/\//i.test(url)) return res.status(400).json({ error: 'رابط غير صالح' });
+    const file = await downloadImage(url);
+    res.status(201).json({ images: attachImage(req.params.id, file.url, 'web-cse'), url: file.url });
+  } catch (e) {
+    res.status(502).json({ error: 'تعذر تنزيل الصورة', detail: e.message });
   }
 });
 

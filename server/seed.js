@@ -7,6 +7,8 @@ import { AGENTS } from './data/refs.js';
 import { DRUGS } from './data/drugs.js';
 import { drugToRecord } from './data/helpers.js';
 import { searchNorm } from './lib/search.js';
+import { applyProductImages } from '../scripts/apply-images.mjs';
+import { assignBarcodes } from './lib/barcodes.js';
 
 const reset = process.argv.includes('--reset');
 
@@ -144,6 +146,10 @@ seedAgents();
 seedCatalog();
 seedSettings();
 ensureAdmin();
+// Attach the bundled real pack photographs (server/data/product-images.js), replacing placeholders.
+applyProductImages();
+// Every product gets a scannable EAN-13 (internal block) unless it already has a manufacturer code.
+assignBarcodes();
 
 const counts = db.prepare(`SELECT
   (SELECT COUNT(*) FROM systems) systems,

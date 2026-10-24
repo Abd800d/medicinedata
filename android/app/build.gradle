@@ -7,8 +7,9 @@ android {
         applicationId "com.mda.medicinedata"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // Overridable from CI: ./gradlew assembleRelease -PversionCode=42 -PversionName=1.4.0
+        versionCode (project.findProperty("versionCode") ?: 1) as Integer
+        versionName (project.findProperty("versionName") ?: "1.0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +17,23 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            // Signing is only wired when a keystore is provided (CI secrets or a local keystore).
+            def ksPath = System.getenv("MDA_KEYSTORE_PATH")
+            if (ksPath) {
+                storeFile file(ksPath)
+                storePassword System.getenv("MDA_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("MDA_KEY_ALIAS")
+                keyPassword System.getenv("MDA_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
+            if (System.getenv("MDA_KEYSTORE_PATH")) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

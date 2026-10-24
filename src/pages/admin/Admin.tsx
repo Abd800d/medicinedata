@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, BarChart3, Boxes, Briefcase, CheckCircle2, ChevronLeft, ChevronRight, Database, Download,
   FileSpreadsheet, Inbox, LayoutDashboard, Loader2, MessageSquare, Package, RefreshCw, Save, Search,
-  Settings, ShieldAlert, Sparkles, TrendingUp, Upload, Users, Wrench, AlertTriangle, ExternalLink,
+  Settings, ShieldAlert, Sparkles, TrendingUp, Upload, Users, Wrench, AlertTriangle, ExternalLink, Plug,
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { useI18n } from '../../lib/i18n';
@@ -16,9 +16,10 @@ import Catalog from './Catalog';
 import Media from './Media';
 import People from './People';
 import SettingsPanel from './SettingsPanel';
+import Integrations from './Integrations';
 import Submissions from './Submissions';
 
-type Tab = 'dashboard' | 'catalog' | 'media' | 'people' | 'submissions' | 'settings';
+type Tab = 'dashboard' | 'catalog' | 'media' | 'people' | 'submissions' | 'integrations' | 'settings';
 
 const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: 'dashboard', label: 'لوحة المعلومات', icon: LayoutDashboard },
@@ -26,6 +27,7 @@ const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: 'media', label: 'الاستيراد والصور', icon: Upload },
   { id: 'people', label: 'المستخدمون والرسائل', icon: Users },
   { id: 'submissions', label: 'طلبات الإضافة', icon: FileSpreadsheet },
+  { id: 'integrations', label: 'التكاملات', icon: Plug },
   { id: 'settings', label: 'الإعدادات', icon: Settings },
 ];
 
@@ -85,6 +87,7 @@ export default function Admin() {
         {tab === 'media' && <Media />}
         {tab === 'people' && <People />}
         {tab === 'submissions' && <Submissions />}
+        {tab === 'integrations' && <Integrations />}
         {tab === 'settings' && <SettingsPanel />}
       </main>
       <div className="h-10" />

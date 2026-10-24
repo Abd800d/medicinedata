@@ -140,9 +140,19 @@ export default function ProductDetail() {
       )}
 
       {p.barcode && (
-        <button onClick={async () => { await copyText(p.barcode); push(t('common.copied')); }} className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-ink-300 py-2.5 text-[11px] font-semibold text-ink-500 dark:border-ink-700">
-          <Copy className="h-3.5 w-3.5" /> {p.barcode}
-        </button>
+        <div className="space-y-1">
+          <button onClick={async () => { await copyText(p.barcode); push(t('common.copied')); }} className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-ink-300 py-2.5 text-[11px] font-semibold text-ink-500 dark:border-ink-700">
+            <Copy className="h-3.5 w-3.5" /> <span dir="ltr">{p.barcode}</span>
+          </button>
+          {p.barcode_source === 'internal-ean13' && (
+            <p className="text-center text-[9.5px] leading-4 text-ink-400">
+              {arabic ? 'رمز داخلي للمتجر (غير مطبوع على العلبة)' : 'Internal store code (not printed on the pack)'}
+            </p>
+          )}
+          {p.barcode_verified === 1 && (
+            <p className="text-center text-[9.5px] font-semibold leading-4 text-emerald-600">{arabic ? 'باركود موثّق من العلبة' : 'Barcode verified from the pack'}</p>
+          )}
+        </div>
       )}
 
       <div className="grid grid-cols-2 gap-2">

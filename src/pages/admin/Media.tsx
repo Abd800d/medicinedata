@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  Sparkles,
   AlertTriangle, CheckCircle2, Download, FileSpreadsheet, FileText, Image as ImageIcon, Loader2, RefreshCw,
   Search, UploadCloud, X, ExternalLink, Database, ListChecks,
 } from 'lucide-react';
@@ -174,6 +175,8 @@ function ImagesPanel() {
   const [result, setResult] = useState<any>(null);
   const [q, setQ] = useState('');
   const [search, setSearch] = useState<any>(null);
+  const [auto, setAuto] = useState<any>(null);
+  const [autoBusy, setAutoBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const upload = async (files: FileList | null) => {
@@ -232,6 +235,38 @@ function ImagesPanel() {
               <a href={search.searchUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10.5px] font-bold text-sky-700"><ExternalLink className="h-3 w-3" />فتح Google Images</a>
             )}
           </div>
+        )}
+      </div>
+
+      <div className="card p-4">
+        <div className="mb-2 flex items-center gap-2"><Sparkles className="h-4 w-4 text-violet-600" /><h2 className="text-[12.5px] font-extrabold">جلب صور تلقائي للمنتجات بدون صورة</h2></div>
+        <p className="text-[10.5px] leading-5 text-ink-500">
+          ينزّل أفضل نتيجة من Google Custom Search لكل منتج ويضيفها إلى معرضه. يحتاج <code>GOOGLE_CSE_KEY</code> و<code>GOOGLE_CSE_CX</code>.
+          راجع كل صورة بعد الجلب — البحث الآلي قد يعيد حجم علبة مختلفًا.
+        </p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {[5, 15, 30].map((n) => (
+            <button key={n} disabled={autoBusy} onClick={async () => {
+              setAutoBusy(true); setAuto(null);
+              try {
+                const res = await api.post<any>('/api/admin/images/auto-fill', { limit: n });
+                setAuto(res); push(`تمت إضافة ${res.applied} صورة`);
+              } catch (e: any) {
+                push(e.message || 'يلزم ضبط مفاتيح Google CSE أولًا', 'error');
+              } finally { setAutoBusy(false); }
+            }} className="btn-ghost px-3 py-1.5 text-[11px]">
+              {autoBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} جلب {n} صورة
+            </button>
+          ))}
+        </div>
+        {auto && (
+          <ul className="mt-2 space-y-0.5 rounded-lg bg-ink-50 p-2 text-[10px] text-ink-600 dark:bg-ink-800/60 dark:text-ink-300">
+            {auto.results?.slice(0, 10).map((r: any, i: number) => (
+              <li key={i} className={r.ok ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                {r.ok ? '✓' : '✗'} {r.name} {r.error ? `— ${r.error}` : ''}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 

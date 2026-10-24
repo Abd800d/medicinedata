@@ -281,10 +281,21 @@ router.get('/stats', (_req, res) => {
 });
 
 router.get('/barcode/:code', (req, res) => {
-  const p = db.prepare(`SELECT p.*, d.generic_name, d.generic_ar, m.name AS manufacturer_name
+  /* Scanner input can arrive with spaces, dashes, a UPC-A 12-digit form or a trailing newline */
+  const raw = String(req.params.code || '').trim();
+  const digits = raw.replace(/\D/g, '');
+  const variants = new Set([raw, digits]);
+  if (digits.length === 12) variants.add('0' + digits);           // UPC-A → EAN-13
+  if (digits.length === 13 && digits.startsWith('0')) variants.add(digits.slice(1));
+  if (digits.length === 13) variants.add(digits.slice(0, 12));    // missing check digit
+  const list = [...variants].filter(Boolean);
+  const rows = db.prepare(`SELECT p.*, d.generic_name, d.generic_ar, m.name AS manufacturer_name,
+      (SELECT COUNT(*) FROM product_images pi WHERE pi.product_id=p.id AND pi.source<>'generated') AS photo_count
     FROM products p LEFT JOIN drugs d ON d.id=p.drug_id LEFT JOIN manufacturers m ON m.id=p.manufacturer_id
-    WHERE p.barcode=? AND p.active=1`).all(req.params.code);
-  res.json(p);
+    WHERE p.barcode IN (${list.map(() => '?').join(',')}) AND p.active=1
+    ORDER BY CASE WHEN p.barcode=? THEN 0 ELSE 1 END, p.verified DESC`).all(...list, digits || raw);
+  res.setHeader('X-Barcode-Query', digits || raw);
+  res.json(rows);
 });
 
 router.get('/trending', (_req, res) => {

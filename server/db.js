@@ -274,6 +274,15 @@ CREATE TABLE IF NOT EXISTS search_terms (
 
 db.exec(SCHEMA);
 
+/* Additive migrations (safe to run on an existing database every boot) */
+function ensureColumn(table, column, ddl) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+  if (!cols.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+}
+ensureColumn('products', 'barcode_source', 'barcode_source TEXT');          // internal-ean13 | manufacturer | import | admin
+ensureColumn('products', 'barcode_verified', 'barcode_verified INTEGER DEFAULT 0');
+db.exec("CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode)");
+
 // Full text search indexes (trigram → typo tolerant substring search)
 db.exec(`
 CREATE VIRTUAL TABLE IF NOT EXISTS drugs_fts USING fts5(

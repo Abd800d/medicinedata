@@ -29,7 +29,7 @@
 | 🔓 GET | `/catalog/products` | `?q=&drug_id=&system_id=&manufacturer_id=&country=&page=` |
 | 🔓 GET | `/catalog/products/:id` | منتج + صور + بدائل بنفس المادة الفعالة |
 | 🔓 GET | `/catalog/search` | `?q=` → `{ drugs, products, suggestions, normalized }` (بحث ضبابي) |
-| 🔓 GET | `/catalog/barcode/:code` | البحث بالباركود |
+| 🔓 GET | `/catalog/barcode/:code` | البحث بالباركود — يقبل مسافات، UPC-A (12 رقمًا) أو EAN-13 |
 | 🔓 GET | `/catalog/manufacturers`, `/catalog/agents` | `?q=` |
 | 🔓 GET | `/catalog/trending` | الأكثر مشاهدة/إضافة |
 | 🔓 GET | `/catalog/product-image/:id.svg` | غلاف SVG مولّد (بديل الصورة) |
@@ -62,7 +62,7 @@
 
 | الطريقة | المسار | الوصف |
 | --- | --- | --- |
-| 🔓 GET | `/ai/status` | `{ enabled, provider }` |
+| 🔓 GET | `/ai/status` | `{ enabled, provider, base_url, model, vision_model, features, hint_ar }` |
 | 🔓 POST | `/ai/ask` | `{ q, lang }` → `{ answer, sources, mode }` (محلي دائمًا، AI عند التفعيل) |
 | 🔓 POST | `/ai/extract-text` | `{ text }` → استخراج أسماء الأدوية ومطابقتها |
 | 🔓 GET | `/ai/drug-context/:q` | سياق دوائي من القاعدة |
@@ -122,6 +122,12 @@
 | `GET/POST/PUT/DELETE /admin/manufacturers`, `/admin/agents` | الشركات والوكلاء |
 | `POST /admin/upload` | رفع صورة عامة → `{ url }` |
 | `POST /admin/import-images` | رفع صور بالجملة (`multipart: images[]`، الاسم = باركود/معرّف) |
+| `GET /admin/images/status` | حالة الصور: `{ configured, with_real_photo, without_photo, next[] }` |
+| `POST /admin/images/auto-fill` | جلب صور تلقائيًا `{ limit ≤ 50, dry_run }` — يحتاج Google CSE |
+| `POST /admin/products/:id/image-search` | مرشحو صور للمنتج `{ q?, limit }` |
+| `POST /admin/products/:id/attach-url` | تنزيل رابط صورة وإرفاقها بالمنتج |
+| `GET /admin/integrations` | حالة Google/AI/CSE/الباركود + الخطوات |
+| `POST /admin/integrations/test` | اختبار اتصال حقيقي `{ target: google\|ai\|cse }` |
 | `GET /admin/image-search?q=` | بحث صور (Google CSE) أو رابط بحث يدوي |
 | `POST /admin/fetch-image` | تنزيل صورة من رابط وتعيينها (`{ url, product_id }`) |
 | `POST /admin/import` | استيراد CSV/XLSX/JSON (`dryRun=1` للمعاينة) |

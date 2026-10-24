@@ -6,6 +6,7 @@ import { api } from '../lib/api';
 import { useConfig } from '../lib/config';
 import { ProductGrid, ProductRecord } from '../components/catalog';
 import { Badge, EmptyState, useToast } from '../components/ui';
+import BarcodeScanner from '../components/barcodescanner';
 
 export default function ScanPage() {
   const { t, lang } = useI18n();
@@ -19,6 +20,8 @@ export default function ScanPage() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [manual, setManual] = useState('');
+  const [codeBusy, setCodeBusy] = useState(false);
+  const [codeMiss, setCodeMiss] = useState<string | null>(null);
 
   const pick = (f?: File | null) => {
     if (!f) return;
@@ -42,6 +45,29 @@ export default function ScanPage() {
     } finally { setBusy(false); }
   };
 
+  const lookupBarcode = async (code: string) => {
+    setCodeBusy(true);
+    setCodeMiss(null);
+    try {
+      const rows = await api.get<ProductRecord[]>(`/api/catalog/barcode/${encodeURIComponent(code)}`);
+      if (rows?.length) {
+        if (rows.length === 1) navigate(`/products/${rows[0].id}`);
+        else setResult({ matches: rows, visible_text: code, confidence: 1 });
+      } else {
+        setCodeMiss(code);
+        push(lang === 'ar' ? `لا يوجد منتج بالباركود ${code}` : `No product with barcode ${code}`, 'error');
+      }
+    } catch (e: any) {
+      if (e?.message === 'NETWORK') {
+        const mod = await import('../lib/offline');
+        const pack = await mod.getPack();
+        const offline = pack ? mod.searchPack(pack, code).products : [];
+        if (offline.length) navigate(`/products/${offline[0].id}`);
+        else setCodeMiss(code);
+      } else push(e.message || t('common.error'), 'error');
+    } finally { setCodeBusy(false); }
+  };
+
   const lensUrl = 'https://lens.google.com/';
   const googleSearch = (q: string) => `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(q + ' medicine')}`;
   const detectedName = result?.visible_text || result?.query || '';
@@ -54,6 +80,17 @@ export default function ScanPage() {
         <p className="mt-1 max-w-md text-[11.5px] leading-6 text-white/80">
           {lang === 'ar' ? 'ارفع صورة علبة الدواء أو الشريط، وسيتعرف الذكاء الاصطناعي على الاسم ويطابقه مع قاعدة البيانات، مع بحث Google للصور.' : 'Upload a pack or blister photo; AI reads the name and matches the database, with Google image search.'}
         </p>
+      </div>
+
+      <div className="card space-y-3 p-4">
+        <div className="flex items-center gap-2"><ScanLine className="h-4 w-4 text-emerald-700" /><h2 className="text-[12.5px] font-extrabold">{lang === 'ar' ? 'البحث بالباركود' : 'Search by barcode'}</h2></div>
+        <BarcodeScanner onDetect={lookupBarcode} busy={codeBusy} />
+        {codeMiss && (
+          <div className="flex flex-wrap items-center gap-2 rounded-xl bg-ink-50 px-3 py-2 text-[10.5px] text-ink-600 dark:bg-ink-800/60 dark:text-ink-300">
+            <span>{lang === 'ar' ? 'غير موجود في القاعدة:' : 'Not in the catalogue:'} <b dir="ltr">{codeMiss}</b></span>
+            <Link to={`/search?q=${encodeURIComponent(codeMiss)}`} className="font-bold text-brand-700 underline dark:text-brand-400">{lang === 'ar' ? 'ابحث بالرقم' : 'Search this code'}</Link>
+          </div>
+        )}
       </div>
 
       <div className="card relative overflow-hidden p-4">

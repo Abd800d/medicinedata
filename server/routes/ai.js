@@ -19,7 +19,19 @@ function rateLimit(req, res, next) {
   next();
 }
 
-router.get('/status', (_req, res) => res.json({ enabled: aiEnabled(), provider: aiEnabled() ? 'openai-compatible' : 'offline-database' }));
+router.get('/status', (_req, res) => {
+  const enabled = aiEnabled();
+  res.json({
+    enabled,
+    provider: enabled ? 'openai-compatible' : 'offline-database',
+    base_url: enabled ? (process.env.AI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '') : null,
+    model: enabled ? (process.env.AI_MODEL || 'gpt-4o-mini') : null,
+    vision_model: enabled ? (process.env.AI_VISION_MODEL || process.env.AI_MODEL || 'gpt-4o-mini') : null,
+    features: { assistant: true, prescription: enabled, pack_recognition: enabled, offline_retrieval: true },
+    hint_ar: enabled ? null : 'للتحليل التلقائي لصور الوصفات أضف AI_API_KEY إلى .env ثم أعد تشغيل الخادم. كل بقية الميزات تعمل دون مفتاح.',
+    hint_en: enabled ? null : 'Add AI_API_KEY to .env and restart to enable automatic prescription reading. Everything else works without a key.',
+  });
+});
 
 router.post('/ask', optionalAuth, rateLimit, async (req, res, next) => {
   try {
