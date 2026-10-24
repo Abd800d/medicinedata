@@ -1,0 +1,146 @@
+# تطبيق أندرويد · Android build
+
+التطبيق يُغلَّف بـ **Capacitor 6**، ومجلد `android/` جاهز في المستودع.
+
+## المتطلبات
+
+- Node.js ≥ 20
+- [Android Studio](https://developer.android.com/studio) (Ladybug أو أحدث) + Android SDK 34
+- JDK 21 (يأتي مع Android Studio)
+- جهاز أندرويد حقيقي أو محاكي (API 24+)
+
+## 1) بناء الواجهة
+
+الواجهة داخل التطبيق لا تستطيع استخدام مسارات نسبية مثل `/api`؛ يجب أن تعرف عنوان الخادم وقت البناء:
+
+```bash
+# عنوان الخادم المنشور (بدون /api في النهاية)
+VITE_API_BASE=https://mda.example.com npm run build
+```
+
+> بديل بدون إعادة بناء: يمكن ضبط العنوان من داخل التطبيق عبر `localStorage['mda.apiBase']` (أضف شاشة إعدادات داخلية إن رغبت). الطريقة الموصى بها هي `VITE_API_BASE`.
+
+## 2) المزامنة
+
+```bash
+npm run cap:sync          # = npm run build && npx cap sync android
+```
+
+`npm run cap:sync` ينسخ `dist/` إلى `android/app/src/main/assets/public` ويحدّث الإعدادات.
+
+## 3) البناء من Android Studio
+
+```bash
+npx cap open android
+```
+
+ثم `Build → Build Bundle(s)/APK(s) → Build APK(s)`.
+
+## 4) البناء من الطرفية
+
+```bash
+cd android
+./gradlew assembleDebug        # APK للتجربة: app/build/outputs/apk/debug/app-debug.apk
+./gradlew bundleRelease        # AAB للنشر على Google Play
+```
+
+## 4.5) البناء بدون أي أدوات محلية — GitHub Actions (الطريقة الموصى بها)
+
+لا تحتاج JDK ولا Android SDK على جهازك: سير العمل `.github/workflows/android.yml` يبني الـ APK
+على خوادم GitHub ويرفعه كملف جاهز للتثبيت.
+
+1. **Settings → Secrets and variables → Actions → Variables → New variable**
+   - الاسم: `VITE_API_BASE`
+   - القيمة: عنوان الخادم المنشور، مثل `https://mda.example.com` (بدون `/` في النهاية وبدون `/api`).
+2. **Actions → Android APK → Run workflow** → اختر `debug` → **Run**.
+3. انتظر ~5 دقائق، ثم من صفحة التشغيل نزّل الـ artifact باسم **`mda-apk`**.
+   داخله `app-debug.apk` — انقله للهاتف وثبّته (اسمح بالتثبيت من مصدر غير معروف).
+
+الـ APK يشمل الواجهة كاملة داخل التطبيق، ويتصل بخادمك عبر `VITE_API_BASE`.
+
+**بناء موقّع للنشر (`release`)** — أضف هذه الأسرار (Secrets) مرة واحدة:
+
+```bash
+keytool -genkeypair -v -keystore mda-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias mda
+base64 -w0 mda-release.jks > mda-release.jks.b64      # الصق محتواه في السر الأول
+```
+
+| Secret | القيمة |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | محتوى `mda-release.jks.b64` |
+| `ANDROID_KEYSTORE_PASSWORD` | كلمة مرور المخزن |
+| `ANDROID_KEY_ALIAS` | `mda` |
+| `ANDROID_KEY_PASSWORD` | كلمة مرور المفتاح |
+
+ثم شغّل السير بـ `build_type = release`، أو ادفع وسمًا: `git tag v1.1.0 && git push origin v1.1.0`.
+`android/app/build.gradle` يقرأ مسار المخزن من `MDA_KEYSTORE_PATH` ويستعمل `-PversionCode/-PversionName`
+القادمين من السير، فلا حاجة لأي تعديل يدوي.
+
+> بدون `VITE_API_BASE` يتوقف السير برسالة واضحة بدل إنتاج APK لا يتصل بأي خادم.
+
+## 5) التوقيع والإصدار (بناء محلي)
+
+أنشئ مفتاح توقيع:
+
+```bash
+keytool -genkey -v -keystore mda-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias mda
+```
+
+`android/key.properties` غير مطلوب: ملف `android/app/build.gradle` يقرأ التوقيع من متغيرات البيئة
+`MDA_KEYSTORE_PATH` و`MDA_KEYSTORE_PASSWORD` و`MDA_KEY_ALIAS` و`MDA_KEY_PASSWORD` (نفس ما يستخدمه CI).
+
+```bash
+export MDA_KEYSTORE_PATH="$PWD/mda-release.jks"
+export MDA_KEYSTORE_PASSWORD='***'
+export MDA_KEY_ALIAS=mda
+export MDA_KEY_PASSWORD='***'
+```
+
+بدون هذه المتغيرات يُبنى `release` **غير موقّع** (لن يُثبَّت) — استخدم `assembleDebug` للتجربة.
+
+```bash
+cd android && ./gradlew bundleRelease
+# android/app/build/outputs/bundle/release/app-release.aab
+```
+
+## 6) الهوية والأيقونات
+
+- اسم التطبيق: `android/app/src/main/res/values/strings.xml` (`app_name`)
+- الأيقونة: استبدل `android/app/src/main/res/mipmap-*/ic_launcher*.png` بأيقونة MDA (توليدها: Android Studio → Image Asset، أو من `public/icons/icon-512.png`)
+- شاشة البداية: `@style/AppTheme.NoActionBarLaunch` — عدّل `android/app/src/main/res/values/styles.xml`
+- الألوان: `android/app/src/main/res/values/colors.xml`
+
+## 7) سلوك متوقّع
+
+- الاتصال بالإنترنت مطلوب للمزامنة؛ البحث المحلي يعمل من حزمة offline بعد أول تشغيل.
+- رفع الصور (الوصفة/المسح) يستخدم `FormData` — يعمل كما في الويب.
+- إن ظهرت شاشة بيضاء: تأكد أن `VITE_API_BASE` صحيح وأن `dist/` موجود قبل `cap sync`، ثم امسح بيانات التطبيق وأعد التثبيت.
+- `android:usesCleartextTraffic` مرفوض افتراضيًا — استخدم HTTPS في الإنتاج.
+- **الكاميرا والباركود:** صلاحية `CAMERA` مضافة في `AndroidManifest.xml`. مسح الباركود يعمل داخل
+  التطبيق عبر محرّك ZXing (`.js` مضمّن، لا يحتاج خدمة Google Play)، وإدخال الرقم يدويًا متاح دائمًا.
+
+## 7.5) Google Sign-In داخل التطبيق
+
+Google ترفض تسجيل الدخول داخل `WebView`. داخل الـ APK:
+
+- **الافتراضي والعامل الآن:** تسجيل بالبريد وكلمة المرور، ثم كل شيء يعمل (الوصفات، المجتمع، الطلبات).
+- **لتفعيل Google:** أضف إضافة القراءة الأصلية ثم أعد البناء:
+
+```bash
+npm i @codetrix-studio/capacitor-google-auth
+npx cap sync android
+```
+
+  سجّل `applicationId` (`com.mda.medicinedata`) + بصمة SHA-1 في Google Cloud، وأضف `serverClientId`
+  في `capacitor.config.ts` بنفس `GOOGLE_CLIENT_ID`. التفاصيل في `docs/INTEGRATIONS.md`.
+
+## 8) تحديث التطبيق
+
+كل مرة تغيّر الواجهة:
+
+```bash
+VITE_API_BASE=https://mda.example.com npm run cap:sync
+cd android && ./gradlew bundleRelease
+```
+
+ثم ارفع نسخة جديدة إلى Google Play (أو وزّع APK مباشرة).
