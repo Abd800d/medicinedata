@@ -26,8 +26,6 @@ on:
   push:
     tags:
       - 'v*'
-    branches:
-      - 'arena/357baf95-medicinedata'   # temporary: fast feedback while wiring the build
 
 permissions:
   contents: write
