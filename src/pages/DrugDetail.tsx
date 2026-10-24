@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   AlertTriangle, BadgeCheck, Bot, ChevronLeft, ChevronRight, ClipboardList, Clock, Droplets, FlaskConical,
-  Heart, Info, MapPin, Package, Pencil, Share2, ShieldAlert, ShieldCheck, Sparkles, PackageSearch, Users,
+  Heart, Info, MapPin, Package, Pencil, Pill, Share2, ShieldAlert, ShieldCheck, Sparkles, PackageSearch, Users,
 } from 'lucide-react';
 import { useApi } from '../lib/useApi';
 import { useI18n } from '../lib/i18n';
@@ -27,7 +27,15 @@ export default function DrugDetail() {
   useEffect(() => { setTab('info'); }, [id]);
 
   if (loading && !drug) return <PageLoader />;
-  if (error && !drug) return <ErrorState message={error} onRetry={reload} />;
+  if (error && !drug) {
+    if (/not found|404/i.test(String(error))) {
+      return (
+        <EmptyState icon={<Pill className="h-6 w-6 text-ink-400" />} title={t('errors.notFoundDrug')}
+          action={<Link to="/search" className="btn-primary">{t('errors.searchInstead')}</Link>} />
+      );
+    }
+    return <ErrorState message={error} onRetry={reload} />;
+  }
   if (!drug) return null;
 
   const color = drug.system_color || '#0f766e';

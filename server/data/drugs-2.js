@@ -438,7 +438,7 @@ export default [
     half: '12.9 ساعة',
   }, [
     ['Forxiga', 'فوركسيجا', '10 mg', 'Tablet', 'AstraZeneca', 'United Kingdom'],
-    ['Jardiance', 'جارديانس', '10 mg', 'Tablet', 'Boehringer Ingelheim', 'Germany'],
+    ['Forxiga', 'فورسيجا', '10 mg', 'Tablet', 'AstraZeneca', 'United Kingdom'],
   ]],
   ['insulin-glargine', 'أنسولين غلارجين', 'endocrine', 'insulins', {
     cls: 'Long-Acting Basal Insulin', atc: 'A10AE04', rx: 1,
@@ -808,7 +808,7 @@ export default [
     ['Duphaston', 'دوفاستون', '10 mg', 'Tablet', 'Abbott', 'Netherlands'],
   ]],
   ['contraceptive-co', 'موانع حمل مركبة', 'reproductive', 'contraceptives', {
-    cls: 'Combined Oral Contraceptive', atc: 'G03AA07', rx: 1,
+    cls: 'Combined Oral Contraceptive', atc: 'G03AA07', rx: 1, syn: 'combined pill, combined oral contraceptive, microgynon, yasmin, marvelon',
     preg: 'لا تُستخدم أثناء الحمل.',
     ind_ar: 'منع الحمل، تنظيم الدورة، علاج حب الشباب والزغابة (بعض الأنواع).',
     ind_en: 'Contraception, cycle regulation, acne/hirsutism (selected products).',

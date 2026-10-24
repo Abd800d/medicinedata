@@ -9,7 +9,7 @@ import { useI18n } from '../lib/i18n';
 import { useAuth } from '../lib/auth';
 import { useConfig } from '../lib/config';
 import { api, assetUrl } from '../lib/api';
-import { Badge, ErrorState, PageLoader, SmartImage, useToast } from '../components/ui';
+import { Badge, EmptyState, ErrorState, PageLoader, SmartImage, useToast } from '../components/ui';
 import { ProductCard, ProductRecord } from '../components/catalog';
 import { copyText, cx, fmt, shareItem } from '../lib/utils';
 
@@ -24,7 +24,15 @@ export default function ProductDetail() {
   const [active, setActive] = useState(0);
 
   if (loading && !p) return <PageLoader />;
-  if (error && !p) return <ErrorState message={error} onRetry={reload} />;
+  if (error && !p) {
+    if (/not found|404/i.test(String(error))) {
+      return (
+        <EmptyState icon={<Package className="h-6 w-6 text-ink-400" />} title={t('errors.notFoundProduct')}
+          action={<Link to="/search" className="btn-primary">{t('errors.searchInstead')}</Link>} />
+      );
+    }
+    return <ErrorState message={error} onRetry={reload} />;
+  }
   if (!p) return null;
 
   const arabic = lang === 'ar';

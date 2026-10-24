@@ -98,7 +98,7 @@ export default [
     ['Levetiracetam Hikma', 'ليفيتيراسيتام حكمة', '100 mg/ml', 'Oral Solution', 'Hikma', 'Jordan'],
   ]],
   ['valproic-acid', 'حمض الفالبرويك', 'nervous', 'antiepileptics', {
-    cls: 'Antiepileptic (broad spectrum)', atc: 'N03AG01', rx: 1,
+    cls: 'Antiepileptic (broad spectrum)', atc: 'N03AG01', rx: 1, syn: 'valproate, sodium valproate, depakine, epilim',
     preg: 'ممنوع في الحمل لخطر التشوهات الجنينية واضطراب النمو العصبي؛ يُمنع في النساء بسن الإنجاب دون برنامج وقاية.',
     ind_ar: 'الصرع المعمم والجزئي، نوبات الغياب، العلاج الوقائي للشقيقة، الاضطراب ثنائي القطب.',
     ind_en: 'Generalised and focal epilepsy, absence seizures, migraine prophylaxis, bipolar disorder.',
@@ -209,7 +209,7 @@ export default [
     ['Risperidone Hikma', 'ريسبيريدون حكمة', '1 mg/ml', 'Oral Solution', 'Hikma', 'Jordan'],
   ]],
   ['levodopa-carbidopa', 'ليفودوبا/كاربيدوبا', 'nervous', 'antiparkinsonian', {
-    cls: 'Dopaminergic Antiparkinsonian', atc: 'N04BA02', rx: 1,
+    cls: 'Dopaminergic Antiparkinsonian', atc: 'N04BA02', rx: 1, syn: 'levodopa, sinemet, madopar, co-careldopa',
     preg: 'بيانات محدودة؛ لا يُنصح به في الحمل.',
     ind_ar: 'مرض باركنسون (الأعراض الحركية)، متلازمة تململ الساقين الشديدة.',
     ind_en: 'Parkinson disease motor symptoms; severe restless legs syndrome.',

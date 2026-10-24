@@ -13,7 +13,19 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const BUNDLE = process.env.SMOKE_BUNDLE || path.join(HERE, '..', '.smoke', 'app.mjs');
 const API = process.env.API || 'http://127.0.0.1:4000';
 
-const DEFAULT_ROUTES = ['/', '/systems', '/systems/nervous', '/search', '/search?q=panadol', '/drugs/1', '/products/1',
+/* Pick real catalogue ids so detail pages are exercised with live data */
+const firstId = async (path) => {
+  try {
+    const r = await fetch(`${API}${path}`, { headers: { 'Accept-Language': 'en' } });
+    const j = await r.json();
+    const row = Array.isArray(j?.data) ? j.data[0] : Array.isArray(j) ? j[0] : null;
+    return row?.id;
+  } catch { return null; }
+};
+const [drugId, productId] = [await firstId('/api/catalog/drugs?limit=1'), await firstId('/api/catalog/products?limit=1')];
+
+const DEFAULT_ROUTES = ['/', '/systems', '/systems/nervous', '/search', '/search?q=panadol',
+  drugId ? `/drugs/${drugId}` : '/drugs/1', productId ? `/products/${productId}` : '/products/1',
   '/prescriptions', '/scan', '/ai', '/community', '/jobs', '/directories', '/pharmacy', '/submit-drug',
   '/about', '/profile', '/auth', '/admin'];
 
@@ -76,7 +88,7 @@ for (const path of routes) {
     const html = root.innerHTML;
     const text = root.textContent || '';
     const errCards = [...root.querySelectorAll('h1,h2,div')].map((e) => e.textContent).filter((t) => t && t.includes('Something went wrong'));
-    results.push({ path, len: html.length, text: text.slice(0, 160).replace(/\s+/g, ' '), errors: [...new Set(errors)].slice(0, 4), errCards: errCards.slice(0, 1) });
+    results.push({ path, len: html.length, text: text.slice(0, 160).replace(/\s+/g, ' '), tail: text.slice(-160).replace(/\s+/g, ' '), errors: [...new Set(errors)].slice(0, 4), errCards: errCards.slice(0, 1) });
     r.unmount();
   } catch (e) {
     results.push({ path, crash: e.message });

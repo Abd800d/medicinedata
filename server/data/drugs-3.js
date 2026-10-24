@@ -148,7 +148,7 @@ export default [
     ['Alendronate Hikma', 'أليندرونات حكمة', '70 mg', 'Tablet', 'Hikma', 'Jordan'],
   ]],
   ['calcium-vitd', 'كالسيوم + فيتامين د', 'musculoskeletal', 'calcium-vitd', {
-    cls: 'Calcium and Vitamin D Supplement', atc: 'A12AA04', rx: 0,
+    cls: 'Calcium and Vitamin D Supplement', atc: 'A12AA04', rx: 0, syn: 'calcium carbonate, caltrate, calcium sandoz',
     preg: 'يُستخدم حسب حاجة الحامل (تحت إشراف).',
     ind_ar: 'الوقاية من هشاشة العظام، نقص الكالسيوم، دعم الحمل والرضاعة، نقص فيتامين د.',
     ind_en: 'Osteoporosis prevention, calcium deficiency, pregnancy/lactation support, vitamin D deficiency.',
@@ -222,7 +222,7 @@ export default [
     ['Cortizone-10', 'كورتيزون-10', '1%', 'Topical Cream', 'Advantice', 'United States'],
   ]],
   ['betamethasone-valerate', 'بيتاميثازون فاليرات', 'skin', 'topical-corticosteroids', {
-    cls: 'Potent Topical Corticosteroid', atc: 'D07AC01', rx: 1,
+    cls: 'Potent Topical Corticosteroid', atc: 'D07AC01', rx: 1, syn: 'betamethasone',
     preg: 'يُستخدم بكمية محدودة وبإشراف.',
     ind_ar: 'الأكزيما المتوسطة إلى الشديدة، الصدفية، التهاب الجلد التحسسي.',
     ind_en: 'Moderate to severe eczema, psoriasis, allergic dermatitis.',
