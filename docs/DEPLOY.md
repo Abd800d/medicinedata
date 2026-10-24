@@ -5,7 +5,17 @@
 
 ---
 
-## ١) أسرع طريقة: Render (مجاني للتجربة)
+## ١) أسرع طريقة: Render (نشر بنقرة)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Abd800d/medicinedata)
+
+> من الزر أعلاه (أو **New → Blueprint**) يقرأ Render ملف `render.yaml` وينشئ الخدمة + القرص الدائم.
+
+### مهم قبل النشر: اختر الخطة
+| الخطة | البيانات | الملاحظة |
+|---|---|---|
+| **Starter** ($7/شهر) | قرص دائم 1GB | الموصى بها: كل ما تضيفه من أدوية/صور/أسعار يبقى محفوظًا |
+| **Free** | مؤقتة | احذف بلوك `disk:` واجعل `plan: free` — الكتالوج يُبذر تلقائيًا عند كل تشغيل، لكن تعديلاتك تُفقد |
 
 1. ادخل [render.com](https://render.com) → **New → Blueprint** → اختر مستودع `Abd800d/medicinedata`.
 2. Render يقرأ `render.yaml` وينشئ خدمة `mda` (Docker) + قرصًا دائمًا في `/app/data`.

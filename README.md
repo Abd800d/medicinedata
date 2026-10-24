@@ -262,6 +262,8 @@ TOKEN=<jwt> npm run smoke    # اختبار حالة تسجيل الدخول
 
 ## 🖥️ الموقع ولوحة التحكم
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Abd800d/medicinedata)
+
 `Dockerfile` + `render.yaml` جاهزان لنشر الواجهة + الـ API + قاعدة SQLite على Render أو أي VPS.
 الدليل الكامل: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 

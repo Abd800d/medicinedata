@@ -1,5 +1,8 @@
 # Render Blueprint — the MDA control site (web app + API + SQLite)
 # Deploy: Render dashboard → New → Blueprint → pick this repo.
+# NOTE: `plan: starter` is required for the persistent disk (durable edits).
+# For a free instance, delete the `disk:` block and set `plan: free`
+# (catalog re-seeds on every restart; admin edits are lost).
 services:
   - type: web
     name: mda
