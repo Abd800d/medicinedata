@@ -131,10 +131,12 @@ jobs:
         run: |
           chmod +x ./gradlew
           VERSION_NAME="$(printf '%s' "${GITHUB_REF_NAME:-1.0.0}" | tr -c '[:alnum:]._-' '-' | cut -c1-32)"
+          VERSION_CODE="${GITHUB_RUN_NUMBER:-1}"
+          echo "versionName=$VERSION_NAME versionCode=$VERSION_CODE"
           TASK="assembleDebug"
           if [ "$BUILD_TYPE" = "release" ]; then TASK="assembleRelease"; fi
           set +e
-          ./gradlew "$TASK" --no-daemon -PversionName="$VERSION_NAME" -PversionCode="${{ github.run_number }}" > build.log 2>&1
+          ./gradlew "$TASK" --no-daemon -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE" > build.log 2>&1
           STATUS=$?
           set -e
           echo "----- gradle tail -----"
