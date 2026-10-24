@@ -6,6 +6,7 @@ import {
   Stethoscope, Boxes,
 } from 'lucide-react';
 import { Logo, Avatar, MDAIcon } from './ui';
+import InstallPrompt from './install';
 import { useI18n } from '../lib/i18n';
 import { useConfig } from '../lib/config';
 import { useAuth } from '../lib/auth';
@@ -220,12 +221,13 @@ export default function Layout() {
     <div className="app-bg min-h-screen">
       <TopBar />
       <OfflineBanner />
-      <main className="app-shell page animate-fade-in">
+      <main key={location.pathname} className="app-shell page animate-page">
         <Outlet />
       </main>
       <Footer />
       <div className="h-16" />
       <BottomNav />
+      <InstallPrompt />
     </div>
   );
 }

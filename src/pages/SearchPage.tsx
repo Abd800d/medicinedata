@@ -84,7 +84,7 @@ export default function SearchPage() {
       <div className="space-y-2.5">
         <div className="relative">
           <span className="pointer-events-none absolute -inset-1 -z-10 rounded-[26px] bg-brand-500/25 blur-xl" />
-          <div className="flex items-center gap-2 rounded-[22px] border border-white/12 bg-ink-900/90 p-1.5 shadow-glow backdrop-blur-xl">
+          <div className="flex items-center gap-2 rounded-[22px] border border-white/[.12] bg-ink-900/90 p-1.5 shadow-glow backdrop-blur-xl">
             <Search className="ms-2 h-5 w-5 shrink-0 text-brand-300" />
             <input
               autoFocus

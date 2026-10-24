@@ -79,8 +79,11 @@ export function PageLoader({ label }: { label?: string }) {
   const { t } = useI18n();
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-16 text-ink-400">
-      <Spinner className="h-7 w-7 text-brand-600" />
-      <span className="text-sm">{label || t('common.loading')}</span>
+      <span className="relative flex h-14 w-14 items-center justify-center">
+        <span className="absolute inset-0 animate-ping rounded-2xl bg-brand-500/15" />
+        <MDAIcon size={46} className="relative rounded-2xl shadow-glow" />
+      </span>
+      <span className="text-[12px] font-semibold">{label || t('common.loading')}</span>
     </div>
   );
 }
