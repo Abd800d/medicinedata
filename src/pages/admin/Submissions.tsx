@@ -40,7 +40,7 @@ export default function Submissions() {
           <div key={s.id} className="card p-3">
             <div className="flex items-start gap-2">
               <span className={cx('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
-                s.status === 'approved' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40' : s.status === 'rejected' ? 'bg-rose-50 text-rose-500 dark:bg-rose-950/40' : 'bg-amber-50 text-amber-600 dark:bg-amber-950/40')}>
+                s.status === 'approved' ? 'bg-emerald-500/15 text-emerald-300' : s.status === 'rejected' ? 'bg-rose-500/15 text-rose-300' : 'bg-amber-500/15 text-amber-300')}>
                 {s.status === 'approved' ? <CheckCircle2 className="h-3.5 w-3.5" /> : s.status === 'rejected' ? <XCircle className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
               </span>
               <div className="min-w-0 flex-1">
@@ -67,7 +67,7 @@ export default function Submissions() {
                 <button onClick={() => review(s, 'rejected')} disabled={busy === s.id} className="btn-ghost px-2.5 py-1 text-[10.5px]"><XCircle className="h-3 w-3" />رفض</button>
               )}
               {s.created_drug_id && <a href={`/drugs/${s.created_drug_id}`} target="_blank" rel="noreferrer" className="btn-soft px-2.5 py-1 text-[10.5px]"><FilePlus2 className="h-3 w-3" />الدواء المنشور</a>}
-              <button onClick={() => remove(s)} className="btn-ghost ms-auto px-2 py-1 text-[10.5px] text-rose-600"><Trash2 className="h-3 w-3" /></button>
+              <button onClick={() => remove(s)} className="btn-ghost ms-auto px-2 py-1 text-[10.5px] text-rose-300"><Trash2 className="h-3 w-3" /></button>
             </div>
           </div>
         ))}

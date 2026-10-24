@@ -15,9 +15,9 @@ export default function Media() {
   const [tab, setTab] = useState<'import' | 'images' | 'history'>('import');
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-1 rounded-xl bg-ink-100 p-1 dark:bg-ink-800">
+      <div className="grid grid-cols-3 gap-1 rounded-xl p-1 bg-white/[.05]">
         {([['import', 'استيراد البيانات'], ['images', 'الصور'], ['history', 'السجل']] as const).map(([k, label]) => (
-          <button key={k} onClick={() => setTab(k)} className={cx('rounded-lg py-1.5 text-[11px] font-bold', tab === k ? 'bg-white text-ink-900 shadow-sm dark:bg-ink-900 dark:text-white' : 'text-ink-500')}>{label}</button>
+          <button key={k} onClick={() => setTab(k)} className={cx('rounded-lg py-1.5 text-[11px] font-bold', tab === k ? 'bg-brand-grad text-white shadow-glow' : 'text-ink-500')}>{label}</button>
         ))}
       </div>
       {tab === 'import' && <ImportPanel />}
@@ -83,24 +83,24 @@ function ImportPanel() {
   return (
     <div className="space-y-3">
       <div className="card p-4">
-        <div className="mb-2 flex items-center gap-2"><FileSpreadsheet className="h-4 w-4 text-violet-600" /><h2 className="text-[12.5px] font-extrabold">استيراد قاعدة البيانات</h2></div>
+        <div className="mb-2 flex items-center gap-2"><FileSpreadsheet className="h-4 w-4 text-violet-300" /><h2 className="text-[12.5px] font-extrabold">استيراد قاعدة البيانات</h2></div>
         <p className="text-[10.5px] leading-5 text-ink-500">CSV (حتى ملايين الصفوف، معالجة متدفقة) · Excel (XLSX) · JSON. تُطابَق الأعمدة تلقائيًا بالعربية أو الإنجليزية، ويُنشأ الدواء والشركة والوكيل والتصنيف تلقائيًا عند الحاجة.</p>
 
         <label className={cx('mt-3 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 text-center transition',
-          file ? 'border-brand-400 bg-brand-50/50 dark:border-brand-700 dark:bg-brand-950/20' : 'border-ink-200 hover:border-brand-300 dark:border-ink-700')}>
-          {busy ? <Loader2 className="mb-2 h-7 w-7 animate-spin text-brand-600" /> : file ? <CheckCircle2 className="mb-2 h-7 w-7 text-brand-600" /> : <UploadCloud className="mb-2 h-7 w-7 text-ink-400" />}
-          <span className="text-[12px] font-bold text-ink-700 dark:text-ink-200">{file ? file.name : 'اختر ملف CSV / XLSX / JSON'}</span>
+          file ? 'border-brand-400/60 bg-brand-500/10' : 'border-white/[.08] hover:border-brand-400/50')}>
+          {busy ? <Loader2 className="mb-2 h-7 w-7 animate-spin text-brand-300" /> : file ? <CheckCircle2 className="mb-2 h-7 w-7 text-brand-300" /> : <UploadCloud className="mb-2 h-7 w-7 text-ink-400" />}
+          <span className="text-[12px] font-bold text-ink-200">{file ? file.name : 'اختر ملف CSV / XLSX / JSON'}</span>
           <span className="mt-0.5 text-[10px] text-ink-400">{file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : 'اضغط للاختيار من جهازك'}</span>
           <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls,.json,text/csv" className="hidden" onChange={(e) => { setFile(e.target.files?.[0] || null); setJob(null); setPreview(null); }} />
         </label>
-        {progress > 0 && progress < 100 && <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink-100 dark:bg-ink-800"><div className="h-full rounded-full bg-brand-600 transition-all" style={{ width: `${progress}%` }} /></div>}
+        {progress > 0 && progress < 100 && <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full rounded-full bg-brand-600 transition-all" style={{ width: `${progress}%` }} /></div>}
 
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <Field label="الجهاز الافتراضي (اختياري)"><Select value={systemId} onChange={(e) => setSystemId(e.target.value)}>
             <option value="">— بدون —</option>{(systems || []).map((s) => <option key={s.id} value={s.id}>{s.name_ar}</option>)}
           </Select></Field>
           <div className="flex items-end">
-            <label className="flex items-center gap-2 pb-2 text-[11px] font-semibold text-ink-600 dark:text-ink-300"><input type="checkbox" checked={verify} onChange={(e) => setVerify(e.target.checked)} className="h-4 w-4 accent-brand-700" />تعيين كل الصفوف «موثّقة»</label>
+            <label className="flex items-center gap-2 pb-2 text-[11px] font-semibold text-ink-300"><input type="checkbox" checked={verify} onChange={(e) => setVerify(e.target.checked)} className="h-4 w-4 accent-brand-700" />تعيين كل الصفوف «موثّقة»</label>
           </div>
         </div>
 
@@ -114,20 +114,20 @@ function ImportPanel() {
       {preview && (
         <div className="card p-4">
           <div className="mb-1.5 flex items-center justify-between"><h3 className="text-[12px] font-extrabold">نتيجة المعاينة</h3><Badge tone="sky">{preview.kind}</Badge></div>
-          <div className="flex gap-2 text-[11px]"><span className="text-emerald-600">صالح: {preview.ok}</span><span className="text-rose-600">فاشل: {preview.failed}</span><span className="text-ink-400">صفوف: {preview.rows}</span></div>
-          {preview.errors?.length > 0 && <ul className="mt-2 space-y-1 text-[10px] text-rose-600">{preview.errors.map((e: string, i: number) => <li key={i}>• {e}</li>)}</ul>}
-          {preview.sample?.length > 0 && <div className="mt-2 rounded-lg bg-ink-50 p-2 text-[9.5px] text-ink-500 dark:bg-ink-800"><b>الأعمدة المكتشفة:</b> {preview.sample[0].join(', ')}</div>}
+          <div className="flex gap-2 text-[11px]"><span className="text-emerald-300">صالح: {preview.ok}</span><span className="text-rose-300">فاشل: {preview.failed}</span><span className="text-ink-400">صفوف: {preview.rows}</span></div>
+          {preview.errors?.length > 0 && <ul className="mt-2 space-y-1 text-[10px] text-rose-300">{preview.errors.map((e: string, i: number) => <li key={i}>• {e}</li>)}</ul>}
+          {preview.sample?.length > 0 && <div className="mt-2 rounded-lg p-2 text-[9.5px] text-ink-500 bg-white/[.05]"><b>الأعمدة المكتشفة:</b> {preview.sample[0].join(', ')}</div>}
         </div>
       )}
 
       {job && <ImportJob id={job.id} />}
 
       <div className="card p-4">
-        <div className="mb-2 flex items-center gap-2 text-[12px] font-extrabold"><FileText className="h-4 w-4 text-sky-600" />أعمدة مدعومة</div>
+        <div className="mb-2 flex items-center gap-2 text-[12px] font-extrabold"><FileText className="h-4 w-4 text-sky-300" />أعمدة مدعومة</div>
         <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-ink-500 sm:grid-cols-3">
           {['generic_name / الاسم العلمي', 'trade_name / الاسم التجاري', 'strength / القوة', 'dosage_form / الشكل', 'manufacturer / الشركة', 'agent / الوكيل', 'country / الدولة', 'barcode / الباركود', 'price / السعر', 'image_url / الصورة', 'system / الجهاز', 'category / التصنيف', 'indications_ar / الاستخدامات', 'dosage_adult / الجرعة', 'verified / موثق'].map((c) => <span key={c}>• {c}</span>)}
         </div>
-        <p className="mt-2 rounded-lg bg-amber-50 p-2 text-[9.5px] leading-5 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">الاستيراد لا يحذف البيانات الحالية؛ يحدّث السجلات المتطابقة (نفس الاسم العلمي/التجاري/التركيز) ويضيف الجديد.</p>
+        <p className="mt-2 rounded-lg p-2 text-[9.5px] leading-5 bg-amber-500/10 text-amber-200">الاستيراد لا يحذف البيانات الحالية؛ يحدّث السجلات المتطابقة (نفس الاسم العلمي/التجاري/التركيز) ويضيف الجديد.</p>
       </div>
     </div>
   );
@@ -158,11 +158,11 @@ function ImportJob({ id }: { id: number }) {
         <Badge tone={row.status === 'completed' ? 'emerald' : row.status === 'failed' ? 'rose' : 'amber'}>{row.status === 'completed' ? 'مكتمل' : row.status === 'failed' ? 'فشل' : 'قيد المعالجة'}</Badge>
       </div>
       <div className="grid grid-cols-3 gap-2 text-center">
-        {[['ناجح', row.rows_ok, 'text-emerald-600'], ['فاشل', row.rows_failed, 'text-rose-600'], ['الإجمالي', total, 'text-ink-600']].map(([label, v, tone]) => (
-          <div key={String(label)} className="rounded-xl bg-ink-50 py-2 dark:bg-ink-800/60"><div className={`text-[16px] font-black ${tone}`}>{num(Number(v))}</div><div className="text-[9.5px] text-ink-400">{label}</div></div>
+        {[['ناجح', row.rows_ok, 'text-emerald-300'], ['فاشل', row.rows_failed, 'text-rose-300'], ['الإجمالي', total, 'text-ink-300']].map(([label, v, tone]) => (
+          <div key={String(label)} className="rounded-xl py-2 bg-white/[.055]"><div className={`text-[16px] font-black ${tone}`}>{num(Number(v))}</div><div className="text-[9.5px] text-ink-400">{label}</div></div>
         ))}
       </div>
-      {row.log?.errors?.length > 0 && <ul className="mt-2 space-y-1 rounded-lg bg-rose-50 p-2 text-[9.5px] text-rose-700 dark:bg-rose-950/30 dark:text-rose-300">{row.log.errors.slice(0, 5).map((e: any, i: number) => <li key={i}>• صف {e.row}: {e.error}</li>)}</ul>}
+      {row.log?.errors?.length > 0 && <ul className="mt-2 space-y-1 rounded-lg p-2 text-[9.5px] bg-rose-500/10 text-rose-200">{row.log.errors.slice(0, 5).map((e: any, i: number) => <li key={i}>• صف {e.row}: {e.error}</li>)}</ul>}
       {row.status === 'processing' && <div className="mt-2 flex items-center gap-1.5 text-[10px] text-ink-400"><Loader2 className="h-3 w-3 animate-spin" />تتم المعالجة في الخلفية — يمكنك متابعة العمل.</div>}
     </div>
   );
@@ -208,14 +208,14 @@ function ImagesPanel() {
         <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => upload(e.target.files)} />
         {result && (
           <div className="mt-2 space-y-1.5 text-[10.5px]">
-            <div className="flex gap-2"><span className="text-emerald-600">تمت المطابقة: {result.matched}</span><span className="text-brand-600">عُيّنت كصورة رئيسية: {result.assigned}</span><span className="text-rose-500">بدون مطابقة: {result.unmatched?.length}</span></div>
-            {result.unmatched?.length > 0 && <div className="rounded-lg bg-rose-50 p-2 text-[9.5px] text-rose-700 dark:bg-rose-950/30 dark:text-rose-300">لم يُعثر على: {result.unmatched.slice(0, 12).join('، ')}</div>}
+            <div className="flex gap-2"><span className="text-emerald-300">تمت المطابقة: {result.matched}</span><span className="text-brand-300">عُيّنت كصورة رئيسية: {result.assigned}</span><span className="text-rose-500">بدون مطابقة: {result.unmatched?.length}</span></div>
+            {result.unmatched?.length > 0 && <div className="rounded-lg p-2 text-[9.5px] bg-rose-500/10 text-rose-200">لم يُعثر على: {result.unmatched.slice(0, 12).join('، ')}</div>}
           </div>
         )}
       </div>
 
       <div className="card p-4">
-        <div className="mb-2 flex items-center gap-2"><Search className="h-4 w-4 text-sky-600" /><h2 className="text-[12.5px] font-extrabold">جلب صورة من الإنترنت</h2></div>
+        <div className="mb-2 flex items-center gap-2"><Search className="h-4 w-4 text-sky-300" /><h2 className="text-[12.5px] font-extrabold">جلب صورة من الإنترنت</h2></div>
         <p className="text-[10.5px] leading-5 text-ink-500">ابحث عن صورة المنتج. عند وجود مفاتيح Google CSE تظهر النتائج هنا؛ وإلا يُفتح Google Images لنسخ رابط الصورة ثم لصقها في نموذج المنتج.</p>
         <div className="mt-2 flex gap-1.5">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="اسم المنتج…" className="input h-9 flex-1 text-[11px]" />
@@ -226,20 +226,20 @@ function ImagesPanel() {
             {search.items?.length > 0 ? (
               <div className="grid grid-cols-4 gap-1.5">
                 {search.items.map((it: any, i: number) => (
-                  <a key={i} href={it.link} target="_blank" rel="noreferrer" className="overflow-hidden rounded-lg border border-ink-200 dark:border-ink-700">
+                  <a key={i} href={it.link} target="_blank" rel="noreferrer" className="overflow-hidden rounded-lg border border-white/[.09]">
                     <img src={it.thumb || it.link} alt="" className="h-16 w-full object-cover" />
                   </a>
                 ))}
               </div>
             ) : (
-              <a href={search.searchUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10.5px] font-bold text-sky-700"><ExternalLink className="h-3 w-3" />فتح Google Images</a>
+              <a href={search.searchUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10.5px] font-bold text-sky-300"><ExternalLink className="h-3 w-3" />فتح Google Images</a>
             )}
           </div>
         )}
       </div>
 
       <div className="card p-4">
-        <div className="mb-2 flex items-center gap-2"><Sparkles className="h-4 w-4 text-violet-600" /><h2 className="text-[12.5px] font-extrabold">جلب صور تلقائي للمنتجات بدون صورة</h2></div>
+        <div className="mb-2 flex items-center gap-2"><Sparkles className="h-4 w-4 text-violet-300" /><h2 className="text-[12.5px] font-extrabold">جلب صور تلقائي للمنتجات بدون صورة</h2></div>
         <p className="text-[10.5px] leading-5 text-ink-500">
           ينزّل أفضل نتيجة من Google Custom Search لكل منتج ويضيفها إلى معرضه. يحتاج <code>GOOGLE_CSE_KEY</code> و<code>GOOGLE_CSE_CX</code>.
           راجع كل صورة بعد الجلب — البحث الآلي قد يعيد حجم علبة مختلفًا.
@@ -260,9 +260,9 @@ function ImagesPanel() {
           ))}
         </div>
         {auto && (
-          <ul className="mt-2 space-y-0.5 rounded-lg bg-ink-50 p-2 text-[10px] text-ink-600 dark:bg-ink-800/60 dark:text-ink-300">
+          <ul className="mt-2 space-y-0.5 rounded-lg p-2 text-[10px] bg-white/[.055] text-ink-300">
             {auto.results?.slice(0, 10).map((r: any, i: number) => (
-              <li key={i} className={r.ok ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+              <li key={i} className={r.ok ? 'text-emerald-300' : 'text-rose-300'}>
                 {r.ok ? '✓' : '✗'} {r.name} {r.error ? `— ${r.error}` : ''}
               </li>
             ))}
@@ -271,7 +271,7 @@ function ImagesPanel() {
       </div>
 
       <div className="card p-4">
-        <div className="flex items-center gap-2 text-[12px] font-extrabold"><Database className="h-4 w-4 text-emerald-600" />منتجات بدون صورة</div>
+        <div className="flex items-center gap-2 text-[12px] font-extrabold"><Database className="h-4 w-4 text-emerald-300" />منتجات بدون صورة</div>
         <p className="mt-1 text-[10.5px] leading-5 text-ink-500">استخدم فلتر «بدون صورة فقط» في تبويب المنتجات لمراجعة المنتجات التي تعرض الصورة المولّدة تلقائيًا ورفع صور حقيقية لها.</p>
       </div>
     </div>
@@ -308,12 +308,12 @@ function HistoryPanel() {
                 <div className="truncate text-[11.5px] font-bold">{im.filename}</div>
                 <div className="text-[9.5px] text-ink-400">{dateFmt(im.created_at)} · {im.kind}</div>
               </div>
-              <span className="text-[10px] font-bold text-emerald-600">{num(im.rows_ok)}</span>
+              <span className="text-[10px] font-bold text-emerald-300">{num(im.rows_ok)}</span>
               <span className="text-[10px] font-bold text-rose-500">{num(im.rows_failed)}</span>
             </button>
             {expanded === im.id && detail && (
-              <div className="border-t border-ink-100 bg-ink-50/60 p-2.5 text-[10px] dark:border-ink-800 dark:bg-ink-800/40">
-                {detail.log?.errors?.length ? <ul className="space-y-0.5 text-rose-600">{detail.log.errors.map((e: any, i: number) => <li key={i}>• {e.row ? `صف ${e.row}: ` : ''}{e.error}</li>)}</ul> : <div className="text-emerald-600">لا أخطاء</div>}
+              <div className="border-t p-2.5 text-[10px] border-white/[.08] bg-white/[.055]">
+                {detail.log?.errors?.length ? <ul className="space-y-0.5 text-rose-300">{detail.log.errors.map((e: any, i: number) => <li key={i}>• {e.row ? `صف ${e.row}: ` : ''}{e.error}</li>)}</ul> : <div className="text-emerald-300">لا أخطاء</div>}
                 {detail.log?.elapsed_ms && <div className="mt-1 text-ink-400">المدة: {(detail.log.elapsed_ms / 1000).toFixed(1)} ثانية</div>}
               </div>
             )}

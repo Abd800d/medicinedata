@@ -40,7 +40,7 @@ export default function Community() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-3xl bg-gradient-to-br from-emerald-700 via-teal-700 to-brand-800 p-5 text-white">
+      <div className="rounded-3xl page-hero page-hero-emerald p-5 text-white">
         <div className="flex items-center gap-2"><Users className="h-5 w-5" /><h1 className="text-[21px] font-extrabold">{t('community.title')}</h1></div>
         <p className="mt-1 max-w-lg text-[11.5px] leading-6 text-white/80">{lang === 'ar' ? 'اسأل عن دواء أو مشكلة في التطبيق، وشارك الخبرات مع الصيادلة والمستخدمين. ردود الإدارة تظهر للجميع.' : 'Ask about a medicine or app issue and share experience with pharmacists. Admin replies are public.'}</p>
         <div className="mt-3 flex gap-2 text-[10px] font-semibold">
@@ -51,19 +51,19 @@ export default function Community() {
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
-        <button onClick={() => user ? setOpen(true) : push(t('common.loginRequired'), 'info')} className="flex items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50/60 p-3.5 text-start dark:border-brand-900 dark:bg-brand-950/20">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-700 text-white"><Plus className="h-5 w-5" /></span>
-          <div><div className="text-[12.5px] font-bold text-brand-900 dark:text-brand-100">{t('community.newThread')}</div><div className="text-[10px] text-brand-800/60 dark:text-brand-300/60">{t('community.board')}</div></div>
+        <button onClick={() => user ? setOpen(true) : push(t('common.loginRequired'), 'info')} className="group flex items-center gap-3 rounded-2xl border border-brand-400/30 bg-brand-500/10 p-3.5 text-start transition hover:border-brand-400/60 hover:bg-brand-500/15">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-grad text-white shadow-glow"><Plus className="h-5 w-5" /></span>
+          <div><div className="text-[12.5px] font-bold text-white">{t('community.newThread')}</div><div className="text-[10px] text-brand-200/70">{t('community.board')}</div></div>
         </button>
-        <Link to="/jobs" className="flex items-center gap-3 rounded-2xl border border-ink-200 bg-white p-3.5 text-start dark:border-ink-800 dark:bg-ink-900">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"><Briefcase className="h-5 w-5" /></span>
-          <div><div className="text-[12.5px] font-bold text-ink-800 dark:text-ink-100">{t('jobs.title')}</div><div className="text-[10px] text-ink-500">{t('jobs.subtitle')}</div></div>
+        <Link to="/jobs" className="group flex items-center gap-3 rounded-2xl border border-amber-400/30 bg-amber-500/10 p-3.5 text-start transition hover:border-amber-400/60 hover:bg-amber-500/15">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-ink-950 shadow-tile"><Briefcase className="h-5 w-5" /></span>
+          <div><div className="text-[12.5px] font-bold text-white">{t('jobs.title')}</div><div className="text-[10px] text-amber-200/70">{t('jobs.subtitle')}</div></div>
         </Link>
       </div>
 
       {!user && (
         <div className="card flex items-center justify-between gap-3 p-4">
-          <div className="flex items-center gap-2 text-[12px] font-semibold text-ink-600 dark:text-ink-300"><Lock className="h-4 w-4" />{t('common.loginRequired')}</div>
+          <div className="flex items-center gap-2 text-[12px] font-semibold text-ink-300"><Lock className="h-4 w-4" />{t('common.loginRequired')}</div>
           <Link to="/auth" className="btn-primary px-3 py-2 text-[11.5px]">{t('common.login')}</Link>
         </div>
       )}
@@ -73,13 +73,13 @@ export default function Community() {
 
       <div className="space-y-2">
         {(threads || []).map((th) => (
-          <Link key={th.id} to={`/community/${th.id}`} className="card block p-3.5 transition hover:border-brand-300">
+          <Link key={th.id} to={`/community/${th.id}`} className="card block p-3.5 transition hover:border-brand-400/40 hover:shadow-glow">
             <div className="flex items-start gap-3">
               <Avatar name={th.author_name} src={th.author_avatar} size={34} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <h3 className="line-clamp-1 text-[13px] font-bold text-ink-900 dark:text-white">{th.subject}</h3>
-                  {th.is_public ? <Globe2 className="h-3 w-3 shrink-0 text-emerald-600" /> : <Lock className="h-3 w-3 shrink-0 text-ink-400" />}
+                  <h3 className="line-clamp-1 text-[13px] font-bold text-white">{th.subject}</h3>
+                  {th.is_public ? <Globe2 className="h-3 w-3 shrink-0 text-emerald-300" /> : <Lock className="h-3 w-3 shrink-0 text-ink-400" />}
                 </div>
                 <p className="line-clamp-1 text-[10.5px] text-ink-500">{th.last_message || '—'}</p>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[9.5px] text-ink-400">
@@ -105,11 +105,11 @@ export default function Community() {
         <div className="space-y-3">
           <Field label={t('community.subject')} required><input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} className="input" placeholder={lang === 'ar' ? 'مثال: بديل دواء غير متوفر' : 'e.g. Alternative for an unavailable medicine'} /></Field>
           <Field label={t('community.message')} required><TextArea value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} /></Field>
-          <label className="flex items-center justify-between rounded-xl bg-ink-50 px-3 py-2.5 dark:bg-ink-800">
-            <span className="flex items-center gap-2 text-[11.5px] font-semibold text-ink-600 dark:text-ink-300">{form.is_public ? <Globe2 className="h-4 w-4 text-emerald-600" /> : <Lock className="h-4 w-4" />}{t('community.public')}</span>
+          <label className="flex items-center justify-between rounded-xl border border-white/[.08] bg-white/[.05] px-3 py-2.5">
+            <span className="flex items-center gap-2 text-[11.5px] font-semibold text-ink-300">{form.is_public ? <Globe2 className="h-4 w-4 text-emerald-300" /> : <Lock className="h-4 w-4" />}{t('community.public')}</span>
             <input type="checkbox" checked={form.is_public} onChange={(e) => setForm({ ...form, is_public: e.target.checked })} className="h-4 w-4 accent-brand-700" />
           </label>
-          <div className="flex items-start gap-2 rounded-xl bg-sky-50 p-2.5 text-[10px] leading-5 text-sky-800 dark:bg-sky-950/30 dark:text-sky-300"><ShieldQuestion className="mt-0.5 h-3.5 w-3.5 shrink-0" />{lang === 'ar' ? 'لا تشارك بيانات شخصية حساسة. الاستفسارات الطبية الطارئة يجب أن تُوجه للطبيب.' : 'Avoid sensitive personal data. Urgent medical issues need a clinician.'}</div>
+          <div className="flex items-start gap-2 rounded-xl border border-sky-400/25 bg-sky-500/10 p-2.5 text-[10px] leading-5 text-sky-200"><ShieldQuestion className="mt-0.5 h-3.5 w-3.5 shrink-0" />{lang === 'ar' ? 'لا تشارك بيانات شخصية حساسة. الاستفسارات الطبية الطارئة يجب أن تُوجه للطبيب.' : 'Avoid sensitive personal data. Urgent medical issues need a clinician.'}</div>
         </div>
       </Modal>
     </div>

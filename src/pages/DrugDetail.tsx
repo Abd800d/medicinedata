@@ -78,7 +78,7 @@ export default function DrugDetail() {
 
   return (
     <div className="space-y-4">
-      <div className="relative overflow-hidden rounded-3xl p-5 text-white" style={{ background: `linear-gradient(135deg, ${color}, #0b1220)` }}>
+      <div className="relative overflow-hidden rounded-[28px] border border-white/10 p-5 text-white" style={{ background: `radial-gradient(120% 100% at 100% 0%, ${color}cc 0%, transparent 55%), linear-gradient(135deg, ${color} 0%, #0a2360 55%, #061634 100%)`, boxShadow: `0 24px 60px -36px ${color}` }}>
         <div className="absolute -end-10 -top-12 h-44 w-44 rounded-full bg-white/10" />
         <div className="relative flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -131,7 +131,7 @@ export default function DrugDetail() {
         <div className="space-y-3">
           {infoRows.map((row) => (
             <section key={row.label} className="card p-4">
-              <div className="mb-1.5 flex items-center gap-2 text-brand-700 dark:text-brand-300">
+              <div className="mb-1.5 flex items-center gap-2 text-brand-300">
                 <row.icon className="h-4 w-4" />
                 <h2 className="text-[12.5px] font-extrabold">{row.label}</h2>
               </div>
@@ -146,18 +146,18 @@ export default function DrugDetail() {
           )}
           {drug.related?.length > 0 && (
             <section className="card p-4">
-              <h2 className="mb-2 text-[12.5px] font-extrabold text-ink-900 dark:text-white">{t('drug.alternatives')}</h2>
+              <h2 className="mb-2 text-[12.5px] font-extrabold text-white">{t('drug.alternatives')}</h2>
               <div className="grid gap-1.5 sm:grid-cols-2">
                 {drug.related.map((r: any) => (
-                  <Link key={r.id} to={`/drugs/${r.id}`} className="flex items-center justify-between rounded-xl bg-ink-50 px-3 py-2 text-[11.5px] hover:bg-brand-50 dark:bg-ink-800/60">
-                    <span className="font-semibold text-ink-700 dark:text-ink-200">{r.generic_name}</span>
+                  <Link key={r.id} to={`/drugs/${r.id}`} className="flex items-center justify-between rounded-xl px-3 py-2 text-[11.5px] bg-white/[.055] hover:bg-white/[.09]">
+                    <span className="font-semibold text-ink-200">{r.generic_name}</span>
                     <span className="text-[10px] text-ink-400">{r.products_count} {t('system.products')}</span>
                   </Link>
                 ))}
               </div>
             </section>
           )}
-          <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-[10.5px] leading-5 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+          <div className="flex items-start gap-2 rounded-2xl border p-3.5 text-[10.5px] leading-5 border-amber-400/25 bg-amber-500/10 text-amber-200">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{t('drug.disclaimer')} {drug.source ? `— ${drug.source}` : ''}</span>
           </div>
@@ -169,14 +169,14 @@ export default function DrugDetail() {
           {[['drug.adult', drug.dosage_adult], ['drug.child', drug.dosage_child]].map(([label, value]) => (
             value ? (
               <section key={label as string} className="card p-4">
-                <h2 className="mb-1.5 text-[12.5px] font-extrabold text-ink-900 dark:text-white">{t(label as string)}</h2>
+                <h2 className="mb-1.5 text-[12.5px] font-extrabold text-white">{t(label as string)}</h2>
                 <p className="prose-ar whitespace-pre-line">{value}</p>
               </section>
             ) : null
           ))}
           {!drug.dosage_adult && !drug.dosage_child && <EmptyState title={t('common.notAvailable')} />}
           <div className="card p-4">
-            <h2 className="mb-1.5 text-[12.5px] font-extrabold text-ink-900 dark:text-white">{t('drug.pregnancy')}</h2>
+            <h2 className="mb-1.5 text-[12.5px] font-extrabold text-white">{t('drug.pregnancy')}</h2>
             <p className="prose-ar">{drug.pregnancy || t('common.notAvailable')}</p>
           </div>
         </div>
@@ -187,11 +187,11 @@ export default function DrugDetail() {
           {safetyRows.map((row) => (
             <section key={row.label} className={cx(
               'rounded-2xl border p-4',
-              row.tone === 'rose' && 'border-rose-200 bg-rose-50/60 dark:border-rose-900/50 dark:bg-rose-950/20',
-              row.tone === 'amber' && 'border-amber-200 bg-amber-50/60 dark:border-amber-900/50 dark:bg-amber-950/20',
-              row.tone === 'violet' && 'border-violet-200 bg-violet-50/50 dark:border-violet-900/40 dark:bg-violet-950/20',
-              row.tone === 'sky' && 'border-sky-200 bg-sky-50/50 dark:border-sky-900/40 dark:bg-sky-950/20',
-              row.tone === 'neutral' && 'border-ink-200 bg-white dark:border-ink-800 dark:bg-ink-900',
+              row.tone === 'rose' && 'border-rose-400/30 bg-rose-500/10',
+              row.tone === 'amber' && 'border-amber-400/30 bg-amber-500/10',
+              row.tone === 'violet' && 'border-violet-400/30 bg-violet-500/10',
+              row.tone === 'sky' && 'border-sky-400/30 bg-sky-500/10',
+              row.tone === 'neutral' && 'border-white/[.08] bg-white/[.045]',
             )}>
               <div className="mb-1.5 flex items-center gap-2">
                 <row.icon className="h-4 w-4" />
@@ -207,12 +207,12 @@ export default function DrugDetail() {
       {tab === 'products' && (
         <div className="space-y-2.5">
           {drug.products?.length ? drug.products.map((p: any) => (
-            <Link key={p.id} to={`/products/${p.id}`} className="flex items-center gap-3 rounded-2xl border border-ink-200 bg-white p-2.5 transition hover:border-brand-300 hover:shadow-card dark:border-ink-800 dark:bg-ink-900">
-              <SmartImage src={p.image_url} productId={p.id} alt={p.trade_name} className="h-[74px] w-[74px] shrink-0 bg-ink-50 dark:bg-ink-800" rounded="rounded-xl" />
+            <Link key={p.id} to={`/products/${p.id}`} className="flex items-center gap-3 rounded-2xl border p-2.5 transition hover:border-brand-300 hover:shadow-card border-white/[.08] bg-ink-900">
+              <SmartImage src={p.image_url} productId={p.id} alt={p.trade_name} className="h-[74px] w-[74px] shrink-0 bg-white/[.05]" rounded="rounded-xl" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <h3 className="truncate text-[13px] font-bold text-ink-900 dark:text-white">{arabic && p.trade_name_ar ? p.trade_name_ar : p.trade_name}</h3>
-                  {p.verified ? <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-brand-600" /> : null}
+                  <h3 className="truncate text-[13px] font-bold text-white">{arabic && p.trade_name_ar ? p.trade_name_ar : p.trade_name}</h3>
+                  {p.verified ? <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-brand-300" /> : null}
                 </div>
                 <p className="truncate text-[11px] text-ink-500">{[p.strength, p.dosage_form, p.pack_size].filter(Boolean).join(' · ')}</p>
                 <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-ink-400">
@@ -228,13 +228,13 @@ export default function DrugDetail() {
         </div>
       )}
 
-      <Link to="/ai" className="flex items-center gap-3 rounded-2xl border border-violet-200 bg-violet-50/70 p-3.5 dark:border-violet-900/40 dark:bg-violet-950/20">
+      <Link to="/ai" className="flex items-center gap-3 rounded-2xl border p-3.5 border-violet-900/40 bg-violet-950/20">
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 text-white"><Bot className="h-5 w-5" /></span>
         <div className="min-w-0 flex-1">
-          <div className="text-[12.5px] font-bold text-violet-900 dark:text-violet-200">{t('ai.title')}</div>
-          <div className="text-[10.5px] text-violet-700/70 dark:text-violet-300/70">{arabic ? `اسأل عن ${drug.generic_name}: الجرعات، البدائل، التفاعلات` : `Ask about ${drug.generic_name}: dosing, alternatives, interactions`}</div>
+          <div className="text-[12.5px] font-bold text-violet-200">{t('ai.title')}</div>
+          <div className="text-[10.5px] text-violet-300/70">{arabic ? `اسأل عن ${drug.generic_name}: الجرعات، البدائل، التفاعلات` : `Ask about ${drug.generic_name}: dosing, alternatives, interactions`}</div>
         </div>
-        <Sparkles className="h-4 w-4 text-violet-600" />
+        <Sparkles className="h-4 w-4 text-violet-300" />
       </Link>
     </div>
   );

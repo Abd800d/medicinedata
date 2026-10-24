@@ -25,7 +25,7 @@ export default function About() {
 
   return (
     <div className="space-y-4">
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-800 via-brand-700 to-teal-900 p-6 text-center text-white">
+      <div className="relative overflow-hidden rounded-3xl page-hero p-6 text-center text-white">
         <div className="absolute -start-10 -top-10 h-40 w-40 rounded-full bg-white/10" />
         <div className="absolute -bottom-12 -end-10 h-44 w-44 rounded-full bg-white/5" />
         <div className="relative flex justify-center"><MDAIcon size={54} /></div>
@@ -40,38 +40,44 @@ export default function About() {
       </div>
 
       <div className="card p-4">
-        <div className="mb-2 flex items-center gap-2 text-brand-700 dark:text-brand-300"><HeartHandshake className="h-4 w-4" /><h2 className="text-[13px] font-extrabold">{ar ? 'المالك والحقوق' : 'Ownership & rights'}</h2></div>
-        <div className="text-[13px] font-extrabold text-ink-900 dark:text-white">{config.owner_name}</div>
-        <div className="text-[11px] text-ink-500">{config.owner_title}</div>
-        <p className="mt-2 text-[10.5px] leading-6 text-ink-500">
+        <div className="mb-3 flex items-center gap-2 text-brand-300"><HeartHandshake className="h-[18px] w-[18px]" /><h2 className="text-[13px] font-extrabold text-white">{ar ? 'المالك والحقوق' : 'Ownership & rights'}</h2></div>
+        <div className="flex items-center gap-3 rounded-2xl border border-white/[.06] bg-white/[.03] p-3">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-grad text-[15px] font-black text-white shadow-float ring-1 ring-white/20">ع.م</span>
+          <div className="min-w-0">
+            <div className="truncate text-[13px] font-extrabold text-white">{config.owner_name}</div>
+            <div className="text-[10.5px] text-brand-300">{config.owner_title}</div>
+            <div className="mt-0.5 text-[9.5px] text-ink-500">Developer &amp; Creator · MDA</div>
+          </div>
+        </div>
+        <p className="mt-2.5 text-[10.5px] leading-6 text-ink-400">
           {ar ? 'جميع حقوق التطبيق والبيانات والتصميم محفوظة للمالك. يُمنع إعادة النشر أو الاستخدام التجاري دون إذن كتابي. العلامة التجارية MDA مسجلة لصالح المالك.' : 'All rights to the application, data and design belong to the owner. Redistribution or commercial use without written permission is prohibited. The MDA brand belongs to the owner.'}
         </p>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          <a href={`mailto:${config.owner_email}`} className="inline-flex items-center gap-1 rounded-lg bg-ink-100 px-2 py-1 text-[10px] font-semibold text-ink-700 dark:bg-ink-800 dark:text-ink-200"><Mail className="h-3 w-3" />{config.owner_email}</a>
-          <a href={`https://wa.me/${(config.whatsapp || '').replace(/[^\d]/g, '')}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"><Phone className="h-3 w-3" />{config.whatsapp}</a>
+        <div className="mt-2.5 grid grid-cols-2 gap-1.5">
+          <a href={`mailto:${config.owner_email}`} className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/[.07] bg-white/[.03] px-2 py-2 text-[10px] font-bold text-ink-200 transition hover:border-brand-400/30"><Mail className="h-3 w-3 text-brand-300" /><span className="truncate" dir="ltr">{config.owner_email}</span></a>
+          <a href={`https://wa.me/${(config.whatsapp || '').replace(/[^\d]/g, '')}`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-2 py-2 text-[10px] font-bold text-emerald-200 transition hover:bg-emerald-500/20"><Phone className="h-3 w-3" /><span dir="ltr">{config.whatsapp}</span></a>
         </div>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
         {features.map((f) => (
           <div key={f.title} className="card p-4">
-            <span className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300"><f.icon className="h-4 w-4" /></span>
-            <h3 className="text-[12.5px] font-extrabold text-ink-900 dark:text-white">{f.title}</h3>
-            <p className="mt-0.5 text-[10.5px] leading-5 text-ink-500">{f.text}</p>
+            <span className="mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-500/15 text-brand-300 ring-1 ring-brand-400/20"><f.icon className="h-[18px] w-[18px]" /></span>
+            <h3 className="text-[12.5px] font-extrabold text-white">{f.title}</h3>
+            <p className="mt-0.5 text-[10.5px] leading-5 text-ink-400">{f.text}</p>
           </div>
         ))}
       </div>
 
       <div className="card p-4">
-        <div className="mb-2 flex items-center gap-2 text-emerald-700 dark:text-emerald-300"><ShieldCheck className="h-4 w-4" /><h2 className="text-[13px] font-extrabold">{ar ? 'مصادر المعلومات' : 'Sources'}</h2></div>
-        <ul className="space-y-1.5 text-[10.5px] leading-6 text-ink-500">
-          <li>• WHO Essential Medicines List — <span className="text-ink-700 dark:text-ink-300">who.int</span></li>
-          <li>• BNF (British National Formulary) — <span className="text-ink-700 dark:text-ink-300">bnf.nice.org.uk</span></li>
-          <li>• FDA Drug Labels & DailyMed — <span className="text-ink-700 dark:text-ink-300">dailymed.nlm.nih.gov</span></li>
-          <li>• EMA / SmPC — <span className="text-ink-700 dark:text-ink-300">ema.europa.eu</span></li>
+        <div className="mb-2 flex items-center gap-2 text-emerald-300"><ShieldCheck className="h-[18px] w-[18px]" /><h2 className="text-[13px] font-extrabold text-white">{ar ? 'مصادر المعلومات' : 'Sources'}</h2></div>
+        <ul className="space-y-1.5 text-[10.5px] leading-6 text-ink-400">
+          <li>• WHO Essential Medicines List — <span className="text-ink-200">who.int</span></li>
+          <li>• BNF (British National Formulary) — <span className="text-ink-200">bnf.nice.org.uk</span></li>
+          <li>• FDA Drug Labels & DailyMed — <span className="text-ink-200">dailymed.nlm.nih.gov</span></li>
+          <li>• EMA / SmPC — <span className="text-ink-200">ema.europa.eu</span></li>
           <li>• Yemeni MOH & local distributors</li>
         </ul>
-        <p className="mt-2 rounded-xl bg-amber-50 p-2.5 text-[10px] leading-5 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">{ar ? config.disclaimer_ar : config.disclaimer_en}</p>
+        <p className="mt-2 rounded-xl border border-amber-400/20 bg-amber-500/10 p-2.5 text-[10px] leading-5 text-amber-200">{ar ? config.disclaimer_ar : config.disclaimer_en}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-2">

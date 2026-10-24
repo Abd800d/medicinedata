@@ -41,7 +41,7 @@ export default function Admin() {
   if (loading) return <PageLoader />;
   if (!user || user.role !== 'admin') {
     return (
-      <div className="mesh grid min-h-screen place-items-center p-6">
+      <div className="app-bg grid min-h-screen place-items-center p-6">
         <div className="card max-w-sm p-6 text-center">
           <ShieldAlert className="mx-auto mb-2 h-8 w-8 text-amber-500" />
           <h1 className="text-[15px] font-extrabold">لوحة التحكم · Admin</h1>
@@ -54,14 +54,14 @@ export default function Admin() {
   }
 
   return (
-    <div className="mesh min-h-screen bg-ink-50/60 dark:bg-ink-950">
-      <header className="sticky top-0 z-40 border-b border-ink-200 bg-white/90 backdrop-blur dark:border-ink-800 dark:bg-ink-900/90">
+    <div className="app-bg min-h-screen">
+      <header className="sticky top-0 z-40 border-b border-white/[.08] bg-ink-950/85 backdrop-blur-2xl">
         <div className="mx-auto flex max-w-6xl items-center gap-2 px-3 py-2.5">
-          <Link to="/" className="icon-btn h-9 w-9 border border-ink-200 dark:border-ink-700"><ArrowLeft className="h-4 w-4 rtl:-scale-x-100" /></Link>
+          <Link to="/" className="icon-btn h-9 w-9"><ArrowLeft className="h-4 w-4 rtl:-scale-x-100" /></Link>
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white"><LayoutDashboard className="h-4.5 w-4.5" /></span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-tile ring-1 ring-white/20"><LayoutDashboard className="h-4.5 w-4.5" /></span>
             <div className="min-w-0">
-              <div className="truncate text-[13.5px] font-extrabold text-ink-900 dark:text-white">لوحة تحكم MDA</div>
+              <div className="truncate text-[13.5px] font-extrabold text-white">لوحة تحكم MDA</div>
               <div className="truncate text-[9.5px] text-ink-400">{user.email}</div>
             </div>
           </div>
@@ -73,7 +73,7 @@ export default function Admin() {
               key={t.id}
               onClick={() => setParams({ tab: t.id })}
               className={cx('flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11.5px] font-bold transition',
-                tab === t.id ? 'bg-ink-900 text-white dark:bg-white dark:text-ink-900' : 'text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-800')}
+                tab === t.id ? 'bg-brand-grad text-white shadow-float' : 'text-ink-400 hover:bg-white/[.06] hover:text-white')}
             >
               <t.icon className="h-3.5 w-3.5" />{t.label}
             </button>
@@ -134,12 +134,12 @@ function Dashboard() {
 
       <div className="grid gap-3 lg:grid-cols-2">
         <div className="card p-4">
-          <div className="mb-2 flex items-center gap-2 text-[12px] font-extrabold"><Database className="h-4 w-4 text-brand-600" />التوزيع حسب الأجهزة</div>
+          <div className="mb-2 flex items-center gap-2 text-[12px] font-extrabold"><Database className="h-4 w-4 text-brand-300" />التوزيع حسب الأجهزة</div>
           <div className="space-y-1.5">
             {(data?.by_system || []).map((s: any) => (
               <div key={s.name_en} className="flex items-center gap-2">
                 <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: s.color || '#0f766e' }} />
-                <span className="min-w-0 flex-1 truncate text-[11px] text-ink-600 dark:text-ink-300">{s.name_ar || s.name_en}</span>
+                <span className="min-w-0 flex-1 truncate text-[11px] text-ink-300">{s.name_ar || s.name_en}</span>
                 <span className="text-[10px] font-bold text-ink-500">{s.drugs} دواء</span>
                 <span className="w-14 text-end text-[10px] text-ink-400">{s.products} منتج</span>
               </div>
@@ -149,16 +149,16 @@ function Dashboard() {
 
         <div className="space-y-3">
           <div className="card p-4">
-            <div className="mb-2 flex items-center gap-2 text-[12px] font-extrabold"><TrendingUp className="h-4 w-4 text-emerald-600" />أكثر عمليات البحث</div>
+            <div className="mb-2 flex items-center gap-2 text-[12px] font-extrabold"><TrendingUp className="h-4 w-4 text-emerald-300" />أكثر عمليات البحث</div>
             {(data?.top_searches || []).length === 0 && <p className="text-[11px] text-ink-400">لا توجد بيانات بحث بعد.</p>}
             <div className="flex flex-wrap gap-1.5">
               {(data?.top_searches || []).map((s: any) => (
-                <span key={s.term} className="rounded-lg bg-ink-100 px-2 py-1 text-[10.5px] font-semibold text-ink-600 dark:bg-ink-800 dark:text-ink-300">{s.term} <span className="text-ink-400">×{s.hits}</span></span>
+                <span key={s.term} className="rounded-lg px-2 py-1 text-[10.5px] font-semibold bg-white/[.05] text-ink-300">{s.term} <span className="text-ink-400">×{s.hits}</span></span>
               ))}
             </div>
           </div>
           <div className="card p-4">
-            <div className="mb-2 flex items-center gap-2 text-[12px] font-extrabold"><Wrench className="h-4 w-4 text-sky-600" />أدوات الصيانة</div>
+            <div className="mb-2 flex items-center gap-2 text-[12px] font-extrabold"><Wrench className="h-4 w-4 text-sky-300" />أدوات الصيانة</div>
             <div className="grid gap-2 sm:grid-cols-2">
               <button onClick={rebuild} disabled={busy} className="btn-ghost text-[11px]">{busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}إعادة بناء البحث</button>
               <button onClick={async () => { try { await downloadWithAuth('/api/admin/export', `mda-export-${Date.now()}.json`); push('تم تجهيز الملف'); } catch (e: any) { push(e.message || 'خطأ', 'error'); } }} className="btn-ghost text-[11px]"><Download className="h-3.5 w-3.5" />تصدير قاعدة البيانات</button>
@@ -178,11 +178,11 @@ function Dashboard() {
       </div>
 
       <div className="card p-4">
-        <div className="mb-2 flex items-center gap-2 text-[12px] font-extrabold"><FileSpreadsheet className="h-4 w-4 text-violet-600" />آخر عمليات الاستيراد</div>
+        <div className="mb-2 flex items-center gap-2 text-[12px] font-extrabold"><FileSpreadsheet className="h-4 w-4 text-violet-300" />آخر عمليات الاستيراد</div>
         {(data?.recent_imports || []).length === 0 && <p className="text-[11px] text-ink-400">لم يتم استيراد ملفات بعد — استخدم تبويب «الاستيراد والصور».</p>}
         <div className="space-y-1.5">
           {(data?.recent_imports || []).map((im: any) => (
-            <div key={im.id} className="flex items-center gap-2 rounded-xl bg-ink-50 px-2.5 py-2 text-[10.5px] dark:bg-ink-800/60">
+            <div key={im.id} className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-[10.5px] bg-white/[.055]">
               <Badge tone={im.status === 'completed' ? 'emerald' : im.status === 'failed' ? 'rose' : 'amber'}>{im.status}</Badge>
               <span className="min-w-0 flex-1 truncate font-semibold">{im.filename}</span>
               <span className="text-ink-400">{im.rows_ok}/{im.rows_ok + im.rows_failed}</span>
@@ -191,7 +191,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-[10.5px] leading-5 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+      <div className="flex items-start gap-2 rounded-2xl border p-3 text-[10.5px] leading-5 border-amber-400/25 bg-amber-500/10 text-amber-200">
         <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
         <span>كل التعديلات تُحفظ فورًا في قاعدة البيانات (SQLite) وتظهر للمستخدمين مباشرة. الصور المرفوعة تُخزّن في مجلد <code>/uploads</code>.</span>
       </div>

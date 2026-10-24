@@ -22,7 +22,7 @@ export default function SubmitDrug() {
   if (!user) {
     return (
       <div className="mx-auto max-w-md space-y-3">
-        <div className="rounded-3xl bg-gradient-to-br from-brand-700 via-teal-700 to-emerald-800 p-6 text-center text-white">
+        <div className="rounded-3xl page-hero page-hero-emerald p-6 text-center text-white">
           <FilePlus2 className="mx-auto mb-2 h-8 w-8" />
           <h1 className="text-[19px] font-extrabold">{t('submit.title')}</h1>
           <p className="mt-1 text-[11px] leading-6 text-white/75">{t('submit.subtitle')}</p>
@@ -50,7 +50,7 @@ export default function SubmitDrug() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <div className="rounded-3xl bg-gradient-to-br from-brand-700 via-teal-700 to-emerald-800 p-5 text-white">
+      <div className="rounded-3xl page-hero page-hero-emerald p-5 text-white">
         <div className="flex items-center gap-2"><FilePlus2 className="h-5 w-5" /><h1 className="text-[21px] font-extrabold">{t('submit.title')}</h1></div>
         <p className="mt-1 max-w-lg text-[11.5px] leading-6 text-white/80">{t('submit.subtitle')}</p>
         <div className="mt-2 flex flex-wrap gap-1.5 text-[9.5px]">
@@ -61,7 +61,7 @@ export default function SubmitDrug() {
       </div>
 
       {done && (
-        <div className="flex items-start gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-3.5 text-[11px] leading-6 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+        <div className="flex items-start gap-2 rounded-2xl border p-3.5 text-[11px] leading-6 border-emerald-400/25 bg-emerald-500/10 text-emerald-200">
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{t('submit.done')}</span>
         </div>
@@ -98,7 +98,7 @@ export default function SubmitDrug() {
         <div className="space-y-1.5">
           {(mine || []).map((s) => (
             <div key={s.id} className="card flex items-center gap-2 p-2.5">
-              <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${s.status === 'approved' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40' : s.status === 'rejected' ? 'bg-rose-50 text-rose-500 dark:bg-rose-950/40' : 'bg-amber-50 text-amber-600 dark:bg-amber-950/40'}`}>
+              <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${s.status === 'approved' ? 'bg-emerald-500/15 text-emerald-300' : s.status === 'rejected' ? 'bg-rose-500/15 text-rose-300' : 'bg-amber-500/15 text-amber-300'}`}>
                 {s.status === 'approved' ? <CheckCircle2 className="h-3.5 w-3.5" /> : s.status === 'rejected' ? <XCircle className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
               </span>
               <div className="min-w-0 flex-1">
@@ -109,7 +109,7 @@ export default function SubmitDrug() {
                 <Badge tone={s.status === 'approved' ? 'emerald' : s.status === 'rejected' ? 'rose' : 'amber'}>{t(`submit.status.${s.status}`)}</Badge>
                 <span className="text-[8.5px] text-ink-400">{timeAgo(s.created_at, lang)}</span>
               </div>
-              {s.status === 'approved' && s.created_drug_id && <Link to={`/drugs/${s.created_drug_id}`} className="text-[9px] font-bold text-brand-700 dark:text-brand-300"><Search className="h-3 w-3" /></Link>}
+              {s.status === 'approved' && s.created_drug_id && <Link to={`/drugs/${s.created_drug_id}`} className="text-[9px] font-bold text-brand-300"><Search className="h-3 w-3" /></Link>}
             </div>
           ))}
         </div>

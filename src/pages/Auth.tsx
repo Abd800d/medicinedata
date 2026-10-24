@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail, ShieldCheck, Sparkles }
 import { useI18n } from '../lib/i18n';
 import { useAuth } from '../lib/auth';
 import { useConfig } from '../lib/config';
-import { Field, Logo, useToast } from '../components/ui';
+import { BrandHero, Field, useToast } from '../components/ui';
 import { cx } from '../lib/utils';
 
 declare global { interface Window { google?: any } }
@@ -37,7 +37,7 @@ function GoogleButton({ onCredential }: { onCredential: (c: string) => void }) {
 
   if (!config.google_client_id) {
     return (
-      <div className="rounded-xl border border-dashed border-ink-200 p-3 text-center text-[10.5px] leading-5 text-ink-400 dark:border-ink-700">
+      <div className="rounded-xl border border-dashed border-white/15 p-3 text-center text-[10.5px] leading-5 text-ink-400">
         {t('auth.googleUnavailable')}
       </div>
     );
@@ -81,17 +81,22 @@ export default function Auth() {
   };
 
   return (
-    <div className="mx-auto max-w-md space-y-4 py-4">
-      <div className="text-center">
-        <div className="mx-auto flex justify-center"><Logo /></div>
-        <h1 className="mt-4 text-[22px] font-extrabold text-ink-900 dark:text-white">{mode === 'login' ? t('auth.welcomeBack') : t('auth.createAccount')}</h1>
-        <p className="mt-1 text-[11.5px] text-ink-500">{lang === 'ar' ? 'احفظ وصفاتك، تابع الأدوية، وتواصل مع الإدارة والمجتمع.' : 'Save prescriptions, follow medicines and connect with the community.'}</p>
+    <div className="mx-auto max-w-md space-y-4 pb-4 pt-2">
+      <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(120%_100%_at_90%_0%,rgba(34,211,238,.28),transparent_55%),radial-gradient(90%_90%_at_0%_100%,rgba(27,109,255,.45),transparent_60%),linear-gradient(160deg,#08152c,#050c1a)] px-5 pb-6 pt-7">
+        <div className="pointer-events-none absolute -end-10 -top-12 h-40 w-40 rounded-full bg-aqua-400/20 blur-2xl" />
+        <BrandHero className="relative" />
+        <h1 className="relative mt-5 text-center text-[19px] font-black text-white">
+          {mode === 'login' ? t('auth.welcomeBack') : t('auth.createAccount')}
+        </h1>
+        <p className="relative mx-auto mt-1 max-w-[280px] text-center text-[11px] leading-5 text-ink-400">
+          {lang === 'ar' ? 'احفظ وصفاتك، تابع الأدوية، وتواصل مع الإدارة والمجتمع.' : 'Save prescriptions, follow medicines and connect with the community.'}
+        </p>
       </div>
 
-      <div className="card p-4">
-        <div className="mb-4 grid grid-cols-2 gap-1 rounded-xl bg-ink-100 p-1 dark:bg-ink-800">
+      <div className="card -mt-8 p-4 pt-5">
+        <div className="mb-4 grid grid-cols-2 gap-1 rounded-2xl border border-white/[.06] bg-ink-950/60 p-1">
           {(['login', 'register'] as const).map((m) => (
-            <button key={m} onClick={() => { setMode(m); setError(''); }} className={cx('rounded-lg py-2 text-[12px] font-bold transition', mode === m ? 'bg-white text-brand-800 shadow-sm dark:bg-ink-900 dark:text-brand-200' : 'text-ink-500')}>
+            <button key={m} onClick={() => { setMode(m); setError(''); }} className={cx('rounded-xl py-2 text-[12px] font-bold transition', mode === m ? 'bg-brand-grad text-white shadow-float' : 'text-ink-400 hover:text-white')}>
               {m === 'login' ? t('common.login') : t('common.register')}
             </button>
           ))}
@@ -122,24 +127,24 @@ export default function Auth() {
               <Field label={t('auth.city')}><input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} className="input" placeholder={lang === 'ar' ? 'صنعاء' : 'Sanaa'} /></Field>
             </div>
           )}
-          {error && <div className="rounded-xl bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">{error}</div>}
+          {error && <div className="rounded-xl border border-rose-400/25 bg-rose-500/10 px-3 py-2 text-[11px] font-semibold text-rose-300">{error}</div>}
           <button type="submit" disabled={busy} className="btn-primary w-full">
             {busy ? '…' : mode === 'login' ? t('common.login') : t('common.register')}
             {lang === 'ar' ? <ArrowLeft className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
           </button>
         </form>
 
-        <div className="my-4 flex items-center gap-3"><span className="h-px flex-1 bg-ink-200 dark:bg-ink-800" /><span className="text-[10px] font-semibold text-ink-400">{t('auth.or')}</span><span className="h-px flex-1 bg-ink-200 dark:bg-ink-800" /></div>
+        <div className="my-4 flex items-center gap-3"><span className="hairline flex-1" /><span className="text-[10px] font-semibold text-ink-500">{t('auth.or')}</span><span className="hairline flex-1" /></div>
         <GoogleButton onCredential={google} />
         <div className="mt-4 text-center text-[11px] text-ink-500">
           {mode === 'login' ? t('auth.noAccount') : t('auth.hasAccount')}{' '}
-          <button onClick={() => setMode(mode === 'login' ? 'register' : 'login')} className="font-bold text-brand-700 dark:text-brand-300">
+          <button onClick={() => setMode(mode === 'login' ? 'register' : 'login')} className="font-bold text-brand-300">
             {mode === 'login' ? t('common.register') : t('common.login')}
           </button>
         </div>
       </div>
 
-      <div className="flex items-center justify-center gap-2 rounded-2xl bg-brand-50 p-3 text-[10px] font-medium text-brand-800 dark:bg-brand-950/30 dark:text-brand-300">
+      <div className="flex items-center justify-center gap-2 rounded-2xl border border-brand-400/20 bg-brand-500/10 p-3 text-[10px] font-medium text-brand-200">
         <ShieldCheck className="h-3.5 w-3.5" />
         {lang === 'ar' ? 'بياناتك محمية ولا تُشارك مع أي طرف ثالث.' : 'Your data is private and never shared.'}
       </div>

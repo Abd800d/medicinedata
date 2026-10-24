@@ -45,7 +45,7 @@ export default function AiAssistant() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-3xl bg-gradient-to-br from-violet-700 via-purple-700 to-fuchsia-800 p-5 text-white">
+      <div className="rounded-3xl page-hero page-hero-violet p-5 text-white">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15"><Bot className="h-5 w-5" /></span><h1 className="text-[21px] font-extrabold">{t('ai.title')}</h1></div>
           <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-1 text-[9.5px] font-semibold backdrop-blur">
@@ -66,12 +66,12 @@ export default function AiAssistant() {
       <div className="card min-h-[320px] p-3.5">
         {!messages.length && (
           <div className="py-6 text-center">
-            <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-300"><Sparkles className="h-6 w-6" /></span>
-            <div className="text-[13px] font-bold text-ink-800 dark:text-ink-100">{lang === 'ar' ? 'اسألني عن أي دواء' : 'Ask me about any medicine'}</div>
+            <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-tile"><Sparkles className="h-6 w-6" /></span>
+            <div className="text-[13px] font-bold text-ink-100">{lang === 'ar' ? 'اسألني عن أي دواء' : 'Ask me about any medicine'}</div>
             <p className="mx-auto mt-1 max-w-sm text-[10.5px] leading-5 text-ink-500">{lang === 'ar' ? 'الجرعات، البدائل التجارية في اليمن، التفاعلات، الحمل، التحذيرات…' : 'Dosing, Yemeni brand alternatives, interactions, pregnancy, warnings…'}</p>
             <div className="mt-4 grid gap-1.5 sm:grid-cols-2">
               {examples.map((ex) => (
-                <button key={ex} onClick={() => ask(ex)} className="rounded-xl border border-ink-200 bg-ink-50/60 px-3 py-2 text-start text-[10.5px] font-medium text-ink-600 transition hover:border-violet-300 hover:bg-violet-50 dark:border-ink-800 dark:bg-ink-800/60 dark:text-ink-300 dark:hover:bg-violet-950/30">{ex}</button>
+                <button key={ex} onClick={() => ask(ex)} className="rounded-xl border border-white/[.08] bg-white/[.03] px-3 py-2 text-start text-[10.5px] font-medium text-ink-300 transition hover:border-violet-400/40 hover:bg-violet-500/10 hover:text-white">{ex}</button>
               ))}
             </div>
           </div>
@@ -80,10 +80,10 @@ export default function AiAssistant() {
         <div className="space-y-3">
           {messages.map((m, i) => (
             <div key={i} className={cx('flex gap-2', m.role === 'user' ? 'flex-row-reverse' : '')}>
-              <span className={cx('mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full', m.role === 'user' ? 'bg-brand-700 text-white' : 'bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300')}>
+              <span className={cx('mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full', m.role === 'user' ? 'bg-brand-grad text-white shadow-glow' : 'bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-tile')}>
                 {m.role === 'user' ? <UserRound className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
               </span>
-              <div className={cx('max-w-[86%] rounded-2xl px-3.5 py-2.5', m.role === 'user' ? 'bg-brand-700 text-white' : 'bg-ink-50 dark:bg-ink-800/70')}>
+              <div className={cx('max-w-[86%] rounded-2xl px-3.5 py-2.5', m.role === 'user' ? 'bg-brand-grad text-white shadow-float' : 'border border-white/[.08] bg-white/[.045] backdrop-blur')}>
                 {m.role === 'user' ? (
                   <p className="text-[12.5px] leading-6">{m.text}</p>
                 ) : (
@@ -91,16 +91,16 @@ export default function AiAssistant() {
                     <RichText text={m.text} />
                     {m.mode && <div className="mt-1.5 flex items-center gap-1 text-[9px] text-ink-400"><Database className="h-2.5 w-2.5" />{m.mode === 'ai' ? t('ai.onlineMode') : t('ai.offlineMode')}</div>}
                     {m.sources?.length ? (
-                      <div className="mt-2 border-t border-ink-200/70 pt-1.5 dark:border-ink-700">
+                      <div className="mt-2 border-t border-white/[.09] pt-1.5">
                         <div className="mb-1 text-[9px] font-bold uppercase tracking-wide text-ink-400">{t('ai.sources')}</div>
                         <div className="flex flex-wrap gap-1">
                           {m.sources.filter((s: any) => s?.name).slice(0, 5).map((s: any, idx: number) => (
-                            <span key={idx} className="rounded-md bg-white px-1.5 py-0.5 text-[9px] font-semibold text-ink-600 dark:bg-ink-900 dark:text-ink-300">{s.name}{s.atc ? ` · ${s.atc}` : ''}</span>
+                            <span key={idx} className="rounded-md border border-white/[.08] bg-white/[.05] px-1.5 py-0.5 text-[9px] font-semibold text-ink-300">{s.name}{s.atc ? ` · ${s.atc}` : ''}</span>
                           ))}
                         </div>
                       </div>
                     ) : null}
-                    <button onClick={async () => { await copyText(m.text); push(t('common.copied')); }} className="mt-1.5 inline-flex items-center gap-1 text-[9px] font-semibold text-ink-400 hover:text-brand-700"><Copy className="h-2.5 w-2.5" />{t('common.copy')}</button>
+                    <button onClick={async () => { await copyText(m.text); push(t('common.copied')); }} className="mt-1.5 inline-flex items-center gap-1 text-[9px] font-semibold text-ink-400 hover:text-brand-300"><Copy className="h-2.5 w-2.5" />{t('common.copy')}</button>
                   </>
                 )}
               </div>
@@ -108,7 +108,7 @@ export default function AiAssistant() {
           ))}
           {busy && (
             <div className="flex items-center gap-2 text-[11px] text-ink-400">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300"><Bot className="h-3.5 w-3.5" /></span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white"><Bot className="h-3.5 w-3.5" /></span>
               <Spinner className="h-3.5 w-3.5" />{t('ai.thinking')}
             </div>
           )}
@@ -117,7 +117,7 @@ export default function AiAssistant() {
       </div>
 
       <div className="sticky bottom-[74px] z-20">
-        <form onSubmit={(e) => { e.preventDefault(); ask(); }} className="flex items-end gap-2 rounded-2xl border border-ink-200 bg-white p-1.5 shadow-card dark:border-ink-800 dark:bg-ink-900">
+        <form onSubmit={(e) => { e.preventDefault(); ask(); }} className="flex items-end gap-2 rounded-2xl border border-white/[.10] bg-ink-900/90 p-1.5 shadow-float backdrop-blur focus-within:border-violet-400/50">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -126,7 +126,7 @@ export default function AiAssistant() {
             placeholder={t('ai.placeholder')}
             className="max-h-28 min-h-[38px] flex-1 resize-none bg-transparent px-2 py-2 text-[12.5px] outline-none placeholder:text-ink-400"
           />
-          <button type="submit" disabled={!input.trim() || busy} className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-700 text-white disabled:opacity-40"><Send className="h-4 w-4 rtl:-scale-x-100" /></button>
+          <button type="submit" disabled={!input.trim() || busy} className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-tile transition active:scale-95 disabled:opacity-40"><Send className="h-4 w-4 rtl:-scale-x-100" /></button>
         </form>
         <div className="mt-1.5 flex items-center justify-between gap-2 px-1">
           <span className="inline-flex items-center gap-1 text-[9px] text-ink-400"><ShieldCheck className="h-2.5 w-2.5" />{t('ai.disclaimer')}</span>

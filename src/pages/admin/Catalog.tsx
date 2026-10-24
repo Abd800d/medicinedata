@@ -24,7 +24,7 @@ export default function Catalog() {
       <div className="no-scrollbar flex gap-1.5 overflow-x-auto">
         {TABS.map((t) => (
           <button key={t.id} onClick={() => setSub(t.id)} className={cx('flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[11.5px] font-bold transition',
-            sub === t.id ? 'border-brand-500 bg-brand-50 text-brand-800 dark:border-brand-700 dark:bg-brand-950/40 dark:text-brand-200' : 'border-ink-200 bg-white text-ink-500 dark:border-ink-800 dark:bg-ink-900')}>
+            sub === t.id ? 'border-brand-400/50 bg-brand-500/20 text-white shadow-glow' : 'border-white/[.08] bg-white/[.04] text-ink-400')}>
             <t.icon className="h-3.5 w-3.5" />{t.label}
           </button>
         ))}
@@ -52,7 +52,7 @@ function Pager({ page, pages, onPage }: { page: number; pages: number; onPage: (
 
 function SearchBar({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-2.5 py-1.5 dark:border-ink-800 dark:bg-ink-900">
+    <div className="flex items-center gap-2 rounded-xl border px-2.5 py-1.5 border-white/[.08] bg-ink-900">
       <Search className="h-3.5 w-3.5 text-ink-400" />
       <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="min-w-0 flex-1 bg-transparent text-[12px] outline-none" />
       {value && <button onClick={() => onChange('')}><X className="h-3.5 w-3.5 text-ink-400" /></button>}
@@ -110,7 +110,7 @@ function Drugs() {
       <div className="space-y-1.5">
         {(data?.data || []).map((d: Drug) => (
           <div key={d.id} className="card flex items-center gap-2 p-2.5">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-300"><Pill className="h-4 w-4" /></span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-950/40 text-violet-300"><Pill className="h-4 w-4" /></span>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <span className="truncate text-[12px] font-extrabold">{d.generic_name}</span>
@@ -118,7 +118,7 @@ function Drugs() {
               </div>
               <div className="truncate text-[10px] text-ink-400" dir="auto">{d.generic_ar} · {d.system_ar || d.system_en || '—'} · {d.products_count} منتج</div>
             </div>
-            <button onClick={() => setEditing(d)} className="icon-btn h-8 w-8 text-sky-600"><Edit3 className="h-3.5 w-3.5" /></button>
+            <button onClick={() => setEditing(d)} className="icon-btn h-8 w-8 text-sky-300"><Edit3 className="h-3.5 w-3.5" /></button>
             <button onClick={() => setDel(d)} className="icon-btn h-8 w-8 text-rose-500"><Trash2 className="h-3.5 w-3.5" /></button>
           </div>
         ))}
@@ -236,15 +236,15 @@ function Products() {
       <div className="space-y-1.5">
         {(data?.data || []).map((p: any) => (
           <div key={p.id} className="card flex items-center gap-2 p-2.5">
-            <SmartImage src={p.image_url} productId={p.id} alt={p.trade_name} className="h-10 w-10 shrink-0 bg-ink-50 dark:bg-ink-800" rounded="rounded-lg" />
+            <SmartImage src={p.image_url} productId={p.id} alt={p.trade_name} className="h-10 w-10 shrink-0 bg-white/[.05]" rounded="rounded-lg" />
             <div className="min-w-0 flex-1">
               <div className="truncate text-[12px] font-extrabold">{p.trade_name} <span className="font-medium text-ink-400">{p.strength}</span></div>
               <div className="truncate text-[10px] text-ink-400">{p.generic_name} · {p.manufacturer_name || '—'} · {p.country || '—'}</div>
             </div>
             <div className="flex shrink-0 items-center gap-0.5">
               {p.verified ? <Badge tone="emerald">✓</Badge> : null}
-              <button onClick={() => setImgFor(p)} className="icon-btn h-8 w-8 text-violet-600" title="الصور"><Boxes className="h-3.5 w-3.5" /></button>
-              <button onClick={() => setEditing(p)} className="icon-btn h-8 w-8 text-sky-600"><Edit3 className="h-3.5 w-3.5" /></button>
+              <button onClick={() => setImgFor(p)} className="icon-btn h-8 w-8 text-violet-300" title="الصور"><Boxes className="h-3.5 w-3.5" /></button>
+              <button onClick={() => setEditing(p)} className="icon-btn h-8 w-8 text-sky-300"><Edit3 className="h-3.5 w-3.5" /></button>
               <button onClick={() => setDel(p)} className="icon-btn h-8 w-8 text-rose-500"><Trash2 className="h-3.5 w-3.5" /></button>
             </div>
           </div>
@@ -288,9 +288,9 @@ function ProductForm({ product, systems, manufacturers, agents, onClose, onSave 
             <div className="relative">
               <input value={drugQ} onChange={(e) => setDrugQ(e.target.value)} className="input" placeholder="اكتب للبحث…" />
               {drugs?.data?.length > 0 && drugQ.length > 1 && (
-                <div className="absolute inset-x-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-ink-200 bg-white p-1 shadow-lg dark:border-ink-700 dark:bg-ink-900">
+                <div className="absolute inset-x-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border p-1 shadow-lg border-white/[.09] bg-ink-900">
                   {drugs.data.map((d: any) => (
-                    <button key={d.id} onClick={() => { set('drug_id', d.id); setDrugLabel(d.generic_name); setDrugQ(''); }} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start text-[11px] hover:bg-ink-50 dark:hover:bg-ink-800">
+                    <button key={d.id} onClick={() => { set('drug_id', d.id); setDrugLabel(d.generic_name); setDrugQ(''); }} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start text-[11px] hover:bg-white/[.06]">
                       <Pill className="h-3 w-3 text-violet-500" /><span className="font-bold">{d.generic_name}</span><span className="text-ink-400">{d.generic_ar}</span>
                     </button>
                   ))}
@@ -380,13 +380,13 @@ function ImagesModal({ product, onClose }: { product: any; onClose: () => void }
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}رفع صور
             <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => upload(e.target.files)} />
           </label>
-          <div className="flex flex-1 items-center gap-1.5 rounded-xl border border-ink-200 px-2 py-1.5 dark:border-ink-800">
+          <div className="flex flex-1 items-center gap-1.5 rounded-xl border px-2 py-1.5 border-white/[.08]">
             <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="رابط صورة…" className="min-w-0 flex-1 bg-transparent text-[11px] outline-none" dir="ltr" />
-            <button onClick={() => url && download(url)} disabled={!url || busy} className="rounded-lg bg-ink-900 px-2 py-1 text-[10px] font-bold text-white dark:bg-white dark:text-ink-900">تنزيل</button>
+            <button onClick={() => url && download(url)} disabled={!url || busy} className="rounded-lg px-2 py-1 text-[10px] font-bold bg-white text-white">تنزيل</button>
           </div>
         </div>
 
-        <div className="rounded-xl border border-dashed border-ink-200 p-2.5 dark:border-ink-800">
+        <div className="rounded-xl border border-dashed p-2.5 border-white/[.08]">
           <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold"><Search className="h-3.5 w-3.5" />جلب من Google Images</div>
           <div className="flex gap-1.5">
             <input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} className="input h-9 flex-1 text-[11px]" />
@@ -395,7 +395,7 @@ function ImagesModal({ product, onClose }: { product: any; onClose: () => void }
           {results && results.length > 0 && (
             <div className="mt-2 grid max-h-44 grid-cols-4 gap-1.5 overflow-y-auto">
               {results.map((r, i) => (
-                <button key={i} onClick={() => download(r.link)} className="overflow-hidden rounded-lg border border-ink-200 bg-ink-50 dark:border-ink-700 dark:bg-ink-800">
+                <button key={i} onClick={() => download(r.link)} className="overflow-hidden rounded-lg border border-white/[.09] bg-white/[.05]">
                   <img src={r.thumb || r.link} alt="" className="h-16 w-full object-cover" />
                 </button>
               ))}
@@ -407,10 +407,10 @@ function ImagesModal({ product, onClose }: { product: any; onClose: () => void }
         {loading && <Loader2 className="mx-auto h-5 w-5 animate-spin text-ink-400" />}
         <div className="grid grid-cols-3 gap-2">
           {(data || []).map((img: any) => (
-            <div key={img.id} className={cx('relative overflow-hidden rounded-xl border bg-white dark:bg-ink-900', product.image_url === img.url ? 'border-brand-500 ring-2 ring-brand-500/20' : 'border-ink-200 dark:border-ink-800')}>
+            <div key={img.id} className={cx('relative overflow-hidden rounded-xl border bg-white/[.04]', product.image_url === img.url ? 'border-brand-500 ring-2 ring-brand-500/20' : 'border-white/[.08] border-white/[.08]')}>
               <img src={img.url} alt="" className="h-24 w-full object-contain p-1" />
-              <div className="flex items-center justify-between gap-1 border-t border-ink-100 px-1 py-1 dark:border-ink-800">
-                <button onClick={() => setMain(img.url)} className="text-[9px] font-bold text-brand-700 dark:text-brand-300">رئيسية</button>
+              <div className="flex items-center justify-between gap-1 border-t px-1 py-1 border-white/[.08]">
+                <button onClick={() => setMain(img.url)} className="text-[9px] font-bold text-brand-300">رئيسية</button>
                 <button onClick={() => remove(img.id)} className="text-[9px] font-bold text-rose-500">حذف</button>
               </div>
             </div>
@@ -486,8 +486,8 @@ function Categories() {
       {loading && !data && <PageLoader />}
       <div className="space-y-1">
         {(data || []).map((c) => (
-          <button key={c.id} onClick={() => setEditing(c)} className="flex w-full items-center gap-2 rounded-xl border border-ink-200 bg-white px-2.5 py-2 text-start dark:border-ink-800 dark:bg-ink-900">
-            <Layers className="h-3.5 w-3.5 text-brand-600" />
+          <button key={c.id} onClick={() => setEditing(c)} className="flex w-full items-center gap-2 rounded-xl border px-2.5 py-2 text-start border-white/[.08] bg-ink-900">
+            <Layers className="h-3.5 w-3.5 text-brand-300" />
             <span className="min-w-0 flex-1 truncate text-[11.5px] font-bold">{c.name_ar}</span>
             <span className="shrink-0 text-[9.5px] text-ink-400">{c.system_ar || c.system_en}</span>
             <Badge>{c.drugs}</Badge>
@@ -535,9 +535,9 @@ function Companies() {
   };
   return (
     <div className="space-y-2.5">
-      <div className="grid grid-cols-2 gap-1 rounded-xl bg-ink-100 p-1 dark:bg-ink-800">
+      <div className="grid grid-cols-2 gap-1 rounded-xl p-1 bg-white/[.05]">
         {(['manufacturers', 'agents'] as const).map((k) => (
-          <button key={k} onClick={() => setTab(k)} className={cx('rounded-lg py-1.5 text-[11.5px] font-bold', tab === k ? 'bg-white text-ink-900 shadow-sm dark:bg-ink-900 dark:text-white' : 'text-ink-500')}>
+          <button key={k} onClick={() => setTab(k)} className={cx('rounded-lg py-1.5 text-[11.5px] font-bold', tab === k ? 'bg-brand-grad text-white shadow-glow' : 'text-ink-500')}>
             {k === 'manufacturers' ? 'الشركات المصنعة' : 'الوكلاء'}
           </button>
         ))}
@@ -549,14 +549,14 @@ function Companies() {
       {loading && !data && <PageLoader />}
       <div className="space-y-1">
         {(data || []).map((row) => (
-          <div key={row.id} className="flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-2.5 py-2 dark:border-ink-800 dark:bg-ink-900">
+          <div key={row.id} className="flex items-center gap-2 rounded-xl border px-2.5 py-2 border-white/[.08] bg-ink-900">
             {tab === 'manufacturers' ? <Building2 className="h-3.5 w-3.5 text-ink-400" /> : <Truck className="h-3.5 w-3.5 text-ink-400" />}
             <div className="min-w-0 flex-1">
               <div className="truncate text-[11.5px] font-bold">{row.name}</div>
               <div className="truncate text-[9.5px] text-ink-400">{[row.country, row.city, row.phone].filter(Boolean).join(' · ') || '—'}</div>
             </div>
             <Badge>{row.products_count}</Badge>
-            <button onClick={() => setEditing(row)} className="icon-btn h-7 w-7 text-sky-600"><Edit3 className="h-3 w-3" /></button>
+            <button onClick={() => setEditing(row)} className="icon-btn h-7 w-7 text-sky-300"><Edit3 className="h-3 w-3" /></button>
             <button onClick={() => remove(row)} className="icon-btn h-7 w-7 text-rose-500"><Trash2 className="h-3 w-3" /></button>
           </div>
         ))}

@@ -38,34 +38,51 @@ export type SystemRecord = {
   description_ar?: string; description_en?: string; drugs?: number; products?: number; categories?: number;
 };
 
-export function SystemCard({ system, index = 0 }: { system: SystemRecord; index?: number }) {
+/* Each system gets a vivid gradient tile — the signature look of the MDA home screen */
+export const SYSTEM_GRADIENTS = [
+  'from-[#1b6dff] to-[#38c6ff]',
+  'from-[#0ea5e9] to-[#22d3ee]',
+  'from-[#14b8a6] to-[#34d399]',
+  'from-[#f59e0b] to-[#fb923c]',
+  'from-[#ec4899] to-[#f472b6]',
+  'from-[#8b5cf6] to-[#a78bfa]',
+  'from-[#ef4444] to-[#f87171]',
+  'from-[#10b981] to-[#4ade80]',
+  'from-[#6366f1] to-[#818cf8]',
+  'from-[#06b6d4] to-[#67e8f9]',
+];
+
+export const systemGradient = (i = 0) => SYSTEM_GRADIENTS[i % SYSTEM_GRADIENTS.length];
+
+export function SystemCard({ system, index = 0, compact = false }: { system: SystemRecord; index?: number; compact?: boolean }) {
   const { lang } = useI18n();
-  const color = system.color || '#0f766e';
   return (
     <Link
       to={`/systems/${system.slug}`}
-      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-ink-200/70 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-card dark:border-ink-800 dark:bg-ink-900"
-      style={{ animationDelay: `${Math.min(index * 25, 220)}ms` }}
+      className={cx(
+        'group relative flex flex-col items-center overflow-hidden rounded-2xl border border-white/[.07] bg-white/[.035] text-center transition',
+        'hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[.06] hover:shadow-glow',
+        compact ? 'gap-1.5 px-1.5 py-2.5' : 'gap-2 px-2.5 py-3.5',
+      )}
+      style={{ animationDelay: `${Math.min(index * 22, 220)}ms` }}
     >
-      <span className="absolute inset-x-0 top-0 h-14 opacity-[0.07] transition group-hover:opacity-[0.14]" style={{ background: `radial-gradient(circle at 30% 0%, ${color}, transparent 70%)` }} />
-      <div className="relative flex items-start justify-between">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}14`, color }}>
-          <SystemIcon slug={system.slug} className="h-5 w-5" />
-        </div>
-        <ChevronLeft className="h-4 w-4 text-ink-300 transition group-hover:text-ink-500 rtl:block ltr:hidden" />
-        <ChevronRight className="hidden h-4 w-4 text-ink-300 transition group-hover:text-ink-500 ltr:block" />
-      </div>
-      <div className="relative mt-2.5">
-        <div className="text-[12.5px] font-extrabold leading-5 text-ink-900 dark:text-white">
-          {lang === 'ar' ? system.name_ar : system.name_en}
-        </div>
-        <div className="text-[10px] leading-4 text-ink-400">{lang === 'ar' ? system.name_en : system.name_ar}</div>
-        <div className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold text-ink-500">
-          <span>{fmt(system.drugs)} {lang === 'ar' ? 'دواء' : 'drugs'}</span>
-          <span className="text-ink-300">•</span>
-          <span>{fmt(system.products)} {lang === 'ar' ? 'منتج' : 'products'}</span>
-        </div>
-      </div>
+      <span className="pointer-events-none absolute inset-x-0 -top-6 h-16 opacity-0 blur-2xl transition group-hover:opacity-60"
+        style={{ background: 'radial-gradient(circle, rgba(56,164,255,.9), transparent 70%)' }} />
+      <span className={cx(
+        'relative flex items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-tile ring-1 ring-white/25',
+        compact ? 'h-10 w-10' : 'h-12 w-12',
+        systemGradient(index),
+      )}>
+        <SystemIcon slug={system.slug} className={compact ? 'h-[18px] w-[18px]' : 'h-[22px] w-[22px]'} />
+      </span>
+      <span className="relative mt-0.5 line-clamp-2 text-[11px] font-bold leading-4 text-ink-100">
+        {lang === 'ar' ? system.name_ar : system.name_en}
+      </span>
+      {!compact && (
+        <span className="relative text-[9.5px] font-semibold text-ink-400 num">
+          {fmt(system.drugs)} {lang === 'ar' ? 'دواء' : 'drugs'}
+        </span>
+      )}
     </Link>
   );
 }
@@ -78,44 +95,40 @@ export type DrugRecord = {
 };
 
 export function DrugCard({ drug, compact = false }: { drug: DrugRecord; compact?: boolean }) {
-  const { lang, t } = useI18n();
+  const { lang } = useI18n();
   const count = drug.products_count ?? drug.products ?? 0;
   return (
     <Link
       to={`/drugs/${drug.id}`}
-      className="group flex items-center gap-3 rounded-2xl border border-ink-200/70 bg-white p-3 transition hover:border-brand-300 hover:shadow-card dark:border-ink-800 dark:bg-ink-900 dark:hover:border-brand-700"
+      className="group flex items-center gap-3 rounded-2xl border border-white/[.07] bg-white/[.035] p-2.5 transition hover:border-brand-400/35 hover:bg-white/[.06] hover:shadow-glow"
     >
-      <SmartImage
-        src={drug.image_url}
-        drugId={drug.id}
-        alt={drug.generic_name}
-        className="h-16 w-16 shrink-0 bg-ink-50 dark:bg-ink-800"
-        rounded="rounded-xl"
-      />
+      <div className="photo-plate relative flex h-[62px] w-[62px] shrink-0 items-center justify-center overflow-hidden rounded-xl">
+        <SmartImage src={drug.image_url} drugId={drug.id} alt={drug.generic_name} className="h-full w-full p-1" rounded="" />
+      </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <h3 className="truncate text-[14px] font-bold text-ink-900 dark:text-white">{lang === 'ar' && drug.generic_ar ? drug.generic_ar : drug.generic_name}</h3>
+          <h3 className="truncate text-[13.5px] font-bold text-white">{lang === 'ar' && drug.generic_ar ? drug.generic_ar : drug.generic_name}</h3>
           {drug.prescription_required ? <Badge tone="rose" className="shrink-0">Rx</Badge> : null}
         </div>
-        <p className="truncate text-[11px] font-medium text-ink-400" dir="ltr">{lang === 'ar' ? drug.generic_name : drug.generic_ar || ''}</p>
+        <p className="truncate text-[10.5px] font-medium text-ink-500" dir="ltr">{lang === 'ar' ? drug.generic_name : drug.generic_ar || ''}</p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
-          {drug.drug_class && <span className="truncate rounded-md bg-brand-50 px-1.5 py-0.5 text-[10px] font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">{drug.drug_class}</span>}
+          {drug.drug_class && <span className="truncate rounded-md bg-brand-500/15 px-1.5 py-0.5 text-[9.5px] font-bold text-brand-200">{drug.drug_class}</span>}
           {drug.system_slug && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-ink-100 px-1.5 py-0.5 text-[10px] font-medium text-ink-500 dark:bg-ink-800">
-              <SystemIcon slug={drug.system_slug} className="h-3 w-3" />
+            <span className="inline-flex items-center gap-1 rounded-md bg-white/[.06] px-1.5 py-0.5 text-[9.5px] font-semibold text-ink-300">
+              <SystemIcon slug={drug.system_slug} className="h-2.5 w-2.5" />
               {lang === 'ar' ? drug.system_ar : drug.system_en}
             </span>
           )}
         </div>
         {!compact && (
-          <div className="mt-1 flex items-center gap-2 text-[10.5px] text-ink-400">
-            <span className="font-semibold text-brand-700 dark:text-brand-300">{count} {lang === 'ar' ? 'منتج' : 'products'}</span>
+          <div className="mt-1 flex items-center gap-2 text-[10px] text-ink-500">
+            <span className="font-bold text-brand-300 num">{count} {lang === 'ar' ? 'منتج' : 'products'}</span>
             {drug.atc_code && <span className="font-mono">ATC {drug.atc_code}</span>}
           </div>
         )}
       </div>
       {typeof drug.score === 'number' && drug.score < 1 && (
-        <span className="shrink-0 rounded-lg bg-ink-50 px-1.5 py-1 text-[9.5px] font-bold text-ink-400 dark:bg-ink-800">
+        <span className="shrink-0 rounded-lg bg-white/[.06] px-1.5 py-1 text-[9px] font-bold text-ink-400 num">
           {Math.round(drug.score * 100)}%
         </span>
       )}
@@ -139,40 +152,48 @@ export function ProductCard({ product, horizontal = false }: { product: ProductR
     <Link
       to={`/products/${product.id}`}
       className={cx(
-        'group overflow-hidden rounded-2xl border border-ink-200/70 bg-white transition hover:border-brand-300 hover:shadow-card dark:border-ink-800 dark:bg-ink-900 dark:hover:border-brand-700',
+        'group relative overflow-hidden rounded-3xl border border-white/[.07] bg-ink-900/60 backdrop-blur-xl transition',
+        'hover:-translate-y-0.5 hover:border-brand-400/35 hover:shadow-glow',
         horizontal ? 'flex items-center gap-3 p-2.5' : 'flex flex-col',
       )}
     >
-      <div className={cx('relative bg-gradient-to-br from-ink-50 to-brand-50/50 dark:from-ink-800 dark:to-ink-900', horizontal ? 'h-20 w-20 shrink-0 rounded-xl' : 'aspect-square w-full')}>
-        <SmartImage src={product.image_url} productId={product.id} alt={product.trade_name} className="h-full w-full p-1.5" rounded={horizontal ? 'rounded-xl' : ''} />
+      <div className={cx('photo-plate relative overflow-hidden', horizontal ? 'h-[78px] w-[78px] shrink-0 rounded-2xl' : 'aspect-[4/3] w-full')}>
+        <SmartImage
+          src={product.image_url}
+          productId={product.id}
+          alt={product.trade_name}
+          className={cx('h-full w-full object-contain transition duration-500 group-hover:scale-[1.04]', horizontal ? 'p-1' : 'p-2.5')}
+          rounded=""
+        />
         {product.verified ? (
-          <span className="absolute end-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full bg-white/90 px-1.5 py-0.5 text-[8.5px] font-bold text-brand-700 shadow-sm dark:bg-ink-900/90 dark:text-brand-300">
+          <span className="absolute start-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full bg-ink-950/80 px-1.5 py-0.5 text-[8.5px] font-bold text-brand-200 shadow-sm backdrop-blur">
             <BadgeCheck className="h-2.5 w-2.5" /> MDA
           </span>
         ) : null}
       </div>
+
       <div className={cx('min-w-0 flex-1', horizontal ? 'py-0.5' : 'p-3')}>
         <div className="flex items-start justify-between gap-1.5">
-          <h3 className="line-clamp-1 text-[13px] font-bold text-ink-900 dark:text-white">{name}</h3>
+          <h3 className="line-clamp-1 text-[12.5px] font-bold text-white">{name}</h3>
           {product.price ? (
-            <span className="shrink-0 text-[11px] font-extrabold text-brand-700 dark:text-brand-300">
-              {fmt(product.price)} <span className="text-[8.5px] font-semibold text-ink-400">{product.currency || 'YER'}</span>
+            <span className="shrink-0 rounded-md bg-brand-500/15 px-1.5 py-0.5 text-[10.5px] font-extrabold text-brand-200 num">
+              {fmt(product.price)} <span className="text-[8px] font-semibold text-ink-400">{product.currency || 'YER'}</span>
             </span>
           ) : null}
         </div>
-        <p className="line-clamp-1 text-[11px] text-ink-500" dir="auto">{sub || product.generic_name || ''}</p>
+        <p className="line-clamp-1 text-[10.5px] font-medium text-ink-400" dir="auto">{sub || product.generic_name || ''}</p>
         {!horizontal && (
           <div className="mt-2 flex items-center justify-between gap-2">
-            <span className="line-clamp-1 text-[10px] text-ink-400">{product.manufacturer_name || product.country}</span>
+            <span className="line-clamp-1 text-[9.5px] font-semibold text-ink-500">{product.manufacturer_name || product.country}</span>
             {product.country && (
-              <span className="inline-flex shrink-0 items-center gap-0.5 text-[9.5px] text-ink-400"><MapPin className="h-2.5 w-2.5" />{product.country}</span>
+              <span className="inline-flex shrink-0 items-center gap-0.5 text-[9px] text-ink-500"><MapPin className="h-2.5 w-2.5" />{product.country}</span>
             )}
           </div>
         )}
         {horizontal && product.manufacturer_name && (
-          <div className="mt-1 flex items-center gap-1 text-[10px] text-ink-400">
+          <div className="mt-1 flex items-center gap-1 text-[9.5px] text-ink-500">
             <span className="line-clamp-1">{product.manufacturer_name}</span>
-            <span className="text-ink-300">•</span>
+            <span className="text-ink-600">•</span>
             <span>{product.country}</span>
           </div>
         )}

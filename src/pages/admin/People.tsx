@@ -12,9 +12,9 @@ export default function People() {
   const [tab, setTab] = useState<'users' | 'threads' | 'jobs'>('users');
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-1 rounded-xl bg-ink-100 p-1 dark:bg-ink-800">
+      <div className="grid grid-cols-3 gap-1 rounded-xl p-1 bg-white/[.05]">
         {([['users', 'المستخدمون', Users], ['threads', 'الرسائل', MessageSquare], ['jobs', 'الوظائف', Briefcase]] as const).map(([k, label, Icon]) => (
-          <button key={k} onClick={() => setTab(k)} className={cx('flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-[11px] font-bold', tab === k ? 'bg-white text-ink-900 shadow-sm dark:bg-ink-900 dark:text-white' : 'text-ink-500')}>
+          <button key={k} onClick={() => setTab(k)} className={cx('flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-[11px] font-bold', tab === k ? 'bg-brand-grad text-white shadow-glow' : 'text-ink-500')}>
             <Icon className="h-3 w-3" />{label}
           </button>
         ))}
@@ -50,7 +50,7 @@ function UsersPanel() {
 
   return (
     <div className="space-y-2.5">
-      <div className="flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-2.5 py-1.5 dark:border-ink-800 dark:bg-ink-900">
+      <div className="flex items-center gap-2 rounded-xl border px-2.5 py-1.5 border-white/[.08] bg-ink-900">
         <Search className="h-3.5 w-3.5 text-ink-400" />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث بالاسم أو البريد…" className="min-w-0 flex-1 bg-transparent text-[12px] outline-none" />
       </div>
@@ -71,11 +71,11 @@ function UsersPanel() {
                 <div className="text-[9px] text-ink-300">{dateFmt(u.created_at)} · {u.threads} موضوع · {u.prescriptions} وصفة</div>
               </div>
               <div className="flex shrink-0 items-center gap-1">
-                <select value={u.role} onChange={(e) => patch(u, { role: e.target.value })} className="rounded-lg border border-ink-200 bg-white px-1 py-1 text-[9.5px] font-bold dark:border-ink-700 dark:bg-ink-800">
+                <select value={u.role} onChange={(e) => patch(u, { role: e.target.value })} className="rounded-lg border px-1 py-1 text-[9.5px] font-bold border-white/[.09] bg-white/[.05]">
                   <option value="user">user</option><option value="admin">admin</option>
                 </select>
-                <button onClick={() => patch(u, { active: u.active ? 0 : 1 })} className={cx('icon-btn h-7 w-7', u.active ? 'text-emerald-600' : 'text-ink-400')} title={u.active ? 'تعطيل' : 'تفعيل'}>{u.active ? <CheckCircle2 className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}</button>
-                <button onClick={() => { setPwUser(u); setPw(''); }} className="icon-btn h-7 w-7 text-sky-600"><Lock className="h-3.5 w-3.5" /></button>
+                <button onClick={() => patch(u, { active: u.active ? 0 : 1 })} className={cx('icon-btn h-7 w-7', u.active ? 'text-emerald-300' : 'text-ink-400')} title={u.active ? 'تعطيل' : 'تفعيل'}>{u.active ? <CheckCircle2 className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}</button>
+                <button onClick={() => { setPwUser(u); setPw(''); }} className="icon-btn h-7 w-7 text-sky-300"><Lock className="h-3.5 w-3.5" /></button>
                 <button onClick={() => remove(u)} className="icon-btn h-7 w-7 text-rose-500"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
             </div>
@@ -137,7 +137,7 @@ function ThreadsPanel() {
       <div className="space-y-1.5">
         {(data || []).map((t) => (
           <button key={t.id} onClick={() => open(t.id)} className="card flex w-full items-center gap-2 p-2.5 text-start">
-            <span className={cx('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', t.is_public ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40' : 'bg-ink-100 text-ink-500 dark:bg-ink-800')}><MessageSquare className="h-3.5 w-3.5" /></span>
+            <span className={cx('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', t.is_public ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/[.05] text-ink-400')}><MessageSquare className="h-3.5 w-3.5" /></span>
             <div className="min-w-0 flex-1">
               <div className="truncate text-[11.5px] font-bold">{t.subject}</div>
               <div className="truncate text-[9.5px] text-ink-400">{t.author_name} · {timeAgo(t.updated_at)} · {t.messages} رد</div>
@@ -156,13 +156,13 @@ function ThreadsPanel() {
                 <Badge tone={thread.is_public ? 'emerald' : 'neutral'}>{thread.is_public ? 'مرئي للجميع' : 'خاص'}</Badge>
                 <span>{thread.author_name} · {thread.author_email}</span>
                 <div className="ms-auto flex gap-1">
-                  {['open', 'answered', 'closed'].map((s) => <button key={s} onClick={() => setStatusOf(thread.id, s)} className={cx('rounded-md px-1.5 py-0.5 text-[9px] font-bold', thread.status === s ? 'bg-ink-900 text-white dark:bg-white dark:text-ink-900' : 'bg-ink-100 text-ink-500 dark:bg-ink-800')}>{s}</button>)}
-                  <button onClick={() => remove(thread.id)} className="rounded-md bg-rose-50 px-1.5 py-0.5 text-[9px] font-bold text-rose-600 dark:bg-rose-950/40"><Trash2 className="h-2.5 w-2.5" /></button>
+                  {['open', 'answered', 'closed'].map((s) => <button key={s} onClick={() => setStatusOf(thread.id, s)} className={cx('rounded-md px-1.5 py-0.5 text-[9px] font-bold', thread.status === s ? 'bg-white/20 text-white' : 'bg-white/[.05] text-ink-400')}>{s}</button>)}
+                  <button onClick={() => remove(thread.id)} className="rounded-md px-1.5 py-0.5 text-[9px] font-bold text-rose-300 bg-rose-500/15"><Trash2 className="h-2.5 w-2.5" /></button>
                 </div>
               </div>
-              <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-xl bg-ink-50 p-2 dark:bg-ink-800/60">
+              <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-xl p-2 bg-white/[.055]">
                 {(thread.messages || []).map((m: any) => (
-                  <div key={m.id} className={cx('rounded-lg px-2.5 py-1.5', m.is_staff ? 'bg-brand-700 text-white' : 'bg-white dark:bg-ink-900')}>
+                  <div key={m.id} className={cx('rounded-lg px-2.5 py-1.5', m.is_staff ? 'bg-brand-700 text-white' : 'bg-white/[.04]')}>
                     <div className={cx('mb-0.5 text-[8.5px] font-bold', m.is_staff ? 'text-white/70' : 'text-ink-400')}>{m.author_name} {m.is_staff ? '· الإدارة' : ''} · {timeAgo(m.created_at)}</div>
                     <p className="whitespace-pre-line text-[11px] leading-5">{m.body}</p>
                   </div>
@@ -197,12 +197,12 @@ function JobsPanel() {
       {loading && !data && <PageLoader />}
       {(data || []).map((j) => (
         <div key={j.id} className="card flex items-center gap-2 p-2.5">
-          <Briefcase className="h-4 w-4 text-amber-600" />
+          <Briefcase className="h-4 w-4 text-amber-300" />
           <div className="min-w-0 flex-1">
             <div className="truncate text-[11.5px] font-bold">{j.title}</div>
             <div className="truncate text-[9.5px] text-ink-400">{j.author_name} · {j.type === 'offer' ? 'عرض وظيفة' : 'باحث عن عمل'} · {j.city || '—'}</div>
           </div>
-          <button onClick={() => toggle(j)} className="rounded-lg bg-ink-100 px-2 py-1 text-[9.5px] font-bold dark:bg-ink-800">{j.status === 'published' ? 'إخفاء' : 'نشر'}</button>
+          <button onClick={() => toggle(j)} className="rounded-lg px-2 py-1 text-[9.5px] font-bold bg-white/[.05]">{j.status === 'published' ? 'إخفاء' : 'نشر'}</button>
           <button onClick={() => remove(j)} className="icon-btn h-7 w-7 text-rose-500"><Trash2 className="h-3 w-3" /></button>
         </div>
       ))}

@@ -109,7 +109,7 @@ export default function Prescriptions() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-3xl bg-gradient-to-br from-rose-600 via-rose-700 to-pink-800 p-5 text-white">
+      <div className="rounded-3xl page-hero page-hero-rose p-5 text-white">
         <div className="flex items-center gap-2"><ScanText className="h-5 w-5" /><h1 className="text-[21px] font-extrabold">{t('rx.title')}</h1></div>
         <p className="mt-1 max-w-lg text-[11.5px] leading-6 text-white/80">{t('rx.subtitle')}</p>
         <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] font-semibold">
@@ -121,7 +121,7 @@ export default function Prescriptions() {
 
       {!user && (
         <div className="card flex items-center gap-3 p-4">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-ink-100 text-ink-500 dark:bg-ink-800"><Lock className="h-5 w-5" /></span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl text-ink-500 bg-white/[.05]"><Lock className="h-5 w-5" /></span>
           <div className="min-w-0 flex-1">
             <div className="text-[12.5px] font-bold">{t('common.loginRequired')}</div>
             <div className="text-[10.5px] text-ink-500">حفظ الوصفات وتاريخها متاح بعد تسجيل الدخول — يمكنك تحليل النص كزائر.</div>
@@ -135,9 +135,9 @@ export default function Prescriptions() {
         <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
 
         {!preview ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-ink-200 px-4 py-8 text-center dark:border-ink-700">
-            <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-300"><UploadCloud className="h-6 w-6" /></span>
-            <div className="text-[13px] font-bold text-ink-800 dark:text-ink-100">{t('rx.upload')}</div>
+          <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-rose-400/30 bg-rose-500/[.05] px-4 py-8 text-center">
+            <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-pink-500 text-white shadow-tile"><UploadCloud className="h-6 w-6" /></span>
+            <div className="text-[13px] font-bold text-ink-100">{t('rx.upload')}</div>
             <p className="mt-1 max-w-xs text-[10.5px] leading-5 text-ink-500">صورة واضحة، إضاءة جيدة، وبدون انعكاس — يمكنك التصوير مباشرة أو اختيار صورة من المعرض.</p>
             <div className="mt-3 flex gap-2">
               <button onClick={() => cameraRef.current?.click()} className="btn-primary"><Camera className="h-4 w-4" />{t('rx.camera')}</button>
@@ -146,7 +146,7 @@ export default function Prescriptions() {
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="relative overflow-hidden rounded-2xl bg-ink-100 dark:bg-ink-800">
+            <div className="relative overflow-hidden rounded-2xl bg-white/[.06]">
               <img src={preview} alt="prescription" className="max-h-[360px] w-full object-contain" />
               <button onClick={() => { setPreview(null); setFile(null); }} className="absolute end-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink-950/60 text-white"><X className="h-4 w-4" /></button>
             </div>
@@ -163,9 +163,9 @@ export default function Prescriptions() {
 
       {showManual && (
         <div className="card p-4">
-          <div className="mb-2 flex items-center gap-2 text-violet-700 dark:text-violet-300"><Bot className="h-4 w-4" /><h2 className="text-[12.5px] font-extrabold">{t('rx.manualTitle')}</h2></div>
+          <div className="mb-2 flex items-center gap-2 text-violet-300"><Bot className="h-4 w-4" /><h2 className="text-[12.5px] font-extrabold">{t('rx.manualTitle')}</h2></div>
           <p className="mb-2 text-[10.5px] leading-5 text-ink-500">{t('rx.manualHint')}</p>
-          {!current?.ai && <div className="mb-2 rounded-xl bg-amber-50 p-2.5 text-[10.5px] leading-5 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">{t('rx.noAi')}</div>}
+          {!current?.ai && <div className="mb-2 rounded-xl p-2.5 text-[10.5px] leading-5 bg-amber-500/10 text-amber-200">{t('rx.noAi')}</div>}
           <TextArea value={manualText} onChange={(e) => setManualText(e.target.value)} placeholder={lang === 'ar' ? 'مثال: Augmentin 1g tablet – 1 tablet twice daily for 7 days…' : 'e.g. Augmentin 1g tablet — one tablet twice daily for 7 days…'} />
           <button onClick={analyzeText} disabled={analyzing || !manualText.trim()} className="btn-primary mt-2 w-full">
             {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanText className="h-4 w-4" />}{t('rx.analyzeText')}
@@ -179,14 +179,14 @@ export default function Prescriptions() {
             <h2 className="section-title">{t('rx.results')}</h2>
             {result?.readable === false && <Badge tone="amber">{lang === 'ar' ? 'صورة غير واضحة' : 'Low quality'}</Badge>}
           </div>
-          {current?.image_url && <div className="overflow-hidden rounded-2xl border border-ink-200 dark:border-ink-800"><img src={assetUrl(current.image_url)} alt="" className="max-h-40 w-full object-cover" /></div>}
+          {current?.image_url && <div className="overflow-hidden rounded-2xl border border-white/[.08]"><img src={assetUrl(current.image_url)} alt="" className="max-h-40 w-full object-cover" /></div>}
           {items.map((item: any, idx: number) => (
             <div key={idx} className="card p-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <div className="text-[13.5px] font-extrabold text-ink-900 dark:text-white">{item.name || item.matched?.generic_name || '—'}</div>
+                  <div className="text-[13.5px] font-extrabold text-white">{item.name || item.matched?.generic_name || '—'}</div>
                   <div className="mt-0.5 flex flex-wrap gap-1.5 text-[10px] text-ink-500">
-                    {item.strength && <span className="rounded bg-ink-100 px-1.5 py-0.5 dark:bg-ink-800">{item.strength}</span>}
+                    {item.strength && <span className="rounded px-1.5 py-0.5 bg-white/[.05]">{item.strength}</span>}
                     {item.form && <span>{item.form}</span>}
                     {item.dose && <span>• {item.dose}</span>}
                     {item.frequency && <span>• {item.frequency}</span>}
@@ -196,7 +196,7 @@ export default function Prescriptions() {
                 <Badge tone="emerald"><CheckCircle2 className="h-2.5 w-2.5" />{item.matched ? `${Math.round((item.matched.score || 0) * 100)}%` : '—'}</Badge>
               </div>
               {item.matched?.warnings && (
-                <div className="mt-2 flex items-start gap-1.5 rounded-xl bg-amber-50 p-2.5 text-[10px] leading-5 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+                <div className="mt-2 flex items-start gap-1.5 rounded-xl p-2.5 text-[10px] leading-5 bg-amber-500/10 text-amber-200">
                   <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />{item.matched.warnings}
                 </div>
               )}
@@ -205,8 +205,8 @@ export default function Prescriptions() {
                   <div className="mb-1 text-[10px] font-bold text-ink-500">{t('rx.matchedProducts')}</div>
                   <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
                     {item.matched.products.slice(0, 4).map((mp: any) => (
-                      <Link key={mp.id} to={`/products/${mp.id}`} className="flex w-[132px] shrink-0 items-center gap-2 rounded-xl border border-ink-200 p-1.5 dark:border-ink-800">
-                        <SmartImage src={mp.image_url} productId={mp.id} alt={mp.trade_name} className="h-10 w-10 bg-ink-50 dark:bg-ink-800" rounded="rounded-lg" />
+                      <Link key={mp.id} to={`/products/${mp.id}`} className="flex w-[132px] shrink-0 items-center gap-2 rounded-xl border p-1.5 border-white/[.08]">
+                        <SmartImage src={mp.image_url} productId={mp.id} alt={mp.trade_name} className="h-10 w-10 bg-white/[.05]" rounded="rounded-lg" />
                         <div className="min-w-0">
                           <div className="line-clamp-1 text-[10.5px] font-bold">{mp.trade_name}</div>
                           <div className="line-clamp-1 text-[9px] text-ink-400">{mp.strength} · {mp.country}</div>
@@ -217,13 +217,13 @@ export default function Prescriptions() {
                 </div>
               )}
               {item.matched?.drug_id && (
-                <Link to={`/drugs/${item.matched.drug_id}`} className="mt-2 inline-flex items-center gap-1 text-[10.5px] font-bold text-brand-700 dark:text-brand-300">
+                <Link to={`/drugs/${item.matched.drug_id}`} className="mt-2 inline-flex items-center gap-1 text-[10.5px] font-bold text-brand-300">
                   {t('rx.viewDrug')} <ChevronLeft className="h-3 w-3 rtl:block ltr:hidden" /><ChevronRight className="hidden h-3 w-3 ltr:block" />
                 </Link>
               )}
             </div>
           ))}
-          <div className="flex items-start gap-2 rounded-xl bg-ink-100/60 p-3 text-[10px] leading-5 text-ink-500 dark:bg-ink-800/60">
+          <div className="flex items-start gap-2 rounded-xl border border-amber-400/25 bg-amber-500/10 p-3 text-[10px] leading-5 text-amber-200">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{t('rx.disclaimer')}
           </div>
         </div>
@@ -236,8 +236,8 @@ export default function Prescriptions() {
           {history?.length === 0 && <EmptyState icon={<ScanText className="h-6 w-6" />} title={t('rx.empty')} />}
           <div className="space-y-2">
             {(history || []).map((h) => (
-              <button key={h.id} onClick={() => { setCurrent(h); setManualText(h.extracted_text || ''); setPreview(null); window.scrollTo({ top: 280, behavior: 'smooth' }); }} className="flex w-full items-center gap-3 rounded-2xl border border-ink-200 bg-white p-2.5 text-start dark:border-ink-800 dark:bg-ink-900">
-                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-ink-100 dark:bg-ink-800">
+              <button key={h.id} onClick={() => { setCurrent(h); setManualText(h.extracted_text || ''); setPreview(null); window.scrollTo({ top: 280, behavior: 'smooth' }); }} className="flex w-full items-center gap-3 rounded-2xl border p-2.5 text-start border-white/[.08] bg-ink-900">
+                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-white/[.06]">
                   {h.image_url ? <img src={assetUrl(h.image_url)} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center"><ScanText className="h-5 w-5 text-ink-400" /></div>}
                 </div>
                 <div className="min-w-0 flex-1">

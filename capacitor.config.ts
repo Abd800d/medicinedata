@@ -15,12 +15,12 @@ const config: CapacitorConfig = {
   bundledWebRuntime: false,
   android: {
     allowMixedContent: false,
-    backgroundColor: '#0f766e',
+    backgroundColor: '#050c1a',
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 1200,
-      backgroundColor: '#0f766e',
+      backgroundColor: '#050c1a',
       androidScaleType: 'CENTER_CROP',
     },
   },

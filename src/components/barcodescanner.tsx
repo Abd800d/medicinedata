@@ -157,7 +157,7 @@ export default function BarcodeScanner({ onDetect, busy = false }: { onDetect: (
         )}
       </div>
 
-      {error && <p className="rounded-xl bg-amber-50 px-3 py-2 text-[10.5px] leading-5 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">{error}</p>}
+      {error && <p className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-[10.5px] leading-5 text-amber-200">{error}</p>}
 
       <form onSubmit={submitManual} className="flex gap-2">
         <div className="relative flex-1">

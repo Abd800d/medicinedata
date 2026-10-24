@@ -85,3 +85,22 @@
   عند وجود أسرار `ANDROID_KEYSTORE_*`. `android/app/build.gradle` يقرأ `MDA_KEYSTORE_PATH` و
   `-PversionName/-PversionCode`.
 - **تنبيه:** لا يوجد JDK/SDK في الصندوق — لا يمكن تجربة `gradlew` محليًا؛ التحقق الفعلي يتم في CI.
+
+## 2026-10 — إعادة التصميم الكاملة (هوية MDA الكحلية)
+
+- **الهوية:** شعار جديد (كبسولة + نبضة ECG) مولَّد بسكربت `scripts/make-icons.sh` (ImageMagick)،
+  ينتج `public/icons/*` و`public/favicon.png` و`android/.../mipmap-*` و`/splash.png` لكل الكثافات.
+  خلفية الأيقونة التكيفية `#0A2560`، شاشة البداية `#050C1A` (Android + Capacitor + PWA).
+- **وضع واحد داكن:** `src/lib/config.tsx` يثبّت `dark`، حُذف مبدّل السمة من الواجهة، وأُزيلت كل
+  قواعد `html:not(.dark)` من `src/styles.css` و`index.html`.
+- **نظام تصميم جديد:** `tailwind.config.js` (brand/ink/aqua + `brand-grad`/`hero-grad` + ظلال
+  `card|float|glow|tile` + حركات) و`src/styles.css` (`.app-bg`، `.card`، `.page-hero` بمتغيّرات
+  violet/emerald/amber/rose، `.tile`، `.photo-plate`، `.sheet`...). مرجع كامل في `docs/DESIGN.md`.
+- **شاشات أُعيد تصميمها:** Home (Hero + أدوات + أجهزة + بانر AI + منتجات)، Systems، SystemDetail،
+  ProductDetail، Search، DrugDetail، Auth، Profile، More، About، Community، Jobs، Directories،
+  Pharmacy، Prescriptions، ScanPage، AiAssistant، SubmitDrug، ThreadDetail، ولوحة التحكم بكل تبويباتها.
+- **تنظيف التقني:** سكربت `scripts/normalize-classes.py` يحوّل أزواج `x dark:y` القديمة إلى قيم
+  داكنة واحدة ويزيل التكرار (مع احترام متغيّرات `hover:`/`focus:`). أُضيفت `spacing.4.5/18` إلى
+  Tailwind وأُزيلت `.mesh` غير المعرّفة (كانت تُستخدم في Admin).
+- **التحقق:** `npx tsc --noEmit` = 0، `npm run build` ناجح (PWA theme/background `#050c1a`)،
+  `npm run smoke` = 19/19 صفحة بلا أخطاء.

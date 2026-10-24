@@ -54,17 +54,15 @@ const Ctx = createContext<CfgCtx | null>(null);
 
 export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = useState<AppConfig>(DEFAULTS);
-  const [dark, setDark] = useState(() => {
-    const stored = localStorage.getItem('mda.theme');
-    if (stored) return stored === 'dark';
-    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
-  });
+  /* MDA ships one carefully tuned midnight-navy theme (the reference identity).
+     `dark` stays in the context so older screens keep working; it is always on. */
+  const [dark] = useState(true);
   const { t: _t } = useI18n();
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
     localStorage.setItem('mda.theme', dark ? 'dark' : 'light');
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#020617' : '#0f766e');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#050c1a');
   }, [dark]);
 
   const refresh = async () => {
@@ -77,7 +75,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { refresh(); }, []);
 
   const value = useMemo(() => ({
-    config, refresh, dark, toggleDark: () => setDark((d) => !d),
+    config, refresh, dark, toggleDark: () => { /* single-theme product */ },
   }), [config, dark]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

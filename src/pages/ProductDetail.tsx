@@ -60,66 +60,74 @@ export default function ProductDetail() {
 
   return (
     <div className="space-y-4">
-      <div className="relative overflow-hidden rounded-3xl border border-ink-200 bg-white p-4 dark:border-ink-800 dark:bg-ink-900">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-1.5">
-            {p.verified ? <Badge tone="brand"><BadgeCheck className="h-3 w-3" />{t('common.verified')}</Badge> : null}
-            <Badge>{p.dosage_form || '—'}</Badge>
-          </div>
-          <div className="flex gap-1.5">
-            <button onClick={onShare} className="icon-btn h-9 w-9 border border-ink-200 dark:border-ink-700"><Share2 className="h-4 w-4" /></button>
-            {user?.role === 'admin' && (
-              <Link to={`/admin?tab=products&edit=${p.id}`} className="icon-btn h-9 w-9 border border-ink-200 dark:border-ink-700"><Pencil className="h-4 w-4" /></Link>
+      <div className="card overflow-hidden p-0">
+        <div className="relative">
+          <div className="photo-plate relative flex h-[268px] items-center justify-center overflow-hidden p-4 sm:h-[320px]">
+            <img src={shown} alt={p.trade_name} className="h-full w-full object-contain drop-shadow-[0_22px_36px_rgba(8,35,86,.28)]" />
+
+            <div className="absolute start-3 top-3 flex flex-col items-start gap-1.5">
+              {p.verified ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-ink-950/85 px-2 py-1 text-[9px] font-bold text-brand-200 shadow-sm backdrop-blur">
+                  <BadgeCheck className="h-3 w-3" />{t('common.verified')}
+                </span>
+              ) : null}
+              <span className="rounded-full bg-ink-950/75 px-2 py-1 text-[9px] font-bold text-white backdrop-blur">{p.dosage_form || '—'}</span>
+            </div>
+
+            <div className="absolute end-3 top-3 flex gap-1.5">
+              <button onClick={onShare} className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-950/70 text-white backdrop-blur transition hover:bg-ink-950/90"><Share2 className="h-4 w-4" /></button>
+              {user?.role === 'admin' && (
+                <Link to={`/admin?tab=products&edit=${p.id}`} className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-950/70 text-white backdrop-blur transition hover:bg-ink-950/90"><Pencil className="h-4 w-4" /></Link>
+              )}
+            </div>
+
+            {gallery.length > 1 && (
+              <div className="no-scrollbar absolute inset-x-0 bottom-2 flex justify-center gap-1.5 overflow-x-auto px-3">
+                {gallery.map((g, i) => (
+                  <button key={g + i} onClick={() => setActive(i)}
+                    className={cx('h-11 w-11 shrink-0 overflow-hidden rounded-xl border bg-white p-0.5 transition',
+                      active === i ? 'border-brand-400 ring-2 ring-brand-400/40' : 'border-white/60 opacity-80 hover:opacity-100')}>
+                    <img src={g} alt="" className="h-full w-full object-contain" />
+                  </button>
+                ))}
+              </div>
             )}
           </div>
-        </div>
 
-        <div className="mx-auto mt-2 flex h-[240px] w-full max-w-[300px] items-center justify-center rounded-2xl bg-gradient-to-br from-ink-50 to-brand-50/40 p-2 dark:from-ink-800 dark:to-ink-900">
-          <img src={shown} alt={p.trade_name} className="h-full w-full object-contain" />
-        </div>
-        {gallery.length > 1 && (
-          <div className="mt-2 flex justify-center gap-1.5 overflow-x-auto no-scrollbar">
-            {gallery.map((g, i) => (
-              <button key={g + i} onClick={() => setActive(i)} className={cx('h-12 w-12 shrink-0 overflow-hidden rounded-lg border bg-ink-50 p-0.5 dark:bg-ink-800', active === i ? 'border-brand-500 ring-2 ring-brand-500/20' : 'border-ink-200 dark:border-ink-700')}>
-                <img src={g} alt="" className="h-full w-full object-contain" />
-              </button>
-            ))}
+          <div className="px-4 pb-4 pt-3 text-center">
+            <h1 className="text-[21px] font-black leading-tight text-white">{name}</h1>
+            <p className="mt-0.5 text-[11px] text-ink-400" dir="auto">{arabic ? p.trade_name : p.trade_name_ar}</p>
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
+              {p.strength && <span className="chip">{p.strength}</span>}
+              {p.dosage_form && <span className="chip">{p.dosage_form}</span>}
+              {p.price ? <span className="rounded-full border border-brand-400/30 bg-brand-500/15 px-3 py-1 text-[11px] font-extrabold text-brand-200 num">{fmt(p.price)} {p.currency || 'YER'}</span> : null}
+            </div>
+            {p.drug_id && (
+              <Link to={`/drugs/${p.drug_id}`} className="mt-2.5 inline-flex items-center gap-1 rounded-full border border-brand-400/25 bg-brand-500/15 px-3 py-1 text-[11px] font-bold text-brand-200 transition hover:bg-brand-500/25">
+                <Pill className="h-3 w-3" />{arabic ? p.generic_ar || p.generic_name : p.generic_name}
+                <ChevronLeft className="h-3 w-3 rtl:block ltr:hidden" />
+                <ChevronRight className="hidden h-3 w-3 ltr:block" />
+              </Link>
+            )}
+            <p className="mt-2 text-[9px] text-ink-500">{t('product.noPhotoNote')}</p>
           </div>
-        )}
-        <p className="mt-1.5 text-center text-[9px] text-ink-400">{t('product.noPhotoNote')}</p>
-
-        <div className="mt-3 text-center">
-          <h1 className="text-[20px] font-extrabold leading-tight text-ink-900 dark:text-white">{name}</h1>
-          <p className="text-[11.5px] text-ink-400" dir="auto">{arabic ? p.trade_name : p.trade_name_ar}</p>
-          <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
-            {p.strength && <span className="chip">{p.strength}</span>}
-            {p.dosage_form && <span className="chip">{p.dosage_form}</span>}
-            {p.price ? <span className="chip border-brand-200 text-brand-800 dark:border-brand-800 dark:text-brand-300">{fmt(p.price)} {p.currency || 'YER'}</span> : null}
-          </div>
-          {p.drug_id && (
-            <Link to={`/drugs/${p.drug_id}`} className="mt-2 inline-flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-[11px] font-bold text-brand-800 dark:bg-brand-900/40 dark:text-brand-200">
-              <Pill className="h-3 w-3" />{arabic ? p.generic_ar || p.generic_name : p.generic_name}
-              <ChevronLeft className="h-3 w-3 rtl:block ltr:hidden" />
-              <ChevronRight className="hidden h-3 w-3 ltr:block" />
-            </Link>
-          )}
         </div>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="card p-4">
           <div className="mb-2 flex items-center gap-2 text-[11px] font-bold text-ink-500"><Building2 className="h-3.5 w-3.5" />{t('product.manufacturer')}</div>
-          <div className="text-[13px] font-bold text-ink-900 dark:text-white">{p.manufacturer_name || t('common.notAvailable')}</div>
+          <div className="text-[13px] font-bold text-white">{p.manufacturer_name || t('common.notAvailable')}</div>
           <div className="mt-0.5 flex items-center gap-1 text-[11px] text-ink-500"><MapPin className="h-3 w-3" />{p.manufacturer_country || p.country || '—'}</div>
         </div>
         <div className="card p-4">
           <div className="mb-2 flex items-center gap-2 text-[11px] font-bold text-ink-500"><Truck className="h-3.5 w-3.5" />{t('product.agent')}</div>
           {p.agent_name ? (
             <>
-              <div className="text-[13px] font-bold text-ink-900 dark:text-white">{p.agent_name}</div>
+              <div className="text-[13px] font-bold text-white">{p.agent_name}</div>
               <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-ink-500">
                 {p.agent_city && <span className="inline-flex items-center gap-0.5"><MapPin className="h-3 w-3" />{p.agent_city}</span>}
-                {p.agent_phone && <a href={`tel:${p.agent_phone}`} className="inline-flex items-center gap-0.5 text-brand-700"><Phone className="h-3 w-3" />{p.agent_phone}</a>}
+                {p.agent_phone && <a href={`tel:${p.agent_phone}`} className="inline-flex items-center gap-0.5 text-brand-300"><Phone className="h-3 w-3" />{p.agent_phone}</a>}
               </div>
             </>
           ) : (
@@ -133,7 +141,7 @@ export default function ProductDetail() {
           {rows.map((r) => (
             <div key={r.label} className="flex items-center justify-between gap-2 py-2.5">
               <span className="inline-flex items-center gap-1.5 text-[11px] text-ink-500"><r.icon className="h-3.5 w-3.5" />{r.label}</span>
-              <span className="text-[12px] font-semibold text-ink-800 dark:text-ink-200" dir="auto">{r.value}</span>
+              <span className="text-[12px] font-semibold text-ink-200" dir="auto">{r.value}</span>
             </div>
           ))}
         </div>
@@ -141,7 +149,7 @@ export default function ProductDetail() {
 
       {p.barcode && (
         <div className="space-y-1">
-          <button onClick={async () => { await copyText(p.barcode); push(t('common.copied')); }} className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-ink-300 py-2.5 text-[11px] font-semibold text-ink-500 dark:border-ink-700">
+          <button onClick={async () => { await copyText(p.barcode); push(t('common.copied')); }} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-white/15 py-2.5 text-[11px] font-semibold text-ink-300">
             <Copy className="h-3.5 w-3.5" /> <span dir="ltr">{p.barcode}</span>
           </button>
           {p.barcode_source === 'internal-ean13' && (
@@ -150,7 +158,7 @@ export default function ProductDetail() {
             </p>
           )}
           {p.barcode_verified === 1 && (
-            <p className="text-center text-[9.5px] font-semibold leading-4 text-emerald-600">{arabic ? 'باركود موثّق من العلبة' : 'Barcode verified from the pack'}</p>
+            <p className="text-center text-[9.5px] font-semibold leading-4 text-emerald-400">{arabic ? 'باركود موثّق من العلبة' : 'Barcode verified from the pack'}</p>
           )}
         </div>
       )}
@@ -166,7 +174,7 @@ export default function ProductDetail() {
 
       {p.indications_ar && (
         <div className="card p-4">
-          <div className="mb-1.5 flex items-center gap-2 text-brand-700 dark:text-brand-300"><ShieldCheck className="h-4 w-4" /><span className="text-[12.5px] font-extrabold">{t('drug.indications')}</span></div>
+          <div className="mb-1.5 flex items-center gap-2 text-brand-300"><ShieldCheck className="h-4 w-4" /><span className="text-[12.5px] font-extrabold">{t('drug.indications')}</span></div>
           <p className="prose-ar">{arabic ? p.indications_ar : p.indications_en}</p>
           {p.dosage_adult && <p className="mt-2 text-[11px] text-ink-500"><b>{t('drug.adult')}:</b> {p.dosage_adult}</p>}
         </div>
@@ -176,7 +184,7 @@ export default function ProductDetail() {
         <div>
           <div className="mb-2 flex items-center justify-between">
             <h2 className="section-title">{t('product.alternatives')}</h2>
-            <Link to={`/drugs/${p.drug_id}`} className="text-[11px] font-bold text-brand-700 dark:text-brand-300">{t('common.viewAll')}</Link>
+            <Link to={`/drugs/${p.drug_id}`} className="text-[11px] font-bold text-brand-300">{t('common.viewAll')}</Link>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             {p.alternatives.map((a: ProductRecord) => <ProductCard key={a.id} product={a} horizontal />)}
@@ -184,7 +192,7 @@ export default function ProductDetail() {
         </div>
       )}
 
-      <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-[10.5px] leading-5 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+      <div className="flex items-start gap-2 rounded-2xl border p-3.5 text-[10.5px] leading-5 border-amber-400/25 bg-amber-500/10 text-amber-200">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
         <span>{config.disclaimer_ar}</span>
       </div>

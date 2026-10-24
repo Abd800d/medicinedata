@@ -6,35 +6,66 @@ import { assetUrl } from '../lib/api';
 import { useI18n } from '../lib/i18n';
 
 /* ---------------- Logo ---------------- */
+/** MDA mark: capsule + ECG pulse on a midnight-blue badge (matches the app icon). */
 export function MDAIcon({ size = 36, className = '' }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" className={className} aria-hidden="true">
       <defs>
-        <linearGradient id="mdaGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#0f766e" />
-          <stop offset=".55" stopColor="#0d9488" />
-          <stop offset="1" stopColor="#0e7490" />
+        <linearGradient id="mdaBadge" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#0b2f7a" />
+          <stop offset=".55" stopColor="#1262e0" />
+          <stop offset="1" stopColor="#12a7d8" />
+        </linearGradient>
+        <linearGradient id="mdaCap" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="1" stopColor="#d7ecff" />
         </linearGradient>
       </defs>
-      <rect width="64" height="64" rx="18" fill="url(#mdaGrad)" />
-      <path d="M32 14v36M14 32h36" stroke="white" strokeOpacity=".22" strokeWidth="7" strokeLinecap="round" />
-      <path d="M24 32h16M32 24v16" stroke="white" strokeWidth="5.4" strokeLinecap="round" />
-      <path d="M44.5 36.5c3.4-3.7 8.5.4 5.6 4.2-1.6 2.1-3.9 3.5-5.6 5.3-1.7-1.8-4-3.2-5.6-5.3-2.9-3.8 2.2-7.9 5.6-4.2z" fill="white" fillOpacity=".92" />
+      <rect width="64" height="64" rx="18" fill="url(#mdaBadge)" />
+      <circle cx="52" cy="10" r="20" fill="#67e8f9" opacity=".18" />
+      <circle cx="8" cy="58" r="18" fill="#1b6dff" opacity=".35" />
+      <g transform="rotate(-38 32 32)">
+        <rect x="7" y="25.5" width="50" height="13" rx="6.5" fill="url(#mdaCap)" />
+        <path d="M13 32h8.6l3.2-6.2 4.6 12.4 3.2-6.2H51"
+          fill="none" stroke="#0a4fc0" strokeWidth="2.9" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+      <rect x="0.6" y="0.6" width="62.8" height="62.8" rx="17.6" fill="none" stroke="#ffffff" strokeOpacity=".16" />
     </svg>
   );
 }
 
-export function Logo({ compact = false, className = '' }: { compact?: boolean; className?: string }) {
+export function Logo({ compact = false, className = '', light = false }: { compact?: boolean; className?: string; light?: boolean }) {
   return (
     <div className={cx('flex items-center gap-2.5', className)}>
-      <MDAIcon size={compact ? 32 : 38} />
-      <div className="leading-tight">
+      <span className="relative shrink-0">
+        <span className="absolute inset-0 rounded-[18px] bg-brand-500/40 blur-lg" aria-hidden="true" />
+        <MDAIcon size={compact ? 34 : 40} className="relative drop-shadow-[0_6px_14px_rgba(17,133,255,.5)]" />
+      </span>
+      <div className="leading-none">
         <div className="flex items-baseline gap-1.5">
-          <span className="text-[19px] font-extrabold tracking-tight text-ink-900 dark:text-white">MDA</span>
-          {!compact && <span className="hidden text-[11px] font-semibold text-brand-700 dark:text-brand-300 xs:inline sm:inline">MedicineData</span>}
+          <span className={cx('text-[20px] font-black tracking-[-.02em]', light ? 'text-white' : 'text-white')}>MDA</span>
+          {!compact && <span className="text-[10.5px] font-bold tracking-wide text-brand-300">MedicineData</span>}
         </div>
-        {!compact && <div className="text-[9.5px] font-medium tracking-wide text-ink-400">ميديسين داتا · PHARMA</div>}
+        {!compact && <div className="mt-1 text-[9px] font-semibold tracking-[.12em] text-ink-400">ميديسين داتا · PHARMA</div>}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Splash-style wordmark used on auth / empty brand surfaces.
+ */
+export function BrandHero({ className = '' }: { className?: string }) {
+  return (
+    <div className={cx('flex flex-col items-center text-center', className)}>
+      <span className="relative mb-4 flex h-24 w-24 items-center justify-center">
+        <span className="absolute inset-0 animate-ping-slow rounded-[30px] bg-brand-500/30" />
+        <span className="absolute inset-2 rounded-[28px] bg-brand-500/25 blur-xl" />
+        <MDAIcon size={84} className="relative drop-shadow-[0_14px_30px_rgba(17,133,255,.55)]" />
+      </span>
+      <div className="text-[30px] font-black leading-none tracking-[-.03em] text-white">MDA</div>
+      <div className="mt-1 text-[12.5px] font-bold text-brand-300">MedicineData</div>
+      <div className="mt-1 text-[10.5px] font-semibold text-ink-400">جميع الأدوية في مكان واحد</div>
     </div>
   );
 }
@@ -56,12 +87,12 @@ export function PageLoader({ label }: { label?: string }) {
 
 export function EmptyState({ icon, title, text, action }: { icon?: React.ReactNode; title: string; text?: string; action?: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-ink-200 bg-white/70 px-6 py-12 text-center dark:border-ink-800 dark:bg-ink-900/40">
-      <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-ink-100 text-ink-400 dark:bg-ink-800">
+    <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-white/10 bg-white/[.025] px-6 py-12 text-center">
+      <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[.05] text-brand-300">
         {icon || <SearchX className="h-6 w-6" />}
       </div>
-      <div className="text-[15px] font-bold text-ink-800 dark:text-ink-100">{title}</div>
-      {text && <p className="mt-1 max-w-xs text-[13px] leading-6 text-ink-500">{text}</p>}
+      <div className="text-[15px] font-bold text-white">{title}</div>
+      {text && <p className="mt-1 max-w-xs text-[13px] leading-6 text-ink-400">{text}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
@@ -82,13 +113,13 @@ export function ErrorState({ message, onRetry }: { message?: string; onRetry?: (
 /* ---------------- Badges ---------------- */
 export function Badge({ children, tone = 'neutral', className = '' }: { children: React.ReactNode; tone?: 'neutral' | 'brand' | 'rose' | 'amber' | 'sky' | 'emerald' | 'violet'; className?: string }) {
   const tones: Record<string, string> = {
-    neutral: 'bg-ink-100 text-ink-600 dark:bg-ink-800 dark:text-ink-300',
-    brand: 'bg-brand-50 text-brand-700 dark:bg-brand-900/50 dark:text-brand-200',
-    rose: 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300',
-    amber: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
-    sky: 'bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300',
-    emerald: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300',
-    violet: 'bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300',
+    neutral: 'bg-white/[.07] text-ink-300 ring-1 ring-white/10',
+    brand: 'bg-brand-500/15 text-brand-200 ring-1 ring-brand-400/25',
+    rose: 'bg-rose-500/15 text-rose-300 ring-1 ring-rose-400/25',
+    amber: 'bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/25',
+    sky: 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-400/25',
+    emerald: 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/25',
+    violet: 'bg-violet-500/15 text-violet-300 ring-1 ring-violet-400/25',
   };
   return <span className={cx('pill-badge', tones[tone], className)}>{children}</span>;
 }
@@ -98,8 +129,8 @@ export function SectionHead({ title, subtitle, action }: { title: string; subtit
   return (
     <div className="mb-3 flex items-end justify-between gap-3">
       <div>
-        <h2 className="text-[16px] font-extrabold tracking-tight text-ink-900 dark:text-white">{title}</h2>
-        {subtitle && <p className="mt-0.5 text-[11.5px] text-ink-500">{subtitle}</p>}
+        <h2 className="text-[16px] font-extrabold tracking-tight text-white">{title}</h2>
+        {subtitle && <p className="mt-0.5 text-[11.5px] text-ink-400">{subtitle}</p>}
       </div>
       {action}
     </div>
@@ -191,14 +222,14 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
 /* ---------------- Tabs ---------------- */
 export function Tabs<T extends string>({ tabs, value, onChange, className = '' }: { tabs: { id: T; label: string; icon?: React.ReactNode }[]; value: T; onChange: (v: T) => void; className?: string }) {
   return (
-    <div className={cx('no-scrollbar flex gap-1.5 overflow-x-auto rounded-2xl bg-ink-100/80 p-1 dark:bg-ink-900', className)}>
+    <div className={cx('no-scrollbar flex gap-1.5 overflow-x-auto rounded-2xl border border-white/[.06] bg-ink-900/70 p-1', className)}>
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onChange(tab.id)}
           className={cx(
             'flex flex-1 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-[12.5px] font-semibold transition',
-            value === tab.id ? 'bg-white text-brand-800 shadow-sm dark:bg-ink-800 dark:text-brand-200' : 'text-ink-500 hover:text-ink-700 dark:hover:text-ink-300',
+            value === tab.id ? 'bg-brand-grad text-white shadow-float' : 'text-ink-400 hover:text-white',
           )}
         >
           {tab.icon}{tab.label}
@@ -226,10 +257,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       <div className="pointer-events-none fixed inset-x-0 top-3 z-[100] flex flex-col items-center gap-2 px-4">
         {items.map((i) => (
           <div key={i.id} className={cx(
-            'pointer-events-auto flex w-full max-w-sm items-center gap-2.5 rounded-2xl border px-3.5 py-3 text-[13px] font-semibold shadow-lg animate-fade-up',
-            i.type === 'success' && 'border-emerald-200 bg-white text-emerald-800 dark:border-emerald-900 dark:bg-ink-900 dark:text-emerald-300',
-            i.type === 'error' && 'border-rose-200 bg-white text-rose-700 dark:border-rose-900 dark:bg-ink-900 dark:text-rose-300',
-            i.type === 'info' && 'border-sky-200 bg-white text-sky-800 dark:border-sky-900 dark:bg-ink-900 dark:text-sky-300',
+            'pointer-events-auto flex w-full max-w-sm items-center gap-2.5 rounded-2xl border px-3.5 py-3 text-[13px] font-semibold shadow-glow backdrop-blur-xl animate-fade-up',
+            i.type === 'success' && 'border-emerald-400/25 bg-ink-900/95 text-emerald-300',
+            i.type === 'error' && 'border-rose-400/25 bg-ink-900/95 text-rose-300',
+            i.type === 'info' && 'border-brand-400/25 bg-ink-900/95 text-brand-200',
           )}>
             {i.type === 'success' ? <CheckCircle2 className="h-4.5 w-4.5 shrink-0" /> : i.type === 'error' ? <AlertCircle className="h-4.5 w-4.5 shrink-0" /> : <Info className="h-4.5 w-4.5 shrink-0" />}
             <span className="flex-1 leading-5">{i.message}</span>
@@ -251,7 +282,7 @@ export function Avatar({ name, src, size = 36 }: { name?: string; src?: string |
   const text = (name || '?').split(' ').filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
   if (src) return <img src={src} alt={name || ''} className="rounded-full object-cover" style={{ width: size, height: size }} />;
   return (
-    <div className="flex items-center justify-center rounded-full bg-gradient-to-br from-brand-600 to-cyan-600 font-bold text-white" style={{ width: size, height: size, fontSize: size * 0.36 }}>
+    <div className="flex items-center justify-center rounded-full bg-brand-grad font-bold text-white ring-2 ring-white/10" style={{ width: size, height: size, fontSize: size * 0.36 }}>
       {text}
     </div>
   );

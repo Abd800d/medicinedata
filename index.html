@@ -1,9 +1,10 @@
 <!doctype html>
-<html lang="ar" dir="rtl" class="scroll-smooth">
+<html lang="ar" dir="rtl" class="dark scroll-smooth">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5" />
-    <meta name="theme-color" content="#0f766e" />
+    <meta name="theme-color" content="#050c1a" />
+    <meta name="color-scheme" content="dark light" />
     <meta name="description" content="MDA — MedicineData | المرجع الدوائي الشامل: الأدوية، المنتجات التجارية، الوكلاء في اليمن، الوصفات والتحليل بالذكاء الاصطناعي." />
     <meta name="author" content="Dr. Abdulmajeed Abdullah Almakhedhi" />
     <meta property="og:title" content="MDA — MedicineData" />
@@ -13,20 +14,77 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="MDA" />
     <title>MDA — MedicineData | ميديسين داتا</title>
     <style>
-      html { background: #f8fafc; }
-      html.dark { background: #020617; }
-      #boot { position: fixed; inset: 0; display: grid; place-items: center; background: #f8fafc; z-index: 9999; }
-      html.dark #boot { background: #020617; }
-      #boot .ring { width: 54px; height: 54px; border-radius: 999px; border: 4px solid #ccfbf1; border-top-color: #0d9488; animation: spin 0.9s linear infinite; }
-      #boot .word { position: absolute; bottom: 40%; font-family: Inter, system-ui, sans-serif; font-weight: 800; letter-spacing: 6px; color: #0f766e; font-size: 15px; }
-      @keyframes spin { to { transform: rotate(360deg); } }
+      :root { color-scheme: dark; }
+      html { background: #050c1a; }
+      /* ---- Launch splash (mirrors the app's first screen) ---- */
+      #boot {
+        position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center;
+        background:
+          radial-gradient(120% 80% at 90% 0%, rgba(34,211,238,.28) 0%, transparent 55%),
+          radial-gradient(90% 70% at 0% 100%, rgba(27,109,255,.45) 0%, transparent 60%),
+          linear-gradient(160deg, #08152c 0%, #050c1a 55%, #04080f 100%);
+        transition: opacity .45s ease;
+      }
+      #boot .wrap { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 24px; }
+      #boot .mark { position: relative; width: 104px; height: 104px; display: grid; place-items: center; margin-bottom: 22px; }
+      #boot .mark::before {
+        content: ''; position: absolute; inset: -10px; border-radius: 34px;
+        background: radial-gradient(circle, rgba(27,109,255,.55), transparent 70%);
+        filter: blur(14px); animation: pulse 2.6s ease-in-out infinite;
+      }
+      #boot .mark svg { position: relative; filter: drop-shadow(0 18px 34px rgba(17,133,255,.55)); }
+      #boot .brand { font: 900 40px/1 'Inter', system-ui, sans-serif; letter-spacing: -.03em; color: #fff; }
+      #boot .brand span { background: linear-gradient(135deg,#7cc4ff,#67e8f9); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      #boot .sub { margin-top: 8px; font: 700 13px/1.4 'Inter', system-ui, sans-serif; color: #7cc4ff; }
+      #boot .tag { margin-top: 6px; font-family: 'IBM Plex Sans Arabic', 'Segoe UI', system-ui, sans-serif; font-size: 12px; font-weight: 500; color: #7290bd; }
+      #boot .bar { margin-top: 30px; width: 148px; height: 4px; border-radius: 99px; overflow: hidden; background: rgba(255,255,255,.10); }
+      #boot .bar i {
+        display: block; height: 100%; width: 45%; border-radius: 99px;
+        background: linear-gradient(90deg, #1b6dff, #22d3ee);
+        animation: slide 1.15s cubic-bezier(.4,0,.6,1) infinite;
+      }
+      #boot .foot { position: absolute; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); font: 600 9.5px/1 'Inter', system-ui, sans-serif; letter-spacing: .22em; color: rgba(148,183,235,.55); }
+      @keyframes slide { 0% { transform: translateX(-130%); } 100% { transform: translateX(320%); } }
+      @keyframes pulse { 0%,100% { opacity: .75; transform: scale(1); } 50% { opacity: 1; transform: scale(1.06); } }
     </style>
+    <script>
+      /* MDA is a single-theme (midnight navy) product — pin it before first paint. */
+      document.documentElement.classList.add('dark');
+    </script>
   </head>
   <body class="font-ar antialiased">
-    <div id="boot"><div class="ring"></div><div class="word">MDA</div></div>
+    <div id="boot" role="status" aria-label="MDA">
+      <div class="wrap">
+        <div class="mark">
+          <svg width="104" height="104" viewBox="0 0 64 64" aria-hidden="true">
+            <defs>
+              <linearGradient id="bootBadge" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#0b2f7a" /><stop offset=".55" stop-color="#1262e0" /><stop offset="1" stop-color="#12a7d8" />
+              </linearGradient>
+              <linearGradient id="bootCap" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#ffffff" /><stop offset="1" stop-color="#d7ecff" />
+              </linearGradient>
+            </defs>
+            <rect width="64" height="64" rx="18" fill="url(#bootBadge)" />
+            <circle cx="52" cy="10" r="20" fill="#67e8f9" opacity=".18" />
+            <g transform="rotate(-38 32 32)">
+              <rect x="7" y="25.5" width="50" height="13" rx="6.5" fill="url(#bootCap)" />
+              <path d="M13 32h8.6l3.2-6.2 4.6 12.4 3.2-6.2H51" fill="none" stroke="#0a4fc0" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round" />
+            </g>
+            <rect x="0.6" y="0.6" width="62.8" height="62.8" rx="17.6" fill="none" stroke="#fff" stroke-opacity=".16" />
+          </svg>
+        </div>
+        <div class="brand">MDA<span> · MedicineData</span></div>
+        <div class="sub">ميديسين داتا</div>
+        <div class="tag">جميع الأدوية في مكان واحد · Your smart medical assistant</div>
+        <div class="bar"><i></i></div>
+      </div>
+      <div class="foot">DR. ABDULMAJEED ABDULLAH ALMAKHEDHI</div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

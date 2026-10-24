@@ -74,7 +74,7 @@ export default function ScanPage() {
 
   return (
     <div className="space-y-4">
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-cyan-700 via-sky-700 to-blue-900 p-5 text-white">
+      <div className="relative overflow-hidden rounded-3xl page-hero p-5 text-white">
         <div className="absolute -end-8 top-4 h-36 w-36 rounded-full border-[18px] border-white/10" />
         <div className="flex items-center gap-2"><ScanLine className="h-5 w-5" /><h1 className="text-[21px] font-extrabold">{lang === 'ar' ? 'صوّر الدواء واعرفه' : 'Identify a medicine by photo'}</h1></div>
         <p className="mt-1 max-w-md text-[11.5px] leading-6 text-white/80">
@@ -83,12 +83,12 @@ export default function ScanPage() {
       </div>
 
       <div className="card space-y-3 p-4">
-        <div className="flex items-center gap-2"><ScanLine className="h-4 w-4 text-emerald-700" /><h2 className="text-[12.5px] font-extrabold">{lang === 'ar' ? 'البحث بالباركود' : 'Search by barcode'}</h2></div>
+        <div className="flex items-center gap-2"><ScanLine className="h-4 w-4 text-emerald-300" /><h2 className="text-[12.5px] font-extrabold">{lang === 'ar' ? 'البحث بالباركود' : 'Search by barcode'}</h2></div>
         <BarcodeScanner onDetect={lookupBarcode} busy={codeBusy} />
         {codeMiss && (
-          <div className="flex flex-wrap items-center gap-2 rounded-xl bg-ink-50 px-3 py-2 text-[10.5px] text-ink-600 dark:bg-ink-800/60 dark:text-ink-300">
+          <div className="flex flex-wrap items-center gap-2 rounded-xl px-3 py-2 text-[10.5px] bg-white/[.055] text-ink-300">
             <span>{lang === 'ar' ? 'غير موجود في القاعدة:' : 'Not in the catalogue:'} <b dir="ltr">{codeMiss}</b></span>
-            <Link to={`/search?q=${encodeURIComponent(codeMiss)}`} className="font-bold text-brand-700 underline dark:text-brand-400">{lang === 'ar' ? 'ابحث بالرقم' : 'Search this code'}</Link>
+            <Link to={`/search?q=${encodeURIComponent(codeMiss)}`} className="font-bold underline text-brand-400">{lang === 'ar' ? 'ابحث بالرقم' : 'Search this code'}</Link>
           </div>
         )}
       </div>
@@ -98,12 +98,12 @@ export default function ScanPage() {
         <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
 
         {!preview ? (
-          <div className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-sky-200 bg-sky-50/40 px-4 py-9 text-center dark:border-sky-900 dark:bg-sky-950/20">
+          <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-sky-400/30 bg-sky-500/[.06] px-4 py-9 text-center">
             <div className="relative mb-3 flex h-20 w-20 items-center justify-center">
-              <span className="absolute inset-0 animate-pulse-soft rounded-full bg-sky-200/60 dark:bg-sky-900/60" />
-              <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-600 text-white"><Camera className="h-7 w-7" /></span>
+              <span className="absolute inset-0 animate-pulse-soft rounded-full bg-sky-400/20" />
+              <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-grad text-white shadow-glow"><Camera className="h-7 w-7" /></span>
             </div>
-            <div className="text-[13px] font-bold text-ink-800 dark:text-ink-100">{lang === 'ar' ? 'صوّر علبة الدواء' : 'Photograph the medicine pack'}</div>
+            <div className="text-[13px] font-bold text-ink-100">{lang === 'ar' ? 'صوّر علبة الدواء' : 'Photograph the medicine pack'}</div>
             <p className="mt-1 max-w-xs text-[10.5px] leading-5 text-ink-500">{lang === 'ar' ? 'ضع الاسم التجاري في منتصف الإطار مع إضاءة جيدة.' : 'Centre the brand name with good lighting.'}</p>
             <div className="mt-3 flex gap-2">
               <button onClick={() => cameraRef.current?.click()} className="btn-primary"><Camera className="h-4 w-4" />{t('rx.camera')}</button>
@@ -130,7 +130,7 @@ export default function ScanPage() {
       </div>
 
       {result && !result.configured && (
-        <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-[11px] leading-6 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+        <div className="flex items-start gap-2 rounded-2xl border p-3.5 text-[11px] leading-6 border-amber-400/25 bg-amber-500/10 text-amber-200">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             {lang === 'ar' ? 'للتعرف التلقائي على الصور أضف مفتاح AI على الخادم (AI_API_KEY). يمكنك دائمًا البحث عبر Google Lens أو البحث بالاسم.' : 'Add AI_API_KEY on the server for automatic recognition. You can still use Google Lens or search by name.'}
@@ -144,13 +144,13 @@ export default function ScanPage() {
             <h2 className="section-title">{lang === 'ar' ? 'منتجات مطابقة' : 'Matching products'}</h2>
             {result.confidence != null && <Badge tone="sky">{Math.round(result.confidence * 100)}%</Badge>}
           </div>
-          {detectedName && <p className="mb-2 text-[11px] text-ink-500">{lang === 'ar' ? 'تم التعرف على' : 'Detected'}: <b className="text-ink-800 dark:text-ink-200">{detectedName}</b></p>}
+          {detectedName && <p className="mb-2 text-[11px] text-ink-500">{lang === 'ar' ? 'تم التعرف على' : 'Detected'}: <b className="text-ink-200">{detectedName}</b></p>}
           <ProductGrid products={result.matches as ProductRecord[]} />
         </section>
       )}
 
       <div className="card space-y-3 p-4">
-        <div className="flex items-center gap-2"><Search className="h-4 w-4 text-brand-700" /><h2 className="text-[12.5px] font-extrabold">{lang === 'ar' ? 'لم تظهر النتيجة؟ ابحث بالاسم أو Google' : 'No match? Search by name or Google'}</h2></div>
+        <div className="flex items-center gap-2"><Search className="h-4 w-4 text-brand-300" /><h2 className="text-[12.5px] font-extrabold">{lang === 'ar' ? 'لم تظهر النتيجة؟ ابحث بالاسم أو Google' : 'No match? Search by name or Google'}</h2></div>
         <div className="flex gap-2">
           <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder={lang === 'ar' ? 'اكتب الاسم الظاهر على العلبة…' : 'Type the name on the pack…'} className="input flex-1" />
           <button onClick={() => navigate(`/search?q=${encodeURIComponent(manual)}`)} disabled={!manual.trim()} className="btn-primary shrink-0">{t('common.search')}</button>

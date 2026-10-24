@@ -56,7 +56,7 @@ export default function Pharmacy() {
   if (!user) {
     return (
       <div className="mx-auto max-w-md space-y-3">
-        <div className="rounded-3xl bg-gradient-to-br from-ink-800 via-slate-800 to-ink-900 p-6 text-center text-white">
+        <div className="page-hero page-hero-emerald p-6 text-center text-white">
           <ShoppingCart className="mx-auto mb-2 h-8 w-8" />
           <h1 className="text-[19px] font-extrabold">{t('pharmacy.title')}</h1>
           <p className="mt-1 text-[11px] leading-6 text-white/70">{t('pharmacy.subtitle')}</p>
@@ -107,10 +107,10 @@ export default function Pharmacy() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-3xl bg-gradient-to-br from-ink-800 via-slate-800 to-ink-900 p-5 text-white">
+      <div className="page-hero p-5 text-white">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2"><ShoppingCart className="h-5 w-5" /><h1 className="text-[21px] font-extrabold">{t('pharmacy.title')}</h1></div>
-          <button onClick={() => setForm({ ...emptyForm })} className="inline-flex items-center gap-1 rounded-xl bg-white/15 px-2.5 py-1.5 text-[11px] font-bold backdrop-blur"><Plus className="h-3.5 w-3.5" />{t('pharmacy.add')}</button>
+          <button onClick={() => setForm({ ...emptyForm })} className="inline-flex items-center gap-1 rounded-xl border border-white/25 bg-white/15 px-2.5 py-1.5 text-[11px] font-bold backdrop-blur transition hover:bg-white/25"><Plus className="h-3.5 w-3.5" />{t('pharmacy.add')}</button>
         </div>
         <p className="mt-1 max-w-lg text-[11.5px] leading-6 text-white/75">{t('pharmacy.subtitle')}</p>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -120,7 +120,7 @@ export default function Pharmacy() {
             { label: t('pharmacy.lowStock'), value: num(summary?.low_stock || 0), icon: AlertTriangle },
             { label: t('pharmacy.expiring'), value: num(summary?.expiring_soon || 0), icon: CalendarClock },
           ].map((c) => (
-            <div key={c.label} className="rounded-xl bg-white/10 px-2.5 py-2 backdrop-blur">
+            <div key={c.label} className="rounded-xl border border-white/15 bg-white/[.12] px-2.5 py-2 shadow-[0_12px_26px_-18px_rgba(0,0,0,.95)] backdrop-blur">
               <c.icon className="mb-1 h-3.5 w-3.5 opacity-70" />
               <div className="text-[15px] font-extrabold leading-none">{c.value}</div>
               <div className="mt-0.5 text-[8.5px] font-medium text-white/60">{c.label}</div>
@@ -130,13 +130,13 @@ export default function Pharmacy() {
       </div>
 
       {summary?.expired ? (
-        <div className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-[11px] font-semibold text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+        <div className="flex items-center gap-2 rounded-2xl border p-3 text-[11px] font-semibold border-rose-400/25 bg-rose-500/10 text-rose-200">
           <AlertTriangle className="h-4 w-4" />{t('pharmacy.expiredAlert', { n: summary.expired })}
         </div>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex min-w-[180px] flex-1 items-center gap-2 rounded-xl border border-ink-200 bg-white px-2.5 py-1.5 dark:border-ink-800 dark:bg-ink-900">
+        <div className="flex min-w-[180px] flex-1 items-center gap-2 rounded-xl border px-2.5 py-1.5 border-white/[.08] bg-ink-900">
           <Search className="h-3.5 w-3.5 text-ink-400" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('pharmacy.search')} className="min-w-0 flex-1 bg-transparent text-[12px] outline-none" />
         </div>
@@ -156,8 +156,8 @@ export default function Pharmacy() {
 
       <div className="space-y-2">
         {shown.map((i) => (
-          <div key={i.id} className={cx('card flex items-center gap-2.5 p-2.5', i.status === 'expired' && 'border-rose-200 dark:border-rose-900')}>
-            <SmartImage src={i.image_url} productId={i.product_id || undefined} alt={i.name} className="h-11 w-11 shrink-0 bg-ink-50 dark:bg-ink-800" rounded="rounded-lg" />
+          <div key={i.id} className={cx('card flex items-center gap-2.5 p-2.5', i.status === 'expired' && 'border-rose-200 border-rose-400/25')}>
+            <SmartImage src={i.image_url} productId={i.product_id || undefined} alt={i.name} className="h-11 w-11 shrink-0 bg-white/[.05]" rounded="rounded-lg" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <span className="truncate text-[12px] font-extrabold">{i.trade_name || i.name} {i.strength || ''}</span>
@@ -174,14 +174,14 @@ export default function Pharmacy() {
             </div>
             <div className="flex shrink-0 flex-col items-center">
               <div className="flex items-center gap-1">
-                <button onClick={() => adjust(i, -1)} className="flex h-6 w-6 items-center justify-center rounded-md border border-ink-200 text-ink-500 dark:border-ink-700"><Minus className="h-3 w-3" /></button>
-                <span className={cx('min-w-[28px] text-center text-[13px] font-extrabold', i.status === 'expired' && 'text-rose-600')}>{num(i.quantity)}</span>
-                <button onClick={() => adjust(i, 1)} className="flex h-6 w-6 items-center justify-center rounded-md border border-ink-200 text-ink-500 dark:border-ink-700"><Plus className="h-3 w-3" /></button>
+                <button onClick={() => adjust(i, -1)} className="flex h-6 w-6 items-center justify-center rounded-md border text-ink-500 border-white/[.09]"><Minus className="h-3 w-3" /></button>
+                <span className={cx('min-w-[28px] text-center text-[13px] font-extrabold', i.status === 'expired' && 'text-rose-300')}>{num(i.quantity)}</span>
+                <button onClick={() => adjust(i, 1)} className="flex h-6 w-6 items-center justify-center rounded-md border text-ink-500 border-white/[.09]"><Plus className="h-3 w-3" /></button>
               </div>
               <span className="text-[8.5px] text-ink-400">{i.unit || 'box'}</span>
             </div>
             <div className="flex shrink-0 flex-col gap-0.5">
-              <button onClick={() => setForm({ ...emptyForm, ...i, product_id: i.product_id || '' })} className="icon-btn h-7 w-7 text-sky-600"><Edit3 className="h-3 w-3" /></button>
+              <button onClick={() => setForm({ ...emptyForm, ...i, product_id: i.product_id || '' })} className="icon-btn h-7 w-7 text-sky-300"><Edit3 className="h-3 w-3" /></button>
               <button onClick={() => setDel(i)} className="icon-btn h-7 w-7 text-rose-500"><Trash2 className="h-3 w-3" /></button>
             </div>
           </div>
@@ -236,10 +236,10 @@ function ItemForm({ form, setForm, systems, onClose, onSave, busy }: {
           <div className="relative">
             <input value={q} onChange={(e) => setQ(e.target.value)} className="input" placeholder={t('search.placeholder')} />
             {results?.products?.length > 0 && query.length > 1 && (
-              <div className="absolute inset-x-0 top-full z-20 mt-1 max-h-52 overflow-y-auto rounded-xl border border-ink-200 bg-white p-1 shadow-lg dark:border-ink-700 dark:bg-ink-900">
+              <div className="absolute inset-x-0 top-full z-20 mt-1 max-h-52 overflow-y-auto rounded-xl border p-1 shadow-lg border-white/[.09] bg-ink-900">
                 {results.products.slice(0, 8).map((p: any) => (
-                  <button key={p.id} onClick={() => pick(p)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start hover:bg-ink-50 dark:hover:bg-ink-800">
-                    <SmartImage src={p.image_url} productId={p.id} alt={p.trade_name} className="h-8 w-8 bg-ink-100 dark:bg-ink-800" rounded="rounded-md" />
+                  <button key={p.id} onClick={() => pick(p)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-start hover:bg-white/[.06]">
+                    <SmartImage src={p.image_url} productId={p.id} alt={p.trade_name} className="h-8 w-8 bg-white/[.06]" rounded="rounded-md" />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[11px] font-bold">{p.trade_name} <span className="font-normal text-ink-400">{p.strength}</span></div>
                       <div className="truncate text-[9px] text-ink-400">{p.generic_name} · {p.manufacturer_name || '—'}</div>

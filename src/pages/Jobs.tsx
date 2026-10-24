@@ -42,14 +42,14 @@ export default function Jobs() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-3xl bg-gradient-to-br from-amber-600 via-orange-600 to-amber-800 p-5 text-white">
+      <div className="rounded-3xl page-hero page-hero-amber p-5 text-white">
         <div className="flex items-center gap-2"><Briefcase className="h-5 w-5" /><h1 className="text-[21px] font-extrabold">{t('jobs.title')}</h1></div>
         <p className="mt-1 max-w-lg text-[11.5px] leading-6 text-white/80">{t('jobs.subtitle')}</p>
       </div>
 
       <button onClick={() => user ? setOpen(true) : push(t('common.loginRequired'), 'info')} className="btn-primary w-full"><Plus className="h-4 w-4" />{t('jobs.post')}</button>
 
-      <div className="flex items-center gap-2 rounded-2xl border border-ink-200 bg-white p-1.5 dark:border-ink-800 dark:bg-ink-900">
+      <div className="flex items-center gap-2 rounded-2xl border p-1.5 border-white/[.08] bg-ink-900">
         <Search className="ms-1.5 h-4 w-4 text-ink-400" />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={lang === 'ar' ? 'ابحث في الوظائف…' : 'Search jobs…'} className="min-w-0 flex-1 bg-transparent px-1 py-1.5 text-[12.5px] outline-none" />
       </div>
@@ -64,7 +64,7 @@ export default function Jobs() {
 
       <div className="grid gap-2.5 sm:grid-cols-2">
         {(data || []).map((j) => (
-          <div key={j.id} className="card p-4">
+          <div key={j.id} className="card relative overflow-hidden p-4 transition hover:border-brand-400/40">
             <div className="mb-1.5 flex items-center justify-between">
               <Badge tone={j.type === 'seeker' ? 'sky' : 'emerald'}>
                 {j.type === 'seeker' ? <UserRound className="h-2.5 w-2.5" /> : <Building2 className="h-2.5 w-2.5" />}
@@ -72,7 +72,7 @@ export default function Jobs() {
               </Badge>
               <span className="inline-flex items-center gap-1 text-[9px] text-ink-400"><Clock className="h-2.5 w-2.5" />{timeAgo(j.created_at, lang)}</span>
             </div>
-            <h3 className="text-[13.5px] font-extrabold text-ink-900 dark:text-white">{j.title}</h3>
+            <h3 className="text-[13.5px] font-extrabold text-white">{j.title}</h3>
             {j.description && <p className="mt-1 line-clamp-3 whitespace-pre-line text-[11px] leading-5 text-ink-500">{j.description}</p>}
             <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-ink-500">
               {j.specialty && <span className="chip">{j.specialty}</span>}
@@ -80,8 +80,8 @@ export default function Jobs() {
             </div>
             <div className="mt-2 flex items-center justify-between gap-2">
               <div className="flex flex-wrap gap-2 text-[10.5px]">
-                {j.phone && <a href={`tel:${j.phone}`} className="inline-flex items-center gap-1 font-semibold text-brand-700 dark:text-brand-300"><Phone className="h-3 w-3" />{j.phone}</a>}
-                {j.email && <a href={`mailto:${j.email}`} className="inline-flex items-center gap-1 font-semibold text-brand-700 dark:text-brand-300"><Mail className="h-3 w-3" />{j.email}</a>}
+                {j.phone && <a href={`tel:${j.phone}`} className="inline-flex items-center gap-1 font-semibold text-brand-300"><Phone className="h-3 w-3" />{j.phone}</a>}
+                {j.email && <a href={`mailto:${j.email}`} className="inline-flex items-center gap-1 font-semibold text-brand-300"><Mail className="h-3 w-3" />{j.email}</a>}
               </div>
               {(j.user_id === user?.id || user?.role === 'admin') && (
                 <button onClick={() => remove(j.id)} className="text-rose-500"><Trash2 className="h-3.5 w-3.5" /></button>

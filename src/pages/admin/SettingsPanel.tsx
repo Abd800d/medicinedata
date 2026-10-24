@@ -56,7 +56,7 @@ export default function SettingsPanel() {
     <div className="space-y-3">
       <div className="card p-4">
         <div className="mb-2 flex items-center justify-between">
-          <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-brand-600" /><h2 className="text-[12.5px] font-extrabold">إعدادات الموقع</h2></div>
+          <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-brand-300" /><h2 className="text-[12.5px] font-extrabold">إعدادات الموقع</h2></div>
           <div className="flex flex-wrap gap-1.5">
             <Badge tone={data?.env?.ai ? 'emerald' : 'neutral'}>AI {data?.env?.ai ? 'ON' : 'OFF'}</Badge>
             <Badge tone={data?.env?.google_login ? 'emerald' : 'neutral'}>Google login {data?.env?.google_login ? 'ON' : 'OFF'}</Badge>
@@ -69,7 +69,7 @@ export default function SettingsPanel() {
               <Field label={f.label} hint={f.hint}>
                 {f.type === 'textarea' ? <TextArea value={form[f.key] ?? ''} onChange={(e) => set(f.key, e.target.value)} />
                   : f.type === 'bool' ? (
-                    <label className="flex h-10 items-center gap-2 rounded-xl border border-ink-200 px-3 text-[11.5px] font-semibold dark:border-ink-700">
+                    <label className="flex h-10 items-center gap-2 rounded-xl border px-3 text-[11.5px] font-semibold border-white/[.09]">
                       <input type="checkbox" checked={!!form[f.key] && form[f.key] !== '0' && form[f.key] !== 'false'} onChange={(e) => set(f.key, e.target.checked ? 1 : 0)} className="h-4 w-4 accent-brand-700" />
                       {form[f.key] ? 'مفعّل' : 'معطّل'}
                     </label>
@@ -88,18 +88,18 @@ export default function SettingsPanel() {
       </div>
 
       <div className="card p-4">
-        <div className="mb-2 flex items-center gap-2"><Wrench className="h-4 w-4 text-sky-600" /><h2 className="text-[12.5px] font-extrabold">أدوات النظام</h2></div>
+        <div className="mb-2 flex items-center gap-2"><Wrench className="h-4 w-4 text-sky-300" /><h2 className="text-[12.5px] font-extrabold">أدوات النظام</h2></div>
         <div className="grid gap-2 sm:grid-cols-2">
           <button onClick={rebuild} disabled={busy} className="btn-ghost text-[11px]"><RefreshCw className="h-3.5 w-3.5" />إعادة بناء فهرس البحث</button>
           <button onClick={async () => { try { await downloadWithAuth('/api/admin/export', `mda-export-${Date.now()}.json`); push('تم تجهيز الملف'); } catch (e: any) { push(e.message || 'خطأ', 'error'); } }} className="btn-ghost text-[11px]"><Download className="h-3.5 w-3.5" />تصدير قاعدة البيانات (JSON)</button>
         </div>
-        <div className="mt-2 rounded-xl bg-ink-50 p-2.5 text-[10px] leading-5 text-ink-500 dark:bg-ink-800/60">
+        <div className="mt-2 rounded-xl p-2.5 text-[10px] leading-5 text-ink-500 bg-white/[.055]">
           <div>Node: {data?.env?.node} · DB: {data?.env?.db_file}</div>
           <div>مفاتيح البيئة تُدار من ملف <code>.env</code> على الخادم (AI_API_KEY، GOOGLE_CLIENT_ID، GOOGLE_CSE_KEY، GOOGLE_CSE_CX…).</div>
         </div>
       </div>
 
-      <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-[10.5px] leading-5 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+      <div className="flex items-start gap-2 rounded-2xl border p-3 text-[10.5px] leading-5 border-amber-400/25 bg-amber-500/10 text-amber-200">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
         <span>تغيير اسم التطبيق أو معلومات التواصل ينعكس فورًا على الواجهة والتذييل بعد الحفظ. إيقاف التسجيل يمنع إنشاء حسابات جديدة فقط.</span>
       </div>

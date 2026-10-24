@@ -54,9 +54,9 @@ export default function Integrations() {
   return (
     <div className="space-y-3">
       <div className="card p-4">
-        <div className="flex items-center gap-2"><Plug className="h-4 w-4 text-sky-600" /><h2 className="text-[13px] font-extrabold">التكاملات والمفاتيح الاختيارية</h2></div>
+        <div className="flex items-center gap-2"><Plug className="h-4 w-4 text-sky-300" /><h2 className="text-[13px] font-extrabold">التكاملات والمفاتيح الاختيارية</h2></div>
         <p className="mt-1 text-[10.5px] leading-5 text-ink-500">
-          كل تكامل يعمل فقط عند وجود مفتاحه في ملف <code className="rounded bg-ink-100 px-1 dark:bg-ink-800">.env</code> على الخادم. بدونه يعمل التطبيق كاملًا بمساره البديل (تسجيل بالبريد، إدخال الوصفة نصيًا، رفع الصور يدويًا) دون أي رسائل خطأ.
+          كل تكامل يعمل فقط عند وجود مفتاحه في ملف <code className="rounded px-1 bg-white/[.05]">.env</code> على الخادم. بدونه يعمل التطبيق كاملًا بمساره البديل (تسجيل بالبريد، إدخال الوصفة نصيًا، رفع الصور يدويًا) دون أي رسائل خطأ.
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-ink-400">
           <Badge tone="emerald">{data.bundled_images} صورة حقيقية مرفقة</Badge>
@@ -86,14 +86,14 @@ export default function Integrations() {
             <div className="space-y-3 p-3.5">
               <div className="flex flex-wrap gap-1.5">
                 {it.env.map((k) => (
-                  <span key={k} className="inline-flex items-center gap-1 rounded-lg bg-ink-100 px-1.5 py-0.5 font-mono text-[9.5px] text-ink-600 dark:bg-ink-800 dark:text-ink-300">
+                  <span key={k} className="inline-flex items-center gap-1 rounded-lg px-1.5 py-0.5 font-mono text-[9.5px] bg-white/[.05] text-ink-300">
                     {k}
                   </span>
                 ))}
               </div>
 
               {(it.key || it.cx) && (
-                <div className="space-y-0.5 rounded-xl bg-ink-50 p-2 font-mono text-[10px] text-ink-500 dark:bg-ink-800/60">
+                <div className="space-y-0.5 rounded-xl p-2 font-mono text-[10px] text-ink-500 bg-white/[.055]">
                   {it.key && <div>key = {it.key}</div>}
                   {it.cx && <div>cx = {it.cx}</div>}
                   {it.base_url && <div>base = {it.base_url}</div>}
@@ -101,10 +101,10 @@ export default function Integrations() {
                 </div>
               )}
 
-              <ol className="space-y-1 text-[10.5px] leading-5 text-ink-600 dark:text-ink-300">
+              <ol className="space-y-1 text-[10.5px] leading-5 text-ink-300">
                 {it.steps_ar.map((step, i) => (
                   <li key={i} className="flex gap-1.5">
-                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-ink-200 text-[9px] font-bold text-ink-700 dark:bg-ink-700 dark:text-ink-200">{i + 1}</span>
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold bg-ink-700 text-ink-200">{i + 1}</span>
                     <span>{step}</span>
                   </li>
                 ))}
@@ -125,7 +125,7 @@ export default function Integrations() {
 
               {res && (
                 <div className={cx('flex items-start gap-2 rounded-xl p-2.5 text-[10.5px] leading-5',
-                  res.ok ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300' : 'bg-rose-50 text-rose-800 dark:bg-rose-950/30 dark:text-rose-300')}>
+                  res.ok ? 'bg-emerald-500/10 text-emerald-200' : 'bg-rose-500/10 text-rose-200')}>
                   {res.ok ? <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" /> : <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />}
                   <span>{res.detail}</span>
                 </div>
@@ -135,7 +135,7 @@ export default function Integrations() {
         );
       })}
 
-      <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-[10.5px] leading-5 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+      <div className="flex items-start gap-2 rounded-2xl border p-3 text-[10.5px] leading-5 border-amber-400/25 bg-amber-500/10 text-amber-200">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
         <span>بعد أي تعديل على <code>.env</code> أعد تشغيل الخادم ثم اضغط «اختبار الاتصال». المفاتيح لا تُخزَّن في قاعدة البيانات ولا تُرسل لأي طرف ثالث غير مزوّد الخدمة نفسه.</span>
       </div>

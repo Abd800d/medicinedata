@@ -57,14 +57,14 @@ export default function Profile() {
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="card overflow-hidden">
-        <div className="h-20 bg-gradient-to-r from-brand-700 via-teal-700 to-emerald-700" />
+        <div className="relative h-24 overflow-hidden bg-[radial-gradient(120%_120%_at_100%_0%,rgba(34,211,238,.55),transparent_55%),linear-gradient(135deg,#0b2f7a,#1262e0_60%,#0a7ea8)]"><span className="absolute -end-8 -top-10 h-32 w-32 rounded-full border-[18px] border-white/10" /><span className="absolute -start-6 -bottom-12 h-24 w-24 rounded-full bg-white/10 blur-xl" /></div>
         <div className="-mt-9 px-4 pb-4">
           <div className="flex items-end justify-between">
-            <div className="rounded-full ring-4 ring-white dark:ring-ink-900"><Avatar name={user.name} src={user.avatar} size={68} /></div>
+            <div className="rounded-full bg-ink-900 ring-4 ring-ink-900"><Avatar name={user.name} src={user.avatar} size={68} /></div>
             <button onClick={() => setEditing((v) => !v)} className="btn-ghost mt-10 px-3 py-1.5 text-[11px]">{editing ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}{editing ? t('common.cancel') : t('common.edit')}</button>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-2">
-            <h1 className="text-[17px] font-extrabold text-ink-900 dark:text-white">{user.name}</h1>
+            <h1 className="text-[17px] font-extrabold text-white">{user.name}</h1>
             {user.role === 'admin' && <Badge tone="amber"><ShieldCheck className="h-2.5 w-2.5" />{t('more.admin')}</Badge>}
           </div>
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10.5px] text-ink-500">
@@ -75,10 +75,10 @@ export default function Profile() {
           </div>
 
           {editing && (
-            <div className="mt-3 grid gap-2 rounded-2xl bg-ink-50 p-3 sm:grid-cols-3 dark:bg-ink-800/60">
-              <Field label={t('auth.name')}><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input bg-white dark:bg-ink-900" /></Field>
-              <Field label={t('auth.phone')}><input value={form.phone || ''} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input bg-white dark:bg-ink-900" dir="ltr" /></Field>
-              <Field label={t('auth.city')}><input value={form.city || ''} onChange={(e) => setForm({ ...form, city: e.target.value })} className="input bg-white dark:bg-ink-900" /></Field>
+            <div className="mt-3 grid gap-2 rounded-2xl p-3 sm:grid-cols-3 bg-white/[.055]">
+              <Field label={t('auth.name')}><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input bg-white/[.04]" /></Field>
+              <Field label={t('auth.phone')}><input value={form.phone || ''} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input bg-white/[.04]" dir="ltr" /></Field>
+              <Field label={t('auth.city')}><input value={form.city || ''} onChange={(e) => setForm({ ...form, city: e.target.value })} className="input bg-white/[.04]" /></Field>
               <div className="sm:col-span-3"><button onClick={save} disabled={busy} className="btn-primary w-full"><Save className="h-4 w-4" />{t('common.save')}</button></div>
             </div>
           )}
@@ -86,9 +86,9 @@ export default function Profile() {
       </div>
 
       <div className="grid grid-cols-3 gap-2">
-        <Link to="/prescriptions" className="card flex flex-col items-center gap-1 p-3 text-center"><ScrollText className="h-4 w-4 text-rose-600" /><span className="text-[10px] font-bold">{t('rx.title')}</span></Link>
-        <Link to="/community" className="card flex flex-col items-center gap-1 p-3 text-center"><Users className="h-4 w-4 text-emerald-600" /><span className="text-[10px] font-bold">{threads?.length ?? 0} {t('community.threads')}</span></Link>
-        <button onClick={() => setPwOpen((v) => !v)} className="card flex flex-col items-center gap-1 p-3 text-center"><KeyRound className="h-4 w-4 text-amber-600" /><span className="text-[10px] font-bold">{t('profile.password')}</span></button>
+        <Link to="/prescriptions" className="card flex flex-col items-center gap-1 p-3 text-center"><ScrollText className="h-4 w-4 text-rose-300" /><span className="text-[10px] font-bold">{t('rx.title')}</span></Link>
+        <Link to="/community" className="card flex flex-col items-center gap-1 p-3 text-center"><Users className="h-4 w-4 text-emerald-300" /><span className="text-[10px] font-bold">{threads?.length ?? 0} {t('community.threads')}</span></Link>
+        <button onClick={() => setPwOpen((v) => !v)} className="card flex flex-col items-center gap-1 p-3 text-center"><KeyRound className="h-4 w-4 text-amber-300" /><span className="text-[10px] font-bold">{t('profile.password')}</span></button>
       </div>
 
       {pwOpen && (
@@ -101,9 +101,9 @@ export default function Profile() {
       )}
 
       {user.role === 'admin' && (
-        <Link to="/admin" className="flex items-center gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-3.5 dark:border-amber-900 dark:bg-amber-950/30">
-          <LayoutDashboard className="h-5 w-5 text-amber-700" /><span className="flex-1 text-[12.5px] font-extrabold text-amber-900 dark:text-amber-200">{t('admin.title')}</span>
-          <ChevronLeft className="h-4 w-4 text-amber-600 rtl:block ltr:hidden" /><ChevronRight className="hidden h-4 w-4 text-amber-600 ltr:block" />
+        <Link to="/admin" className="flex items-center gap-3 rounded-2xl border p-3.5 border-amber-900 bg-amber-500/10">
+          <LayoutDashboard className="h-5 w-5 text-amber-300" /><span className="flex-1 text-[12.5px] font-extrabold text-amber-200">{t('admin.title')}</span>
+          <ChevronLeft className="h-4 w-4 text-amber-300 rtl:block ltr:hidden" /><ChevronRight className="hidden h-4 w-4 text-amber-300 ltr:block" />
         </Link>
       )}
 
@@ -115,9 +115,9 @@ export default function Profile() {
       </div>
 
       <div className="space-y-2">
-        <h2 className="section-title flex items-center gap-1.5"><Users className="h-4 w-4 text-emerald-600" />{t('profile.myThreads')}</h2>
+        <h2 className="section-title flex items-center gap-1.5"><Users className="h-4 w-4 text-emerald-300" />{t('profile.myThreads')}</h2>
         {(threads || []).slice(0, 6).map((th) => (
-          <Link key={th.id} to={`/community/${th.id}`} className="flex items-center gap-2 rounded-xl border border-ink-200 bg-white p-3 dark:border-ink-800 dark:bg-ink-900">
+          <Link key={th.id} to={`/community/${th.id}`} className="flex items-center gap-2 rounded-xl border p-3 border-white/[.08] bg-ink-900">
             <div className="min-w-0 flex-1"><div className="line-clamp-1 text-[12px] font-bold">{th.subject}</div><div className="text-[9.5px] text-ink-400">{th.messages_count} {t('community.replies')}</div></div>
             <Badge tone={th.status === 'open' ? 'amber' : 'emerald'}>{th.status}</Badge>
           </Link>
@@ -125,7 +125,7 @@ export default function Profile() {
         {threads?.length === 0 && <p className="text-[11px] text-ink-400">{t('community.noThreads')}</p>}
       </div>
 
-      <button onClick={() => { logout(); refresh(); navigate('/'); }} className="btn-ghost w-full text-rose-600"><LogOut className="h-4 w-4" />{t('common.logout')}</button>
+      <button onClick={() => { logout(); refresh(); navigate('/'); }} className="btn-ghost w-full text-rose-300"><LogOut className="h-4 w-4" />{t('common.logout')}</button>
     </div>
   );
 }
