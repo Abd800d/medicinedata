@@ -1,8 +1,5 @@
 import { Link } from 'react-router-dom';
-import {
-  Bot, Briefcase, ChevronLeft, ChevronRight, CloudDownload, Database, Download, FilePlus2, FileText, Globe2, Info, Languages, LayoutDashboard,
-  LogIn, LogOut, MessageCircle, ScanLine, ScrollText, Server, Settings2, ShieldCheck, ShoppingCart, Smartphone, UserRound, Users, Mail, Phone,
-} from 'lucide-react';
+import { Bot, Briefcase, ChevronLeft, ChevronRight, CloudDownload, Database, Download, ExternalLink, FilePlus2, FileText, Globe2, Info, Languages, LayoutDashboard, LogIn, LogOut, Mail, MessageCircle, Phone, ScanLine, ScrollText, Server, Settings2, ShieldCheck, ShoppingCart, Smartphone, UserRound, Users } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
 import { useConfig } from '../lib/config';
 import { useAuth } from '../lib/auth';
@@ -99,6 +96,11 @@ export default function More() {
           <div className="flex-1"><div className="text-[12.5px] font-bold text-white">{lang === 'ar' ? 'تثبيت التطبيق' : 'Install the app'}</div><div className="text-[10.5px] text-ink-400">{lang === 'ar' ? 'أضف MDA إلى الشاشة الرئيسية' : 'Add MDA to your home screen'}</div></div>
           <Download className="h-3.5 w-3.5 text-ink-500" />
         </button>
+        <a href="https://github.com/Abd800d/medicinedata/releases/latest" target="_blank" rel="noreferrer" className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start transition hover:bg-white/[.04]">
+          <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#3ddc84] to-[#12a150] text-white shadow-tile ring-1 ring-white/20"><Smartphone className="h-4 w-4" /></span>
+          <div className="flex-1"><div className="text-[12.5px] font-bold text-white">{lang === 'ar' ? 'تحميل نسخة الأندرويد (APK)' : 'Download Android APK'}</div><div className="text-[10.5px] text-ink-400">{lang === 'ar' ? 'أحدث إصدار من GitHub Releases' : 'Latest build from GitHub Releases'}</div></div>
+          <ExternalLink className="h-3.5 w-3.5 text-ink-500" />
+        </a>
         <Link to="/server" className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start transition hover:bg-white/[.04]">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[.05] text-ink-300"><Server className="h-4 w-4" /></span>
           <div className="flex-1"><div className="text-[12.5px] font-bold text-white">{lang === 'ar' ? 'الخادم والاتصال' : 'Server & connection'}</div><div className="text-[10px] text-ink-400">{lang === 'ar' ? 'عنوان الـ API واختبار الاتصال' : 'API URL and connection test'}</div></div>
