@@ -73,3 +73,19 @@ sqlite3 data/mda.db "VACUUM;"            # بعد حذف كبير
 npm run seed                              # إضافة/تحديث idempotent
 npm run seed:reset                        # تصفير الكتالوج وإعادة بنائه
 ```
+
+## الصور
+
+| المصدر (`product_images.source`) | من أين | ملاحظة |
+| --- | --- | --- |
+| `pack-shot` | `public/seed-images/products/` عبر `server/data/product-images.js` | 25 صورة لـ18 منتجًا، مفحوصة يدويًا، تُطبَّق تلقائيًا في `npm run seed` أو `npm run images:apply` |
+| `web-cse` | Google Custom Search (`npm run images:fetch`) | يحتاج مفاتيح؛ راجع كل صورة |
+| `upload` / `bulk-upload` | لوحة التحكم | اسم الملف = الباركود أو الاسم التجاري |
+| `generated` | رسم SVG من `/api/catalog/product-image/:id.svg` | بديل مؤقت فقط، يُحذف عند إضافة صورة حقيقية |
+
+## الباركود
+
+- `products.barcode` + `barcode_source` (`internal-ean13` | `import` | `admin`) + `barcode_verified`.
+- المولّد: `server/lib/barcodes.js` (EAN-13، بادئة 20–29 المحجوزة في GS1 للاستخدام الداخلي).
+- الأكواد مشتقة من `trade_name + strength` → لا تتغير بعد إعادة البذر، وتُستبدل بباركود الشركة بمجرد إدخاله.
+
