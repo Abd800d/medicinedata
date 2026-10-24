@@ -90,8 +90,9 @@ export function PageLoader({ label }: { label?: string }) {
 
 export function EmptyState({ icon, title, text, action }: { icon?: React.ReactNode; title: string; text?: string; action?: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-white/10 bg-white/[.025] px-6 py-12 text-center">
-      <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[.05] text-brand-300">
+    <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-3xl border border-dashed border-white/10 bg-white/[.025] px-6 py-12 text-center">
+      <span className="pointer-events-none absolute -top-10 start-1/2 h-24 w-24 -translate-x-1/2 rounded-full bg-brand-500/15 blur-2xl" />
+      <div className="relative mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-grad text-white shadow-glow ring-1 ring-white/20">
         {icon || <SearchX className="h-6 w-6" />}
       </div>
       <div className="text-[15px] font-bold text-white">{title}</div>

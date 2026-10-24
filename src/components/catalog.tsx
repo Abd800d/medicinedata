@@ -110,7 +110,7 @@ export function DrugCard({ drug, compact = false }: { drug: DrugRecord; compact?
           <h3 className="truncate text-[13.5px] font-bold text-white">{lang === 'ar' && drug.generic_ar ? drug.generic_ar : drug.generic_name}</h3>
           {drug.prescription_required ? <Badge tone="rose" className="shrink-0">Rx</Badge> : null}
         </div>
-        <p className="truncate text-[10.5px] font-medium text-ink-500" dir="ltr">{lang === 'ar' ? drug.generic_name : drug.generic_ar || ''}</p>
+        <p className="truncate text-[10.5px] font-medium text-ink-400" dir="ltr">{lang === 'ar' ? drug.generic_name : drug.generic_ar || ''}</p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           {drug.drug_class && <span className="truncate rounded-md bg-brand-500/15 px-1.5 py-0.5 text-[9.5px] font-bold text-brand-200">{drug.drug_class}</span>}
           {drug.system_slug && (
@@ -121,7 +121,7 @@ export function DrugCard({ drug, compact = false }: { drug: DrugRecord; compact?
           )}
         </div>
         {!compact && (
-          <div className="mt-1 flex items-center gap-2 text-[10px] text-ink-500">
+          <div className="mt-1 flex items-center gap-2 text-[10px] text-ink-400">
             <span className="font-bold text-brand-300 num">{count} {lang === 'ar' ? 'منتج' : 'products'}</span>
             {drug.atc_code && <span className="font-mono">ATC {drug.atc_code}</span>}
           </div>
@@ -166,7 +166,7 @@ export function ProductCard({ product, horizontal = false }: { product: ProductR
           rounded=""
         />
         {product.verified ? (
-          <span className="absolute start-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full bg-ink-950/80 px-1.5 py-0.5 text-[8.5px] font-bold text-brand-200 shadow-sm backdrop-blur">
+          <span className="absolute start-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-300 to-amber-500 px-1.5 py-0.5 text-[8.5px] font-black text-ink-950 shadow-[0_4px_12px_-4px_rgba(245,158,11,.8)]">
             <BadgeCheck className="h-2.5 w-2.5" /> MDA
           </span>
         ) : null}
@@ -184,9 +184,9 @@ export function ProductCard({ product, horizontal = false }: { product: ProductR
         <p className="line-clamp-1 text-[10.5px] font-medium text-ink-400" dir="auto">{sub || product.generic_name || ''}</p>
         {!horizontal && (
           <div className="mt-2 flex items-center justify-between gap-2">
-            <span className="line-clamp-1 text-[9.5px] font-semibold text-ink-500">{product.manufacturer_name || product.country}</span>
+            <span className="line-clamp-1 text-[9.5px] font-semibold text-ink-400">{product.manufacturer_name || product.country}</span>
             {product.country && (
-              <span className="inline-flex shrink-0 items-center gap-0.5 text-[9px] text-ink-500"><MapPin className="h-2.5 w-2.5" />{product.country}</span>
+              <span className="inline-flex shrink-0 items-center gap-0.5 text-[9px] text-ink-400"><MapPin className="h-2.5 w-2.5" />{product.country}</span>
             )}
           </div>
         )}
