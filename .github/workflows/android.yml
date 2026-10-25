@@ -7,8 +7,10 @@ name: Android APK
 #
 # Optional repository variable: VITE_API_BASE = https://your-mda-host.example.com
 # (the URL can also be changed inside the installed app: More → الخادم والاتصال)
-# Optional secrets for a signed release build:
-#   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+# Signed release builds (see docs/SIGNING.md):
+#   secrets: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+#   push a tag  ->  automatic signed release (.apk + .aab) attached to the GitHub Release
+#   optional variable MDA_KEYSTORE_TYPE (default PKCS12; use JKS for keytool keystores)
 
 on:
   workflow_dispatch:
@@ -18,14 +20,22 @@ on:
         required: false
         default: ''
       build_type:
-        description: 'debug (installable anywhere) or release (needs keystore secrets)'
+        description: 'auto (signed release on tags when the keystore secret exists, else debug) / debug / release'
         required: true
-        default: 'debug'
+        default: 'auto'
         type: choice
-        options: [debug, release]
+        options: [auto, debug, release]
+      build_format:
+        description: 'apk (direct install) or aab (Google Play upload)'
+        required: true
+        default: 'apk'
+        type: choice
+        options: [apk, aab]
   push:
     tags:
       - 'v*'
+    branches:
+      - arena/5ed17387-medicinedata   # TEMP: self-test
 
 permissions:
   contents: write
@@ -43,12 +53,33 @@ jobs:
       # Fallback keeps tag pushes working even when the repository variable is unset;
       # the URL can always be changed later inside the app (More → الخادم والاتصال).
       API_BASE: ${{ github.event.inputs.api_base || vars.VITE_API_BASE || 'https://4000-if57og1dz3iqxc4tdq20a.e2b.app' }}
-      BUILD_TYPE: ${{ github.event.inputs.build_type || 'debug' }}
-      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      BUILD_TYPE: ${{ github.event.inputs.build_type || 'auto' }}
+      BUILD_FORMAT: ${{ github.event.inputs.build_format || 'apk' }}
+      SELFTEST: '1'   # TEMP: throwaway keystore self-test
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Resolve build settings
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          BT="$BUILD_TYPE"
+          if [ "$SELFTEST" = "1" ]; then BT=release; fi   # TEMP
+          if [ -z "$BT" ] || [ "$BT" = "auto" ]; then
+            if [ -n "$KEYSTORE_B64" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then BT=release; else BT=debug; fi
+          fi
+          if [ "$BT" = "release" ] && [ -z "$KEYSTORE_B64" ] && [ "$SELFTEST" != "1" ]; then
+            echo "::error::build_type=release needs the ANDROID_KEYSTORE_BASE64 secret — see docs/SIGNING.md"
+            exit 1
+          fi
+          if [ "$BUILD_FORMAT" = "aab" ] && [ "$BT" != "release" ]; then
+            echo "::error::build_format=aab needs a signed release build (build_type=release)"
+            exit 1
+          fi
+          echo "BUILD_TYPE=$BT" >> "$GITHUB_ENV"
+          echo "build_type=$BT (format: $BUILD_FORMAT)"
 
       - name: Node 22
         uses: actions/setup-node@v4
@@ -111,14 +142,35 @@ jobs:
           sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
+      - name: SELFTEST throwaway keystore
+        if: env.SELFTEST == '1'
+        run: |
+          openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 2 \
+            -keyout "$RUNNER_TEMP/k.pem" -out "$RUNNER_TEMP/c.pem" -subj "/CN=MDA selftest" >/dev/null 2>&1
+          openssl pkcs12 -export -name mda -inkey "$RUNNER_TEMP/k.pem" -in "$RUNNER_TEMP/c.pem" \
+            -out "$RUNNER_TEMP/selftest.p12" -passout pass:selftest >/dev/null 2>&1
+          {
+            echo "MDA_KEYSTORE_PATH=$RUNNER_TEMP/selftest.p12"
+            echo "MDA_KEYSTORE_TYPE=PKCS12"
+            echo "MDA_KEYSTORE_PASSWORD=selftest"
+            echo "MDA_KEY_ALIAS=mda"
+            echo "MDA_KEY_PASSWORD=selftest"
+          } >> "$GITHUB_ENV"
+          echo "selftest keystore ready: $(wc -c < "$RUNNER_TEMP/selftest.p12") bytes"
+
       - name: Restore release keystore
-        if: env.BUILD_TYPE == 'release' && env.HAS_KEYSTORE == 'true'
+        if: env.BUILD_TYPE == 'release' && env.SELFTEST != '1'
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_TYPE: ${{ vars.MDA_KEYSTORE_TYPE }}
         run: |
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/mda-release.keystore"
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/mda-release.keystore"
+          SIZE=$(wc -c < "$RUNNER_TEMP/mda-release.keystore")
+          echo "keystore restored: $SIZE bytes"
+          test "$SIZE" -gt 1000 || { echo "::error::ANDROID_KEYSTORE_BASE64 could not be decoded into a keystore"; exit 1; }
           {
             echo "MDA_KEYSTORE_PATH=$RUNNER_TEMP/mda-release.keystore"
+            echo "MDA_KEYSTORE_TYPE=${KS_TYPE:-PKCS12}"
             echo "MDA_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
             echo "MDA_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}"
             echo "MDA_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}"
@@ -132,7 +184,8 @@ jobs:
           VERSION_CODE="${GITHUB_RUN_NUMBER:-1}"
           echo "versionName=$VERSION_NAME versionCode=$VERSION_CODE"
           TASK="assembleDebug"
-          if [ "$BUILD_TYPE" = "release" ]; then TASK="assembleRelease"; fi
+          if [ "$BUILD_TYPE" = "release" ] && [ "$BUILD_FORMAT" = "aab" ]; then TASK="bundleRelease"; fi
+          if [ "$BUILD_TYPE" = "release" ] && [ "$BUILD_FORMAT" != "aab" ]; then TASK="assembleRelease"; fi
           set +e
           ./gradlew "$TASK" --no-daemon -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE" > build.log 2>&1
           STATUS=$?
@@ -169,15 +222,25 @@ jobs:
       - name: Collect artifact
         run: |
           mkdir -p out
-          find android/app/build/outputs/apk -name '*.apk' -exec cp {} out/ \;
+          find android/app/build/outputs/apk -name '*.apk' -exec cp {} out/ \; 2>/dev/null || true
+          find android/app/build/outputs/bundle -name '*.aab' -exec cp {} out/ \; 2>/dev/null || true
           ls -lh out/
-          echo "APK count: $(ls out/*.apk 2>/dev/null | wc -l)"
+          echo "files: $(ls out/ | wc -l)"
+          APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
+          for f in out/*.apk; do
+            [ -f "$f" ] || continue
+            if [ -x "$APKSIGNER" ]; then
+              "$APKSIGNER" verify --print-certs "$f" 2>&1 | head -6 || true
+            fi
+          done
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: mda-apk
-          path: out/*.apk
+          path: |
+            out/*.apk
+            out/*.aab
           if-no-files-found: error
           retention-days: 30
 
@@ -192,9 +255,12 @@ jobs:
             "- Default backend: $API_BASE" \
             "- Change inside the app: More → Server & connection (الخادم والاتصال)" \
             "- Install: allow install from this source, then open the APK." \
+            "- Signed: $BUILD_TYPE (Google Play upload key when build_format=aab)." \
             > "$RUNNER_TEMP/notes.md"
-          gh release create "$GITHUB_REF_NAME" out/*.apk --title "MDA $GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md" \
-            || gh release upload "$GITHUB_REF_NAME" out/*.apk --clobber
+          FILES=$(find out -maxdepth 1 -type f \( -name '*.apk' -o -name '*.aab' \) | sort | tr '\n' ' ')
+          echo "attaching: $FILES"
+          gh release create "$GITHUB_REF_NAME" $FILES --title "MDA $GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md" \
+            || gh release upload "$GITHUB_REF_NAME" $FILES --clobber
 
       - name: Summary
         run: |
@@ -204,7 +270,7 @@ jobs:
             echo "| | |"
             echo "|---|---|"
             echo "| Backend | \`$API_BASE\` |"
-            echo "| Type | $BUILD_TYPE |"
+            echo "| Type | $BUILD_TYPE / $BUILD_FORMAT |"
             echo "| Commit | \`${GITHUB_SHA::7}\` |"
             echo ""
             echo "Download the artifact **mda-apk** above, then install it on the phone (allow installing from this source)."
