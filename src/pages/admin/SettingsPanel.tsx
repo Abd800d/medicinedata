@@ -22,6 +22,12 @@ const FIELDS: { key: string; label: string; type?: 'text' | 'textarea' | 'bool' 
   { key: 'default_lang', label: 'اللغة الافتراضية', type: 'select', options: ['ar', 'en'] },
   { key: 'maintenance', label: 'وضع الصيانة', type: 'bool' },
   { key: 'allow_registration', label: 'السماح بالتسجيل', type: 'bool' },
+  { key: 'google_client_id', label: 'Google Client ID (تسجيل الدخول بجوجل)', hint: 'الصقه من Google Cloud → Credentials → OAuth client ID. بعد الحفظ يعمل زر «الدخول بحساب Google» فورًا بلا إعادة نشر. اتركه فارغًا لتعطيله.' },
+  { key: 'welcome_enabled', label: 'شاشة الترحيب عند أول تشغيل', type: 'bool' },
+  { key: 'welcome_title_ar', label: 'عنوان الترحيب (عربي)', hint: 'مثال: مرحبًا بكم في تطبيق د. الصيدلاني عبدالمجيد الماخذي' },
+  { key: 'welcome_title_en', label: 'Welcome title (English)' },
+  { key: 'welcome_text_ar', label: 'نص الترحيب (عربي)', type: 'textarea' },
+  { key: 'welcome_text_en', label: 'Welcome text (English)', type: 'textarea' },
 ];
 
 export default function SettingsPanel() {

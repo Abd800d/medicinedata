@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, Eye, EyeOff, Info, Lock, Mail, Server, ShieldCheck, Sparkles } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
 import { useAuth } from '../lib/auth';
 import { useConfig } from '../lib/config';
@@ -37,8 +37,11 @@ function GoogleButton({ onCredential }: { onCredential: (c: string) => void }) {
 
   if (!config.google_client_id) {
     return (
-      <div className="rounded-xl border border-dashed border-white/15 p-3 text-center text-[11px] leading-5 text-ink-400">
-        {t('auth.googleUnavailable')}
+      <div className="rounded-xl border border-dashed border-white/15 bg-white/[.02] p-3 text-center text-[10.5px] leading-5 text-ink-400">
+        <div className="mb-0.5 font-bold text-ink-300">
+          {t('auth.googleUnavailable')}
+        </div>
+        {t('auth.googleHowTo')}
       </div>
     );
   }
@@ -143,6 +146,38 @@ export default function Auth() {
           </button>
         </div>
       </div>
+
+      <details className="card group p-3.5">
+        <summary className="flex cursor-pointer list-none items-center gap-2 text-[11.5px] font-bold text-ink-200">
+          <span className="grid h-6 w-6 place-items-center rounded-lg bg-brand-500/15 text-brand-200">
+            <Info className="h-3.5 w-3.5" />
+          </span>
+          {lang === 'ar' ? 'كيف أُنشئ حسابًا؟' : 'How do I create an account?'}
+          <ChevronDown className="ms-auto h-3.5 w-3.5 text-ink-500 transition group-open:rotate-180" />
+        </summary>
+        <ol className="mt-2.5 space-y-2 text-[11px] leading-6 text-ink-300">
+          {(lang === 'ar' ? [
+            'الحساب يُحفظ على خادم MDA، لذلك احرص أن يكون التطبيق مرتبطًا بالخادم أولًا.',
+            'اضغط تبويب «إنشاء حساب» واملأ الاسم والبريد وكلمة المرور (٦ أحرف على الأقل).',
+            'أو استخدم «الدخول بحساب Google» — يظهر بعد أن يفعّله مالك التطبيق من لوحة التحكم.',
+            'بعد التسجيل يصلح الحساب للمجتمع والصيدلية والوصفات على كل أجهزتك.',
+          ] : [
+            'Accounts live on the MDA server, so connect the app to your server first.',
+            'Open the "Create account" tab and fill in name, email and a password (6+ characters).',
+            'Or use "Continue with Google" — shown once the owner enables it from the dashboard.',
+            'The same account then works for community, pharmacy and prescriptions on all devices.',
+          ]).map((line, i) => (
+            <li key={i} className="flex gap-2">
+              <span className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full bg-white/[.08] text-[9px] font-bold text-ink-200">{i + 1}</span>
+              <span>{line}</span>
+            </li>
+          ))}
+        </ol>
+        <Link to="/server" className="btn-ghost mt-2.5 w-full justify-center text-[11px]">
+          <Server className="h-3.5 w-3.5" />
+          {lang === 'ar' ? 'الخادم والاتصال' : 'Server & connection'}
+        </Link>
+      </details>
 
       <div className="flex items-center justify-center gap-2 rounded-2xl border border-brand-400/20 bg-brand-500/10 p-3 text-[10.5px] font-medium text-brand-200">
         <ShieldCheck className="h-3.5 w-3.5" />

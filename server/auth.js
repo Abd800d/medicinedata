@@ -60,11 +60,20 @@ export function adminRequired(req, res, next) {
 }
 
 /** Verify a Google ID token (credential) issued by Google Identity Services. */
+/* The OAuth client id can come from the environment or from the admin panel
+   (settings key google_client_id), so enabling Google sign-in needs no redeploy. */
+export function googleClientId() {
+  try {
+    const row = db.prepare("SELECT value FROM settings WHERE key='google_client_id'").get();
+    return String(process.env.GOOGLE_CLIENT_ID || row?.value || '').trim();
+  } catch { return String(process.env.GOOGLE_CLIENT_ID || '').trim(); }
+}
+
 export async function verifyGoogleToken(idToken) {
   const r = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
   if (!r.ok) throw Object.assign(new Error('Invalid Google token'), { status: 401 });
   const info = await r.json();
-  const expected = process.env.GOOGLE_CLIENT_ID;
+  const expected = googleClientId();
   if (expected && info.aud !== expected) throw Object.assign(new Error('Google audience mismatch'), { status: 401 });
   if (!info.email || info.email_verified === 'false') throw Object.assign(new Error('Google email not verified'), { status: 401 });
   return { email: info.email.toLowerCase(), name: info.name || info.email.split('@')[0], picture: info.picture, sub: info.sub };
