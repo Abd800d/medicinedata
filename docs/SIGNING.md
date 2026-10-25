@@ -11,11 +11,12 @@
 
 | الحدث | ما يُبنى |
 |---|---|
-| push وسم `v*` **مع** وجود السر `ANDROID_KEYSTORE_BASE64` | `app-release.apk` موقّع ✅ + `app-release.aab` |
+| push وسم `v*` **مع** وجود السر `ANDROID_KEYSTORE_BASE64` | `app-release.apk` موقّع ✅ + `app-release.aab` (الافتراضي) |
 | push وسم `v*` **بدون** السر | `app-debug.apk` (سلوك قديم، للتوزيع المباشر) |
 | Actions → Android APK → `build_type=debug` | `app-debug.apk` |
 | Actions → Android APK → `build_type=release` بدون السر | ❌ يفشل برسالة واضحة (حماية من توقيع debug خاطئ) |
-| Actions → `build_type=release` + `build_format=aab` | `app-release.aab` لـGoogle Play |
+| Actions → Android APK → `build_type=release` + `build_format=aab` | `app-release.aab` فقط (لـGoogle Play) |
+| Actions → `build_format=both` | الاثنان معًا |
 
 الملفات تُرفع تلقائيًا في صفحة **Releases** عند الوسم، وتظهر أيضًا كـartifact باسم `mda-apk`.
 

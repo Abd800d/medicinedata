@@ -26,11 +26,11 @@ on:
         type: choice
         options: [auto, debug, release]
       build_format:
-        description: 'apk (direct install) or aab (Google Play upload)'
+        description: 'apk (direct install) / aab (Google Play) / both'
         required: true
-        default: 'apk'
+        default: 'both'
         type: choice
-        options: [apk, aab]
+        options: [both, apk, aab]
   push:
     tags:
       - 'v*'
@@ -52,7 +52,7 @@ jobs:
       # the URL can always be changed later inside the app (More → الخادم والاتصال).
       API_BASE: ${{ github.event.inputs.api_base || vars.VITE_API_BASE || 'https://4000-if57og1dz3iqxc4tdq20a.e2b.app' }}
       BUILD_TYPE: ${{ github.event.inputs.build_type || 'auto' }}
-      BUILD_FORMAT: ${{ github.event.inputs.build_format || 'apk' }}
+      BUILD_FORMAT: ${{ github.event.inputs.build_format || 'both' }}
 
     steps:
       - name: Checkout
@@ -70,8 +70,8 @@ jobs:
             echo "::error::build_type=release needs the ANDROID_KEYSTORE_BASE64 secret — see docs/SIGNING.md"
             exit 1
           fi
-          if [ "$BUILD_FORMAT" = "aab" ] && [ "$BT" != "release" ]; then
-            echo "::error::build_format=aab needs a signed release build (build_type=release)"
+          if [ "$BUILD_FORMAT" != "apk" ] && [ "$BT" != "release" ]; then
+            echo "::error::build_format=$BUILD_FORMAT needs a signed release build — set build_type=release (or push a tag with the keystore secret)"
             exit 1
           fi
           echo "BUILD_TYPE=$BT" >> "$GITHUB_ENV"
@@ -164,10 +164,16 @@ jobs:
           VERSION_CODE="${GITHUB_RUN_NUMBER:-1}"
           echo "versionName=$VERSION_NAME versionCode=$VERSION_CODE"
           TASK="assembleDebug"
-          if [ "$BUILD_TYPE" = "release" ] && [ "$BUILD_FORMAT" = "aab" ]; then TASK="bundleRelease"; fi
-          if [ "$BUILD_TYPE" = "release" ] && [ "$BUILD_FORMAT" != "aab" ]; then TASK="assembleRelease"; fi
+          if [ "$BUILD_TYPE" = "release" ]; then
+            case "$BUILD_FORMAT" in
+              aab)  TASK="bundleRelease" ;;
+              both) TASK="assembleRelease bundleRelease" ;;
+              *)    TASK="assembleRelease" ;;
+            esac
+          fi
           set +e
-          ./gradlew "$TASK" --no-daemon -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE" > build.log 2>&1
+          # shellcheck disable=SC2086  # unquoted on purpose: "a b" must expand to two Gradle tasks
+          ./gradlew $TASK --no-daemon -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE" > build.log 2>&1
           STATUS=$?
           set -e
           echo "----- gradle tail -----"
@@ -211,14 +217,15 @@ jobs:
         run: |
           APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
           test -x "$APKSIGNER" || APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          : > signature.txt
           for f in out/*.apk; do
             [ -f "$f" ] || continue
             echo "----- $f -----"
             set +e
-            "$APKSIGNER" verify --verbose --print-certs "$f" > signature.txt 2>&1
+            "$APKSIGNER" verify --verbose --print-certs "$f" >> signature.txt 2>&1
             RC=$?
             set -e
-            cat signature.txt
+            tail -60 signature.txt
             {
               echo "### Signature — $f"
               echo ""
@@ -244,7 +251,7 @@ jobs:
             grep -E "jar verified|Signer|CN=" aab.txt | head -8
             { echo "### Signature — $f"; echo ""; echo '```'; grep -E "jar verified|CN=" aab.txt | head -10; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
             [ "$RC" -eq 0 ] || { echo "::error::$f AAB signature check failed"; exit 1; }
-            cp aab.txt signature.txt
+            { echo "----- $f (AAB) -----"; grep -E "jar verified|X\.509|Signature algorithm" aab.txt | head -20; } >> signature.txt
           done
 
       - name: Report signing certificate
