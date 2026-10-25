@@ -70,9 +70,11 @@ jobs:
             echo "::error::build_type=release needs the ANDROID_KEYSTORE_BASE64 secret — see docs/SIGNING.md"
             exit 1
           fi
-          if [ "$BUILD_FORMAT" != "apk" ] && [ "$BT" != "release" ]; then
-            echo "::error::build_format=$BUILD_FORMAT needs a signed release build — set build_type=release (or push a tag with the keystore secret)"
-            exit 1
+          if [ "$BT" != "release" ] && [ "$BUILD_FORMAT" != "apk" ]; then
+            # A debug bundle is useless: fall back to an APK instead of failing the whole run.
+            echo "::warning::debug build — producing app-debug.apk only (add ANDROID_KEYSTORE_BASE64 for a signed release/AAB)"
+            echo "BUILD_FORMAT=apk" >> "$GITHUB_ENV"
+            BUILD_FORMAT=apk
           fi
           echo "BUILD_TYPE=$BT" >> "$GITHUB_ENV"
           echo "build_type=$BT (format: $BUILD_FORMAT)"
