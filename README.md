@@ -190,8 +190,9 @@ cd android && ./gradlew assembleDebug
 
 **بدون أي أدوات محلية:** ارفع المستودع إلى GitHub ثم
 **Actions → Android APK → Run workflow** (بعد ضبط المتغير `VITE_API_BASE`) — يُنتج APK قابلًا
-للتثبيت خلال دقائق، مع دعم بناء `release` موقّع عبر أسرار المستودع. التفاصيل في
-[`docs/ANDROID.md`](docs/ANDROID.md).
+للتثبيت خلال دقائق، مع دعم بناء `release` موقّع عبر أسرار المستودع.
+**البناء الموقّع:** push لوسم `v*` يُنتج `app-release.apk` + `app-release.aab` تلقائيًا بعد إضافة
+الأسرار الأربعة — الخطوات في [`docs/SIGNING.md`](docs/SIGNING.md).
 
 ## النشر للإنتاج
 
@@ -226,6 +227,7 @@ TOKEN=<jwt> npm run smoke    # اختبار حالة تسجيل الدخول
 | [`docs/ENV.md`](docs/ENV.md) | كل متغيرات البيئة وقيمها |
 | [`docs/DEPLOY.md`](docs/DEPLOY.md) | النشر، Nginx، systemd، نسخ احتياطي، تحديث |
 | [`docs/ANDROID.md`](docs/ANDROID.md) | بناء تطبيق أندرويد (محليًا أو عبر GitHub Actions) ونشره |
+| [`docs/SIGNING.md`](docs/SIGNING.md) | التوقيع الرسمي: keystore، الأسرار، APK/AAB، التحقق |
 | [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) | تفعيل Google Sign-In والذكاء الاصطناعي وجلب الصور والباركود |
 | [`docs/IMPORT.md`](docs/IMPORT.md) | صيغ الاستيراد وأعمدتها |
 | [`docs/API.md`](docs/API.md) | مرجع واجهات REST |

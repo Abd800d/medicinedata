@@ -7,8 +7,10 @@ name: Android APK
 #
 # Optional repository variable: VITE_API_BASE = https://your-mda-host.example.com
 # (the URL can also be changed inside the installed app: More → الخادم والاتصال)
-# Optional secrets for a signed release build:
-#   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+# Signed release builds (see docs/SIGNING.md):
+#   secrets: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+#   push a tag  ->  automatic signed release (.apk + .aab) attached to the GitHub Release
+#   optional variable MDA_KEYSTORE_TYPE (default PKCS12; use JKS for keytool keystores)
 
 on:
   workflow_dispatch:
@@ -18,11 +20,17 @@ on:
         required: false
         default: ''
       build_type:
-        description: 'debug (installable anywhere) or release (needs keystore secrets)'
+        description: 'auto (signed release on tags when the keystore secret exists, else debug) / debug / release'
         required: true
-        default: 'debug'
+        default: 'auto'
         type: choice
-        options: [debug, release]
+        options: [auto, debug, release]
+      build_format:
+        description: 'apk (direct install) or aab (Google Play upload)'
+        required: true
+        default: 'apk'
+        type: choice
+        options: [apk, aab]
   push:
     tags:
       - 'v*'
@@ -43,12 +51,31 @@ jobs:
       # Fallback keeps tag pushes working even when the repository variable is unset;
       # the URL can always be changed later inside the app (More → الخادم والاتصال).
       API_BASE: ${{ github.event.inputs.api_base || vars.VITE_API_BASE || 'https://4000-if57og1dz3iqxc4tdq20a.e2b.app' }}
-      BUILD_TYPE: ${{ github.event.inputs.build_type || 'debug' }}
-      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      BUILD_TYPE: ${{ github.event.inputs.build_type || 'auto' }}
+      BUILD_FORMAT: ${{ github.event.inputs.build_format || 'apk' }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Resolve build settings
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          BT="$BUILD_TYPE"
+          if [ -z "$BT" ] || [ "$BT" = "auto" ]; then
+            if [ -n "$KEYSTORE_B64" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then BT=release; else BT=debug; fi
+          fi
+          if [ "$BT" = "release" ] && [ -z "$KEYSTORE_B64" ]; then
+            echo "::error::build_type=release needs the ANDROID_KEYSTORE_BASE64 secret — see docs/SIGNING.md"
+            exit 1
+          fi
+          if [ "$BUILD_FORMAT" = "aab" ] && [ "$BT" != "release" ]; then
+            echo "::error::build_format=aab needs a signed release build (build_type=release)"
+            exit 1
+          fi
+          echo "BUILD_TYPE=$BT" >> "$GITHUB_ENV"
+          echo "build_type=$BT (format: $BUILD_FORMAT)"
 
       - name: Node 22
         uses: actions/setup-node@v4
@@ -112,13 +139,18 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
       - name: Restore release keystore
-        if: env.BUILD_TYPE == 'release' && env.HAS_KEYSTORE == 'true'
+        if: env.BUILD_TYPE == 'release'
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_TYPE: ${{ vars.MDA_KEYSTORE_TYPE }}
         run: |
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/mda-release.keystore"
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/mda-release.keystore"
+          SIZE=$(wc -c < "$RUNNER_TEMP/mda-release.keystore")
+          echo "keystore restored: $SIZE bytes"
+          test "$SIZE" -gt 1000 || { echo "::error::ANDROID_KEYSTORE_BASE64 could not be decoded into a keystore"; exit 1; }
           {
             echo "MDA_KEYSTORE_PATH=$RUNNER_TEMP/mda-release.keystore"
+            echo "MDA_KEYSTORE_TYPE=${KS_TYPE:-PKCS12}"
             echo "MDA_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
             echo "MDA_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}"
             echo "MDA_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}"
@@ -132,7 +164,8 @@ jobs:
           VERSION_CODE="${GITHUB_RUN_NUMBER:-1}"
           echo "versionName=$VERSION_NAME versionCode=$VERSION_CODE"
           TASK="assembleDebug"
-          if [ "$BUILD_TYPE" = "release" ]; then TASK="assembleRelease"; fi
+          if [ "$BUILD_TYPE" = "release" ] && [ "$BUILD_FORMAT" = "aab" ]; then TASK="bundleRelease"; fi
+          if [ "$BUILD_TYPE" = "release" ] && [ "$BUILD_FORMAT" != "aab" ]; then TASK="assembleRelease"; fi
           set +e
           ./gradlew "$TASK" --no-daemon -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE" > build.log 2>&1
           STATUS=$?
@@ -169,15 +202,76 @@ jobs:
       - name: Collect artifact
         run: |
           mkdir -p out
-          find android/app/build/outputs/apk -name '*.apk' -exec cp {} out/ \;
+          find android/app/build/outputs/apk -name '*.apk' -exec cp {} out/ \; 2>/dev/null || true
+          find android/app/build/outputs/bundle -name '*.aab' -exec cp {} out/ \; 2>/dev/null || true
           ls -lh out/
-          echo "APK count: $(ls out/*.apk 2>/dev/null | wc -l)"
+          echo "files: $(ls out/ | wc -l)"
+      - name: Verify signature
+        if: env.BUILD_TYPE == 'release'
+        run: |
+          APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
+          test -x "$APKSIGNER" || APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          for f in out/*.apk; do
+            [ -f "$f" ] || continue
+            echo "----- $f -----"
+            set +e
+            "$APKSIGNER" verify --verbose --print-certs "$f" > signature.txt 2>&1
+            RC=$?
+            set -e
+            cat signature.txt
+            {
+              echo "### Signature — $f"
+              echo ""
+              echo '```'
+              head -60 signature.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            if [ "$RC" -ne 0 ]; then
+              echo "::error::$f is not properly signed (apksigner exit $RC)"
+              exit 1
+            fi
+            grep -q "MDA" signature.txt && echo "::notice::Signed by the MDA certificate"
+          done
+
+          JARSIGNER="$JAVA_HOME/bin/jarsigner"
+          for f in out/*.aab; do
+            [ -f "$f" ] || continue
+            echo "----- $f (AAB) -----"
+            set +e
+            "$JARSIGNER" -verify -verbose -certs "$f" > aab.txt 2>&1
+            RC=$?
+            set -e
+            grep -E "jar verified|Signer|CN=" aab.txt | head -8
+            { echo "### Signature — $f"; echo ""; echo '```'; grep -E "jar verified|CN=" aab.txt | head -10; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            [ "$RC" -eq 0 ] || { echo "::error::$f AAB signature check failed"; exit 1; }
+            cp aab.txt signature.txt
+          done
+
+      - name: Report signing certificate
+        if: always() && env.BUILD_TYPE == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -s signature.txt ] || { echo "no signature report"; exit 0; }
+          BODY="$RUNNER_TEMP/sig.md"
+          {
+            echo "🔐 **Signing report** — run $GITHUB_RUN_ID ($BUILD_TYPE/$BUILD_FORMAT)"
+            echo ""
+            echo '```'
+            head -40 signature.txt
+            echo '```'
+          } > "$BODY"
+          NUM=$(gh issue list --search 'in:title "APK signing report"' --state open --json number --jq '.[0].number // empty' || true)
+          if [ -n "$NUM" ]; then gh issue comment "$NUM" --body-file "$BODY"
+          else gh issue create --title "APK signing report" --body-file "$BODY"; fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: mda-apk
-          path: out/*.apk
+          path: |
+            out/*.apk
+            out/*.aab
           if-no-files-found: error
           retention-days: 30
 
@@ -186,15 +280,42 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          printf '%s\n' \
-            "MDA $GITHUB_REF_NAME — APK" \
-            "" \
-            "- Default backend: $API_BASE" \
-            "- Change inside the app: More → Server & connection (الخادم والاتصال)" \
-            "- Install: allow install from this source, then open the APK." \
-            > "$RUNNER_TEMP/notes.md"
-          gh release create "$GITHUB_REF_NAME" out/*.apk --title "MDA $GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md" \
-            || gh release upload "$GITHUB_REF_NAME" out/*.apk --clobber
+          {
+            printf '%s\n' \
+              "## MDA $GITHUB_REF_NAME" \
+              "" \
+              "- Backend: \`$API_BASE\`" \
+              "- Change it inside the app: More → الخادم والاتصال" \
+              "- Build: $BUILD_TYPE / $BUILD_FORMAT" \
+              ""
+            if [ "$BUILD_TYPE" = "release" ]; then
+              printf '%s\n' \
+                "### ✅ نسخة موقّعة رسميًا (release-signed)" \
+                "" \
+                "- ثبّت \`app-release.apk\` للتوزيع المباشر." \
+                "- \`app-release.aab\` للرفع على Google Play (Play Console → Production → Create release)." \
+                "- ⚠️ إن كنت ثبّت نسخة debug سابقة (v1.0.x) احذفها أولًا: بصمة التوقيع مختلفة." \
+                "- بصمة الشهادة: \`$(grep -m1 'certificate SHA-256 digest' signature.txt 2>/dev/null | sed 's/.*digest: //' || echo 'see build log')\`" \
+                "" \
+                "### 🔐 التحميل" \
+                "" \
+                "- من الهاتف: افتح هذا الإصدار ← Assets ← \`app-release.apk\` ← اسمح بالتثبيت من هذا المصدر."
+            else
+              printf '%s\n' \
+                "### نسخة debug (للتجربة)" \
+                "" \
+                "- موقّعة بمفتاح debug — تُثبّت على أي جهاز، غير صالحة لمتجر Play." \
+                "- لبناء نسخة رسمية: أضف أسرار التوقيع ثم أعد تشغيل البناء (docs/SIGNING.md)." \
+                "" \
+                "### 🔐 التحميل" \
+                "" \
+                "- من الهاتف: Assets ← \`app-debug.apk\` ← اسمح بالتثبيت من هذا المصدر."
+            fi
+          } > "$RUNNER_TEMP/notes.md"
+          FILES=$(find out -maxdepth 1 -type f \( -name '*.apk' -o -name '*.aab' \) | sort | tr '\n' ' ')
+          echo "attaching: $FILES"
+          gh release create "$GITHUB_REF_NAME" $FILES --title "MDA $GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md" \
+            || gh release upload "$GITHUB_REF_NAME" $FILES --clobber
 
       - name: Summary
         run: |
@@ -204,7 +325,7 @@ jobs:
             echo "| | |"
             echo "|---|---|"
             echo "| Backend | \`$API_BASE\` |"
-            echo "| Type | $BUILD_TYPE |"
+            echo "| Type | $BUILD_TYPE / $BUILD_FORMAT |"
             echo "| Commit | \`${GITHUB_SHA::7}\` |"
             echo ""
             echo "Download the artifact **mda-apk** above, then install it on the phone (allow installing from this source)."
