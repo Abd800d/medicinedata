@@ -54,7 +54,7 @@ jobs:
       # the URL can always be changed later inside the app (More → الخادم والاتصال).
       API_BASE: ${{ github.event.inputs.api_base || vars.VITE_API_BASE || 'https://4000-if57og1dz3iqxc4tdq20a.e2b.app' }}
       BUILD_TYPE: ${{ github.event.inputs.build_type || 'auto' }}
-      BUILD_FORMAT: ${{ github.event.inputs.build_format || 'apk' }}
+      BUILD_FORMAT: ${{ github.event.inputs.build_format || 'aab' }}   # TEMP selftest aab
       SELFTEST: '1'   # TEMP: throwaway keystore self-test
 
     steps:
@@ -251,6 +251,20 @@ jobs:
               exit 1
             fi
             grep -q "MDA" signature.txt && echo "::notice::Signed by the MDA certificate"
+          done
+
+          JARSIGNER="$JAVA_HOME/bin/jarsigner"
+          for f in out/*.aab; do
+            [ -f "$f" ] || continue
+            echo "----- $f (AAB) -----"
+            set +e
+            "$JARSIGNER" -verify -verbose -certs "$f" > aab.txt 2>&1
+            RC=$?
+            set -e
+            grep -E "jar verified|Signer|CN=" aab.txt | head -8
+            { echo "### Signature — $f"; echo ""; echo '```'; grep -E "jar verified|CN=" aab.txt | head -10; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            [ "$RC" -eq 0 ] || { echo "::error::$f AAB signature check failed"; exit 1; }
+            cp aab.txt signature.txt
           done
 
       - name: Report signing certificate
