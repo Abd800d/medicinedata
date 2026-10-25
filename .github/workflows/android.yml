@@ -34,8 +34,6 @@ on:
   push:
     tags:
       - 'v*'
-    branches:
-      - arena/5ed17387-medicinedata   # TEMP selftest
 
 permissions:
   contents: write
@@ -55,7 +53,6 @@ jobs:
       API_BASE: ${{ github.event.inputs.api_base || vars.VITE_API_BASE || 'https://4000-if57og1dz3iqxc4tdq20a.e2b.app' }}
       BUILD_TYPE: ${{ github.event.inputs.build_type || 'auto' }}
       BUILD_FORMAT: ${{ github.event.inputs.build_format || 'both' }}
-      SELFTEST: '1'
 
     steps:
       - name: Checkout
@@ -66,12 +63,10 @@ jobs:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           BT="$BUILD_TYPE"
-          if [ "$SELFTEST" = "1" ]; then
-            BT=release
-          elif [ -z "$BT" ] || [ "$BT" = "auto" ]; then
+          if [ -z "$BT" ] || [ "$BT" = "auto" ]; then
             if [ -n "$KEYSTORE_B64" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then BT=release; else BT=debug; fi
           fi
-          if [ "$BT" = "release" ] && [ -z "$KEYSTORE_B64" ] && [ "$SELFTEST" != "1" ]; then
+          if [ "$BT" = "release" ] && [ -z "$KEYSTORE_B64" ]; then
             echo "::error::build_type=release needs the ANDROID_KEYSTORE_BASE64 secret — see docs/SIGNING.md"
             exit 1
           fi
@@ -143,15 +138,8 @@ jobs:
           sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
-      - name: SELFTEST keystore
-        if: env.SELFTEST == '1'
-        run: |
-          openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 2 -keyout "$RUNNER_TEMP/k.pem" -out "$RUNNER_TEMP/c.pem" -subj "/CN=MDA selftest" >/dev/null 2>&1
-          openssl pkcs12 -export -name mda -inkey "$RUNNER_TEMP/k.pem" -in "$RUNNER_TEMP/c.pem" -out "$RUNNER_TEMP/s.p12" -passout pass:selftest >/dev/null 2>&1
-          { echo "MDA_KEYSTORE_PATH=$RUNNER_TEMP/s.p12"; echo "MDA_KEYSTORE_TYPE=PKCS12"; echo "MDA_KEYSTORE_PASSWORD=selftest"; echo "MDA_KEY_ALIAS=mda"; echo "MDA_KEY_PASSWORD=selftest"; } >> "$GITHUB_ENV"
-
       - name: Restore release keystore
-        if: env.BUILD_TYPE == 'release' && env.SELFTEST != '1'
+        if: env.BUILD_TYPE == 'release'
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KS_TYPE: ${{ vars.MDA_KEYSTORE_TYPE }}
@@ -229,14 +217,15 @@ jobs:
         run: |
           APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
           test -x "$APKSIGNER" || APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          : > signature.txt
           for f in out/*.apk; do
             [ -f "$f" ] || continue
             echo "----- $f -----"
             set +e
-            "$APKSIGNER" verify --verbose --print-certs "$f" > signature.txt 2>&1
+            "$APKSIGNER" verify --verbose --print-certs "$f" >> signature.txt 2>&1
             RC=$?
             set -e
-            cat signature.txt
+            tail -60 signature.txt
             {
               echo "### Signature — $f"
               echo ""
@@ -262,7 +251,7 @@ jobs:
             grep -E "jar verified|Signer|CN=" aab.txt | head -8
             { echo "### Signature — $f"; echo ""; echo '```'; grep -E "jar verified|CN=" aab.txt | head -10; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
             [ "$RC" -eq 0 ] || { echo "::error::$f AAB signature check failed"; exit 1; }
-            cp aab.txt signature.txt
+            { echo "----- $f (AAB) -----"; grep -E "jar verified|X\.509|Signature algorithm" aab.txt | head -20; } >> signature.txt
           done
 
       - name: Report signing certificate
