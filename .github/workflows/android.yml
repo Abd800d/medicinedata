@@ -66,7 +66,9 @@ jobs:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           BT="$BUILD_TYPE"
-          if [ "$SELFTEST" = "1" ]; then BT=release; fi
+          if [ "$SELFTEST" = "1" ]; then
+            BT=release
+          elif [ -z "$BT" ] || [ "$BT" = "auto" ]; then
             if [ -n "$KEYSTORE_B64" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then BT=release; else BT=debug; fi
           fi
           if [ "$BT" = "release" ] && [ -z "$KEYSTORE_B64" ] && [ "$SELFTEST" != "1" ]; then
