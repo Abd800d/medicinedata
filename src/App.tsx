@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import Welcome from './components/Welcome';
 import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { I18nProvider, useI18n } from './lib/i18n';
@@ -79,6 +80,7 @@ export default function App() {
         <AuthProvider>
           <ToastProvider>
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <Welcome />
               <Suspense fallback={<PageLoader />}>
                 <Routes>
                   <Route element={<Layout />}>

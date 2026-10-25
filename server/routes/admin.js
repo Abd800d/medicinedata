@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { db, UPLOAD_DIR, getSetting, setSetting } from '../db.js';
-import { adminRequired, hashPassword } from '../auth.js';
+import { adminRequired, hashPassword, googleClientId } from '../auth.js';
 import { makeUploader } from '../lib/upload.js';
 import { autoFillImages, cseConfigured, searchImages, downloadImage, attachImage, productsWithoutPhoto } from '../lib/product-images.js';
 import { integrations, testIntegration, bundledImages } from '../lib/integrations.js';
@@ -703,7 +703,9 @@ router.get('/prescriptions', (_req, res) => {
 
 /* ---------------- Settings ---------------- */
 const SETTING_KEYS = ['site_name_en', 'site_name_ar', 'owner_name', 'owner_title', 'owner_email', 'whatsapp', 'support_email',
-  'about_ar', 'about_en', 'maintenance', 'allow_registration', 'default_lang', 'theme_color', 'ai_enabled', 'disclaimer_ar', 'disclaimer_en'];
+  'about_ar', 'about_en', 'maintenance', 'allow_registration', 'default_lang', 'theme_color', 'ai_enabled', 'disclaimer_ar', 'disclaimer_en',
+  'google_client_id', 'welcome_enabled', 'welcome_title', 'welcome_text',
+  'welcome_title_ar', 'welcome_title_en', 'welcome_text_ar', 'welcome_text_en'];
 
 router.get('/settings', (_req, res) => {
   const out = {};
@@ -712,7 +714,7 @@ router.get('/settings', (_req, res) => {
     settings: out,
     env: {
       ai: !!(process.env.AI_API_KEY || process.env.OPENAI_API_KEY),
-      google_login: !!process.env.GOOGLE_CLIENT_ID,
+      google_login: !!googleClientId(),
       google_cse: !!(process.env.GOOGLE_CSE_KEY && process.env.GOOGLE_CSE_CX),
       node: process.version,
       db_file: process.env.DB_FILE || 'data/mda.db',

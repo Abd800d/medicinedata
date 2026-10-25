@@ -21,6 +21,13 @@ export type AppConfig = {
   default_lang: string;
   maintenance?: boolean;
   allow_registration?: boolean;
+  welcome_enabled?: boolean | string;
+  welcome_title?: string;
+  welcome_title_ar?: string;
+  welcome_title_en?: string;
+  welcome_text?: string;
+  welcome_text_ar?: string;
+  welcome_text_en?: string;
 };
 
 const DEFAULTS: AppConfig = {
@@ -41,6 +48,9 @@ const DEFAULTS: AppConfig = {
   counts: { drugs: 0, products: 0, systems: 0 },
   default_lang: 'ar',
   allow_registration: true,
+  welcome_enabled: true,
+  welcome_title: '',
+  welcome_text: '',
 };
 
 type CfgCtx = {

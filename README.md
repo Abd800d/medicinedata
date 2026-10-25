@@ -228,6 +228,7 @@ TOKEN=<jwt> npm run smoke    # اختبار حالة تسجيل الدخول
 | [`docs/DEPLOY.md`](docs/DEPLOY.md) | النشر، Nginx، systemd، نسخ احتياطي، تحديث |
 | [`docs/ANDROID.md`](docs/ANDROID.md) | بناء تطبيق أندرويد (محليًا أو عبر GitHub Actions) ونشره |
 | [`docs/SIGNING.md`](docs/SIGNING.md) | التوقيع الرسمي: keystore، الأسرار، APK/AAB، التحقق |
+| [`docs/GOOGLE.md`](docs/GOOGLE.md) | إنشاء الحسابات + تسجيل الدخول بحساب Google خطوة بخطوة |
 | [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) | تفعيل Google Sign-In والذكاء الاصطناعي وجلب الصور والباركود |
 | [`docs/IMPORT.md`](docs/IMPORT.md) | صيغ الاستيراد وأعمدتها |
 | [`docs/API.md`](docs/API.md) | مرجع واجهات REST |

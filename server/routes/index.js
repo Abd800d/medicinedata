@@ -32,10 +32,17 @@ router.get('/config', (_req, res) => {
     disclaimer_ar: getSetting('disclaimer_ar', 'المعلومات لأغراض تعليمية ومرجعية ولا تُغني عن استشارة الطبيب أو الصيدلي.'),
     disclaimer_en: getSetting('disclaimer_en', 'Information is for educational/reference purposes only and does not replace professional medical advice.'),
     ai_enabled: !!(process.env.AI_API_KEY || process.env.OPENAI_API_KEY),
-    google_client_id: process.env.GOOGLE_CLIENT_ID || '',
+    google_client_id: process.env.GOOGLE_CLIENT_ID || getSetting('google_client_id', '') || '',
     counts,
     default_lang: getSetting('default_lang', 'ar'),
     maintenance: getSetting('maintenance', false),
+    welcome_enabled: getSetting('welcome_enabled', true) !== false && getSetting('welcome_enabled', true) !== 'false',
+    welcome_title: getSetting('welcome_title', ''),
+    welcome_title_ar: getSetting('welcome_title_ar', '') || getSetting('welcome_title', ''),
+    welcome_title_en: getSetting('welcome_title_en', ''),
+    welcome_text: getSetting('welcome_text', ''),
+    welcome_text_ar: getSetting('welcome_text_ar', '') || getSetting('welcome_text', ''),
+    welcome_text_en: getSetting('welcome_text_en', ''),
     allow_registration: getSetting('allow_registration', true),
   });
 });

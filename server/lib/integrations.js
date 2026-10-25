@@ -5,6 +5,7 @@
  * real, cheap network call so "enabled" means "it actually answered".
  */
 import fs from 'node:fs';
+import { getSetting } from '../db.js';
 
 const mask = (v) => {
   const s = String(v || '');
@@ -16,7 +17,7 @@ export const integrations = () => {
   const aiKey = process.env.AI_API_KEY || process.env.OPENAI_API_KEY || '';
   const cseKey = process.env.GOOGLE_CSE_KEY || '';
   const cseCx = process.env.GOOGLE_CSE_CX || '';
-  const googleClient = process.env.GOOGLE_CLIENT_ID || '';
+  const googleClient = process.env.GOOGLE_CLIENT_ID || getSetting('google_client_id', '') || '';
   const aiBase = (process.env.AI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
   return {
     google_signin: {
