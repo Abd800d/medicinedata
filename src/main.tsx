@@ -2,6 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles.css';
+import { loadLocal } from './lib/localcatalog';
+
+/* The APK must be usable with zero network: warm the bundled catalogue before the first paint
+   of any list screen. Failure is non-fatal (a connected backend still takes over). */
+void loadLocal();
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
   constructor(props: { children: React.ReactNode }) {

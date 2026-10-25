@@ -1,8 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, CheckCircle2, Info, Loader2, SearchX, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Info, Loader2, SearchX, Server, X } from 'lucide-react';
 import { cx } from '../lib/utils';
 import { assetUrl } from '../lib/api';
+import { localArt, useLocalReady } from '../lib/localcatalog';
+import { Link } from 'react-router-dom';
 import { useI18n } from '../lib/i18n';
 
 /* ---------------- Logo ---------------- */
@@ -107,12 +109,31 @@ export function EmptyState({ icon, title, text, action }: { icon?: React.ReactNo
 }
 
 export function ErrorState({ message, onRetry }: { message?: string; onRetry?: () => void }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const offline = message === 'NETWORK' || message === 'SERVER';
+  /* A missing backend is a setup problem, not a bug: point the user at the one screen that fixes it. */
+  if (offline) {
+    return (
+      <EmptyState
+        icon={<Server className="h-6 w-6 text-amber-300" />}
+        title={lang === 'ar' ? 'هذا القسم يحتاج خادمًا' : 'This section needs a server'}
+        text={lang === 'ar'
+          ? 'الكتالوج والبحث والأجهزة تعمل من داخل التطبيق بدون إنترنت، أما المجتمع والصيدلية ولوحة التحكم فتحتاج ربط خادم MDA (نشره مجانًا من صفحة الإعدادات).'
+          : 'Browsing, search and systems work offline from built-in data. Community, pharmacy and the admin console need an MDA server (free to deploy — see the settings screen).'}
+        action={(
+          <div className="flex flex-wrap justify-center gap-2">
+            <Link to="/server" className="btn-primary text-[12px]"><Server className="h-4 w-4" />{lang === 'ar' ? 'ربط الخادم' : 'Connect a server'}</Link>
+            {onRetry && <button className="btn-ghost text-[12px]" onClick={onRetry}>{t('common.retry')}</button>}
+          </div>
+        )}
+      />
+    );
+  }
   return (
     <EmptyState
       icon={<AlertCircle className="h-6 w-6 text-rose-500" />}
       title={t('common.error')}
-      text={message === 'NETWORK' ? t('errors.network') : message || t('errors.server')}
+      text={message || t('errors.server')}
       action={onRetry ? <button className="btn-ghost" onClick={onRetry}>{t('common.retry')}</button> : undefined}
     />
   );
@@ -149,7 +170,11 @@ export function SectionHead({ title, subtitle, action }: { title: string; subtit
 export function SmartImage({
   src, alt, productId, drugId, className = '', rounded = 'rounded-2xl', eager = false,
 }: { src?: string | null; alt: string; productId?: number; drugId?: number; className?: string; rounded?: string; eager?: boolean }) {
-  const initial = src ? assetUrl(src) : productId ? `/api/catalog/product-image/${productId}.svg` : drugId ? `/api/catalog/drug-image/${drugId}.svg` : '';
+  /* Offline-first: when the bundled catalogue is available we can draw the very same
+     procedural pack artwork the server would render, with no request at all. */
+  const localReady = useLocalReady();
+  const generated = useMemo(() => (localReady ? localArt(productId, drugId) : undefined), [localReady, productId, drugId]);
+  const initial = src ? assetUrl(src) : generated || (productId ? `/api/catalog/product-image/${productId}.svg` : drugId ? `/api/catalog/drug-image/${drugId}.svg` : '');
   const [url, setUrl] = useState(initial);
   const [failed, setFailed] = useState(false);
   useEffect(() => { setUrl(initial); setFailed(false); }, [initial]);
@@ -168,7 +193,8 @@ export function SmartImage({
       decoding="async"
       className={cx('object-contain', rounded, className)}
       onError={() => {
-        if (productId && !url.includes('/product-image/')) setUrl(`/api/catalog/product-image/${productId}.svg`);
+        if (generated && url !== generated) setUrl(generated);
+        else if (productId && !url.includes('/product-image/')) setUrl(`/api/catalog/product-image/${productId}.svg`);
         else if (drugId && !url.includes('/drug-image/')) setUrl(`/api/catalog/drug-image/${drugId}.svg`);
         else setFailed(true);
       }}

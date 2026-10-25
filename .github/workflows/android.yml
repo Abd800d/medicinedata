@@ -48,9 +48,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      # Fallback keeps tag pushes working even when the repository variable is unset;
-      # the URL can always be changed later inside the app (More → الخادم والاتصال).
-      API_BASE: ${{ github.event.inputs.api_base || vars.VITE_API_BASE || 'https://4000-if57og1dz3iqxc4tdq20a.e2b.app' }}
+      # Empty by default: the app then talks to its own origin (a deployed server) and, inside
+      # the APK, silently falls back to the catalogue bundled in public/data/catalog.json.
+      # The URL can always be set later in the app (More → الخادم والاتصال) or baked here.
+      API_BASE: ${{ github.event.inputs.api_base || vars.VITE_API_BASE || '' }}
       BUILD_TYPE: ${{ github.event.inputs.build_type || 'auto' }}
       BUILD_FORMAT: ${{ github.event.inputs.build_format || 'both' }}
 
@@ -89,13 +90,15 @@ jobs:
         # --ignore-scripts skips better-sqlite3's native build; the APK only needs the web bundle.
         run: npm ci --ignore-scripts --no-audit --no-fund
 
-      - name: Fail early if the backend URL is missing
+      - name: Backend URL
         run: |
           if [ -z "$API_BASE" ]; then
-            echo "::error::Set the repository variable VITE_API_BASE (Settings → Secrets and variables → Actions → Variables), pass api_base when running the workflow, or edit the fallback in this file."
-            exit 1
+            echo "::notice::No backend baked in — the app will use its built-in catalogue and can be pointed at a server from Settings (الخادم والاتصال)."
+          else
+            echo "Backend: $API_BASE"
           fi
-          echo "Backend: $API_BASE"
+          test -f public/data/catalog.json || { echo "::error::public/data/catalog.json is missing — run npm run bundle:data"; exit 1; }
+          echo "built-in catalogue: $(du -h public/data/catalog.json | cut -f1)"
 
       - name: Build web bundle
         env:

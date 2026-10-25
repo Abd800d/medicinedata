@@ -90,6 +90,29 @@ export default function ServerSettings() {
         </div>
       </div>
 
+      {/* Built-in catalogue: the app is fully usable before any server exists. */}
+      <div className="card relative overflow-hidden p-4">
+        <span className="pointer-events-none absolute -end-10 -top-12 h-32 w-32 rounded-full bg-emerald-500/15 blur-2xl" />
+        <div className="relative flex items-start gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-tile ring-1 ring-white/20">
+            <CheckCircle2 className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-[12.5px] font-extrabold text-white">{ar ? 'يعمل الآن بالبيانات المدمجة' : 'Working now on built-in data'}</h2>
+            <p className="mt-1 text-[11px] leading-6 text-ink-300">
+              {ar
+                ? 'الكتالوج كامل داخل التطبيق (18 جهازًا · 137 تصنيفًا · 225 دواءً · 493 منتجًا) — التصفح والبحث ومسح الباركود والتوليد البصري تعمل بلا إنترنت وبلا خادم.'
+                : 'The full catalogue ships inside the app (18 systems · 137 classes · 225 drugs · 493 products) — browse, search and barcode work with no internet and no server.'}
+            </p>
+            <p className="mt-1.5 text-[10.5px] leading-6 text-amber-200/90">
+              {ar
+                ? 'ما يحتاج خادمًا: المجتمع · الصيدلية والمخزون · لوحة التحكم · تعديل/استيراد البيانات · قراءة الروشتة بالذكاء الاصطناعي.'
+                : 'Needs a server: community · pharmacy & stock · admin console · data editing/import · AI prescription reading.'}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="card space-y-3 p-4">
         <label className="label" htmlFor="api-base">{ar ? 'عنوان الخادم' : 'Server URL'}</label>
         <div className="flex items-center gap-2 rounded-2xl border border-white/[.10] bg-white/[.04] px-3 py-1.5 focus-within:border-brand-400/50">
