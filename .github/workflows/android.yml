@@ -184,7 +184,8 @@ jobs:
             esac
           fi
           set +e
-          ./gradlew "$TASK" --no-daemon -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE" > build.log 2>&1
+          # shellcheck disable=SC2086  # unquoted on purpose: "a b" must expand to two Gradle tasks
+          ./gradlew $TASK --no-daemon -PversionName="$VERSION_NAME" -PversionCode="$VERSION_CODE" > build.log 2>&1
           STATUS=$?
           set -e
           echo "----- gradle tail -----"
