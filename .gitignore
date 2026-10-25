@@ -23,3 +23,9 @@ android/local.properties
 .idea/
 *.smoke*
 .smoke/
+
+# Signing material — never commit
+*.keystore
+*.jks
+*.p12
+*.b64

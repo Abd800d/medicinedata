@@ -226,13 +226,50 @@ jobs:
           find android/app/build/outputs/bundle -name '*.aab' -exec cp {} out/ \; 2>/dev/null || true
           ls -lh out/
           echo "files: $(ls out/ | wc -l)"
+      - name: Verify signature
+        if: env.BUILD_TYPE == 'release'
+        run: |
           APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
+          test -x "$APKSIGNER" || APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           for f in out/*.apk; do
             [ -f "$f" ] || continue
-            if [ -x "$APKSIGNER" ]; then
-              "$APKSIGNER" verify --print-certs "$f" 2>&1 | head -6 || true
+            echo "----- $f -----"
+            set +e
+            "$APKSIGNER" verify --verbose --print-certs "$f" > signature.txt 2>&1
+            RC=$?
+            set -e
+            cat signature.txt
+            {
+              echo "### Signature — $f"
+              echo ""
+              echo '```'
+              head -60 signature.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            if [ "$RC" -ne 0 ]; then
+              echo "::error::$f is not properly signed (apksigner exit $RC)"
+              exit 1
             fi
+            grep -q "MDA" signature.txt && echo "::notice::Signed by the MDA certificate"
           done
+
+      - name: Report signing certificate
+        if: always() && env.BUILD_TYPE == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -s signature.txt ] || { echo "no signature report"; exit 0; }
+          BODY="$RUNNER_TEMP/sig.md"
+          {
+            echo "🔐 **Signing report** — run $GITHUB_RUN_ID ($BUILD_TYPE/$BUILD_FORMAT)"
+            echo ""
+            echo '```'
+            head -40 signature.txt
+            echo '```'
+          } > "$BODY"
+          NUM=$(gh issue list --search 'in:title "APK signing report"' --state open --json number --jq '.[0].number // empty' || true)
+          if [ -n "$NUM" ]; then gh issue comment "$NUM" --body-file "$BODY"
+          else gh issue create --title "APK signing report" --body-file "$BODY"; fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
