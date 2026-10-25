@@ -34,8 +34,6 @@ on:
   push:
     tags:
       - 'v*'
-    branches:
-      - arena/5ed17387-medicinedata   # TEMP: self-test
 
 permissions:
   contents: write
@@ -54,8 +52,7 @@ jobs:
       # the URL can always be changed later inside the app (More → الخادم والاتصال).
       API_BASE: ${{ github.event.inputs.api_base || vars.VITE_API_BASE || 'https://4000-if57og1dz3iqxc4tdq20a.e2b.app' }}
       BUILD_TYPE: ${{ github.event.inputs.build_type || 'auto' }}
-      BUILD_FORMAT: ${{ github.event.inputs.build_format || 'aab' }}   # TEMP selftest aab
-      SELFTEST: '1'   # TEMP: throwaway keystore self-test
+      BUILD_FORMAT: ${{ github.event.inputs.build_format || 'apk' }}
 
     steps:
       - name: Checkout
@@ -66,11 +63,10 @@ jobs:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           BT="$BUILD_TYPE"
-          if [ "$SELFTEST" = "1" ]; then BT=release; fi   # TEMP
           if [ -z "$BT" ] || [ "$BT" = "auto" ]; then
             if [ -n "$KEYSTORE_B64" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then BT=release; else BT=debug; fi
           fi
-          if [ "$BT" = "release" ] && [ -z "$KEYSTORE_B64" ] && [ "$SELFTEST" != "1" ]; then
+          if [ "$BT" = "release" ] && [ -z "$KEYSTORE_B64" ]; then
             echo "::error::build_type=release needs the ANDROID_KEYSTORE_BASE64 secret — see docs/SIGNING.md"
             exit 1
           fi
@@ -142,24 +138,8 @@ jobs:
           sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
-      - name: SELFTEST throwaway keystore
-        if: env.SELFTEST == '1'
-        run: |
-          openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 2 \
-            -keyout "$RUNNER_TEMP/k.pem" -out "$RUNNER_TEMP/c.pem" -subj "/CN=MDA selftest" >/dev/null 2>&1
-          openssl pkcs12 -export -name mda -inkey "$RUNNER_TEMP/k.pem" -in "$RUNNER_TEMP/c.pem" \
-            -out "$RUNNER_TEMP/selftest.p12" -passout pass:selftest >/dev/null 2>&1
-          {
-            echo "MDA_KEYSTORE_PATH=$RUNNER_TEMP/selftest.p12"
-            echo "MDA_KEYSTORE_TYPE=PKCS12"
-            echo "MDA_KEYSTORE_PASSWORD=selftest"
-            echo "MDA_KEY_ALIAS=mda"
-            echo "MDA_KEY_PASSWORD=selftest"
-          } >> "$GITHUB_ENV"
-          echo "selftest keystore ready: $(wc -c < "$RUNNER_TEMP/selftest.p12") bytes"
-
       - name: Restore release keystore
-        if: env.BUILD_TYPE == 'release' && env.SELFTEST != '1'
+        if: env.BUILD_TYPE == 'release'
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KS_TYPE: ${{ vars.MDA_KEYSTORE_TYPE }}
@@ -300,14 +280,38 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          printf '%s\n' \
-            "MDA $GITHUB_REF_NAME — APK" \
-            "" \
-            "- Default backend: $API_BASE" \
-            "- Change inside the app: More → Server & connection (الخادم والاتصال)" \
-            "- Install: allow install from this source, then open the APK." \
-            "- Signed: $BUILD_TYPE (Google Play upload key when build_format=aab)." \
-            > "$RUNNER_TEMP/notes.md"
+          {
+            printf '%s\n' \
+              "## MDA $GITHUB_REF_NAME" \
+              "" \
+              "- Backend: \`$API_BASE\`" \
+              "- Change it inside the app: More → الخادم والاتصال" \
+              "- Build: $BUILD_TYPE / $BUILD_FORMAT" \
+              ""
+            if [ "$BUILD_TYPE" = "release" ]; then
+              printf '%s\n' \
+                "### ✅ نسخة موقّعة رسميًا (release-signed)" \
+                "" \
+                "- ثبّت \`app-release.apk\` للتوزيع المباشر." \
+                "- \`app-release.aab\` للرفع على Google Play (Play Console → Production → Create release)." \
+                "- ⚠️ إن كنت ثبّت نسخة debug سابقة (v1.0.x) احذفها أولًا: بصمة التوقيع مختلفة." \
+                "- بصمة الشهادة: \`$(grep -m1 'certificate SHA-256 digest' signature.txt 2>/dev/null | sed 's/.*digest: //' || echo 'see build log')\`" \
+                "" \
+                "### 🔐 التحميل" \
+                "" \
+                "- من الهاتف: افتح هذا الإصدار ← Assets ← \`app-release.apk\` ← اسمح بالتثبيت من هذا المصدر."
+            else
+              printf '%s\n' \
+                "### نسخة debug (للتجربة)" \
+                "" \
+                "- موقّعة بمفتاح debug — تُثبّت على أي جهاز، غير صالحة لمتجر Play." \
+                "- لبناء نسخة رسمية: أضف أسرار التوقيع ثم أعد تشغيل البناء (docs/SIGNING.md)." \
+                "" \
+                "### 🔐 التحميل" \
+                "" \
+                "- من الهاتف: Assets ← \`app-debug.apk\` ← اسمح بالتثبيت من هذا المصدر."
+            fi
+          } > "$RUNNER_TEMP/notes.md"
           FILES=$(find out -maxdepth 1 -type f \( -name '*.apk' -o -name '*.aab' \) | sort | tr '\n' ' ')
           echo "attaching: $FILES"
           gh release create "$GITHUB_REF_NAME" $FILES --title "MDA $GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md" \
