@@ -1,6 +1,6 @@
 {
   "name": "medicinedata",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "MDA — MedicineData: pharmaceutical reference, Yemen/Arab market products, prescriptions and pharmacy management.",
   "type": "module",
@@ -10,17 +10,20 @@
     "dev": "concurrently -k -n API,WEB -c cyan,magenta \"node server/index.js\" \"vite\"",
     "dev:api": "node server/index.js",
     "dev:web": "vite",
+    "prebuild": "node scripts/sync-core.mjs",
     "build": "vite build",
     "start": "NODE_ENV=production node server/index.js",
     "seed": "node server/seed.js",
     "seed:reset": "node server/seed.js --reset",
+    "bundle:data": "node scripts/build-offline-bundle.mjs",
     "cap:sync": "npm run build && npx cap sync android",
     "cap:android": "npm run build && npx cap sync android && npx cap open android",
     "smoke": "esbuild src/smoke-entry.tsx --bundle --format=esm --platform=browser --jsx=automatic --outfile=.smoke/app.mjs --log-level=error && node scripts/smoke.mjs",
     "images:apply": "node scripts/apply-images.mjs",
     "images:check": "node scripts/apply-images.mjs --check",
     "images:fetch": "node scripts/fetch-images.mjs",
-    "barcodes": "node scripts/assign-barcodes.mjs"
+    "barcodes": "node scripts/assign-barcodes.mjs",
+    "bundle:data:check": "node scripts/build-offline-bundle.mjs --out /tmp/catalog.check.json"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.2",

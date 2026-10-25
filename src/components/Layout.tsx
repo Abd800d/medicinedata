@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import {
   Briefcase, ChevronLeft, CircleUserRound, CloudDownload, Home, LayoutGrid, Mail, Menu, MessageCircle,
   MoreHorizontal, ScanLine, Search, ShieldCheck, WifiOff, X, Pill, Sparkles,
-  Stethoscope, Boxes,
+  Stethoscope, Boxes, Database,
 } from 'lucide-react';
 import { Logo, Avatar, MDAIcon } from './ui';
 import InstallPrompt from './install';
@@ -11,6 +11,7 @@ import { useI18n } from '../lib/i18n';
 import { useConfig } from '../lib/config';
 import { useAuth } from '../lib/auth';
 import { useOnline } from '../lib/offline';
+import { getServerReachable, subscribeServerStatus } from '../lib/localcatalog';
 import { cx } from '../lib/utils';
 
 /* Bottom navigation — 5 destinations, matching the mobile reference design */
@@ -148,13 +149,34 @@ export function BottomNav() {
   );
 }
 
+/* Built-in catalogue mode: the phone has no server (yet) but the app is fully browsable. */
+export function useServerStatus() {
+  const [reachable, setReachable] = useState<boolean | null>(() => getServerReachable());
+  useEffect(() => { const off = subscribeServerStatus(setReachable); return () => { off(); }; }, []);
+  return reachable;
+}
+
 export function OfflineBanner() {
   const online = useOnline();
-  const { t } = useI18n();
-  if (online) return null;
+  const server = useServerStatus();
+  const { t, lang } = useI18n();
+  if (!online) {
+    return (
+      <Link to="/offline" className="sticky top-[62px] z-30 block border-b border-amber-400/20 bg-amber-500/10 px-4 py-2 text-center text-[11.5px] font-bold text-amber-200 backdrop-blur">
+        <span className="inline-flex items-center gap-1.5"><WifiOff className="h-3.5 w-3.5" />{t('offline.banner')}</span>
+      </Link>
+    );
+  }
+  if (server !== false) return null;
   return (
-    <Link to="/offline" className="sticky top-[62px] z-30 block border-b border-amber-400/20 bg-amber-500/10 px-4 py-2 text-center text-[11.5px] font-bold text-amber-200 backdrop-blur">
-      <span className="inline-flex items-center gap-1.5"><WifiOff className="h-3.5 w-3.5" />{t('offline.banner')}</span>
+    <Link
+      to="/server"
+      className="sticky top-[62px] z-30 flex items-center justify-center gap-1.5 border-b border-brand-400/25 bg-brand-500/10 px-4 py-2 text-center text-[11px] font-bold text-brand-100 backdrop-blur"
+    >
+      <Database className="h-3.5 w-3.5 shrink-0" />
+      {lang === 'ar'
+        ? 'البيانات المدمجة داخل التطبيق — الخادم غير متصل (اضغط للربط)'
+        : 'Built-in data — no server connected (tap to link)'}
     </Link>
   );
 }

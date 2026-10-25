@@ -159,3 +159,11 @@ const counts = db.prepare(`SELECT
   (SELECT COUNT(*) FROM manufacturers) manufacturers,
   (SELECT COUNT(*) FROM agents) agents`).get();
 console.log('[seed] done →', counts);
+
+/* Keep the catalogue that ships inside the APK in sync with this database. */
+try {
+  const { execFileSync } = await import('node:child_process');
+  execFileSync(process.execPath, ['scripts/build-offline-bundle.mjs'], { stdio: 'inherit' });
+} catch (e) {
+  console.warn('[seed] could not refresh public/data/catalog.json:', e.message);
+}

@@ -125,7 +125,7 @@ export default function More() {
 
       <div className="space-y-2 text-center">
         <div className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-semibold text-ink-500 bg-white/[.05]">
-          <Globe2 className="h-2.5 w-2.5" /> MDA v1.0 · {config.counts?.drugs ?? 0} drugs · {config.counts?.products ?? 0} products
+          <Globe2 className="h-2.5 w-2.5" /> MDA v{__APP_VERSION__} · {config.counts?.drugs ?? 0} drugs · {config.counts?.products ?? 0} products
         </div>
         <p className="text-[10px] leading-5 text-ink-400">{t('more.credit')} · {config.owner_name}</p>
         {user && <button onClick={() => { logout(); push(t('common.logoutDone')); }} className="mx-auto flex items-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-bold text-rose-300 hover:bg-rose-950/30"><LogOut className="h-3.5 w-3.5" />{t('common.logout')}</button>}
