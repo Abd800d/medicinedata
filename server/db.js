@@ -270,6 +270,81 @@ CREATE TABLE IF NOT EXISTS search_terms (
   hits INTEGER DEFAULT 1,
   last_at TEXT DEFAULT (datetime('now'))
 );
+
+/* ---------------- AI prescription pipeline (Phase 1) ---------------- */
+CREATE TABLE IF NOT EXISTS ai_runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind TEXT NOT NULL,                     -- prescription | pack | ask
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  prescription_id INTEGER,
+  provider TEXT,
+  model TEXT,
+  request_id TEXT,
+  latency_ms INTEGER,
+  prompt_version TEXT,
+  ok INTEGER DEFAULT 1,
+  error_code TEXT,
+  usage_json TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS prescription_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  prescription_id INTEGER NOT NULL REFERENCES prescriptions(id) ON DELETE CASCADE,
+  line_no INTEGER NOT NULL,
+  raw_text TEXT,
+  name TEXT,
+  matched_drug_id INTEGER REFERENCES drugs(id) ON DELETE SET NULL,
+  matched_product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+  match_score REAL,
+  alternatives_json TEXT,
+  strength TEXT,
+  form TEXT,
+  dose TEXT,
+  frequency TEXT,
+  duration TEXT,
+  route TEXT,
+  instructions TEXT,
+  field_confidence_json TEXT,
+  status TEXT NOT NULL DEFAULT 'pending', -- pending | confirmed | corrected | rejected
+  corrected_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  corrected_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS prescription_reviews (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  prescription_id INTEGER NOT NULL REFERENCES prescriptions(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  action TEXT NOT NULL,                   -- approved | corrected | rejected | purged
+  notes TEXT,
+  flags_json TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+/* Append-only audit trail with a hash chain (tamper-evident, never updated) */
+CREATE TABLE IF NOT EXISTS audit_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  actor_id INTEGER,
+  actor_email TEXT,
+  action TEXT NOT NULL,
+  target_type TEXT,
+  target_id TEXT,
+  meta_json TEXT,
+  prev_hash TEXT,
+  hash TEXT,
+  ip TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS user_consents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,                     -- prescription_image | cloud_ai | patient_data
+  version TEXT NOT NULL,
+  granted INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `;
 
 db.exec(SCHEMA);
@@ -282,6 +357,10 @@ function ensureColumn(table, column, ddl) {
 ensureColumn('products', 'barcode_source', 'barcode_source TEXT');          // internal-ean13 | manufacturer | import | admin
 ensureColumn('products', 'barcode_verified', 'barcode_verified INTEGER DEFAULT 0');
 db.exec("CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode)");
+db.exec("CREATE INDEX IF NOT EXISTS idx_ai_runs_user ON ai_runs(user_id, created_at)");
+db.exec("CREATE INDEX IF NOT EXISTS idx_rx_items ON prescription_items(prescription_id)");
+db.exec("CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at)");
+db.exec("CREATE INDEX IF NOT EXISTS idx_consent_user ON user_consents(user_id, kind)");
 
 // Full text search indexes (trigram → typo tolerant substring search)
 db.exec(`

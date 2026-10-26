@@ -47,8 +47,22 @@ const manufacturers = pick(db.prepare('SELECT * FROM manufacturers ORDER BY name
 const agents = pick(db.prepare('SELECT * FROM agents ORDER BY name').all(), ['id', 'name', 'name_ar', 'country', 'city', 'phone', 'email', 'website']);
 const productImages = pick(db.prepare('SELECT * FROM product_images ORDER BY product_id, sort_order').all(), ['id', 'product_id', 'url', 'source', 'sort_order']);
 
+/* PUBLIC settings only. This bundle is shipped inside the APK and served to anyone,
+   so a secret here is a leaked secret — the guard below fails the build instead. */
+const PUBLIC_SETTINGS = new Set([
+  'site_name_ar', 'site_name_en', 'owner_name', 'owner_title', 'support_email', 'whatsapp',
+  'about_ar', 'about_en', 'disclaimer_ar', 'disclaimer_en', 'default_lang',
+  'google_client_id', 'primary_color', 'brand_color', 'currency', 'country',
+]);
+const SECRET_KEY = /(secret|password|passwd|token|api[_-]?key|private|credential|salt)/i;
 const settings = {};
-for (const row of db.prepare('SELECT key, value FROM settings').all()) settings[row.key] = row.value;
+for (const row of db.prepare('SELECT key, value FROM settings').all()) {
+  if (SECRET_KEY.test(row.key)) continue;
+  if (!PUBLIC_SETTINGS.has(row.key)) continue;
+  settings[row.key] = row.value;
+}
+const leaked = Object.keys(settings).filter((k) => SECRET_KEY.test(k));
+if (leaked.length) throw new Error(`refusing to ship secrets in the offline bundle: ${leaked.join(', ')}`);
 
 const counts = {
   systems: systems.length,

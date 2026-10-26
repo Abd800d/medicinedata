@@ -7,6 +7,7 @@ import aiRoutes from './ai.js';
 import adminRoutes from './admin.js';
 import pharmacyRoutes from './pharmacy.js';
 import submissionRoutes from './submissions.js';
+import prescriptionAiRoutes from './prescription-ai.js';
 import { optionalAuth, ensureAdmin, OWNER_EMAIL } from '../auth.js';
 import { getSetting, db } from '../db.js';
 
@@ -51,6 +52,7 @@ router.use('/auth', authRoutes);
 router.use('/catalog', catalogRoutes);
 router.use('/community', communityRoutes);
 router.use('/prescriptions', prescriptionRoutes);
+router.use('/rx', prescriptionAiRoutes);
 router.use('/ai', aiRoutes);
 router.use('/admin', adminRoutes);
 router.use('/pharmacy', pharmacyRoutes);

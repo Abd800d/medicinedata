@@ -9,6 +9,7 @@ import { makeUploader } from '../lib/upload.js';
 import { autoFillImages, cseConfigured, searchImages, downloadImage, attachImage, productsWithoutPhoto } from '../lib/product-images.js';
 import { integrations, testIntegration, bundledImages } from '../lib/integrations.js';
 import { searchNorm, normalize } from '../lib/search.js';
+import { verifyChain } from '../lib/audit.js';
 import {
   createImporter, csvRows, xlsxRows, jsonRows, detectKind, countRows,
 } from '../lib/importer.js';
@@ -24,6 +25,32 @@ const int = (v) => (v === undefined || v === null || v === '' ? null : Number(v)
 const clean = (v) => (v === undefined || v === null ? null : String(v).trim() || null);
 
 /* ---------------- Stats ---------------- */
+/* ---------------- Audit log (immutable, hash-chained) ---------------- */
+router.get('/audit', (req, res) => {
+  const limit = Math.min(500, Math.max(1, Number(req.query.limit) || 100));
+  const action = String(req.query.action || '').trim();
+  const target = String(req.query.target || '').trim();
+  const rows = db.prepare(`SELECT a.*, u.name AS actor_name FROM audit_log a
+      LEFT JOIN users u ON u.id = a.actor_id
+      ${action || target ? 'WHERE ' + [action ? '(a.action LIKE ?)' : null, target ? '(a.target_type=?)' : null].filter(Boolean).join(' AND ') : ''}
+      ORDER BY a.id DESC LIMIT ?`).all(
+    ...[...(action ? [`${action}%`] : []), ...(target ? [target] : []), limit],
+  );
+  res.json(rows.map((r) => ({ ...r, meta: r.meta_json ? JSON.parse(r.meta_json) : null })));
+});
+router.get('/audit/verify', (_req, res) => {
+  const result = verifyChain(20000);
+  res.json(result);
+});
+router.get('/prescriptions', (req, res) => {
+  const status = String(req.query.status || 'pending_review');
+  const rows = db.prepare(`SELECT p.id, p.status, p.created_at, u.name AS owner_name,
+      (SELECT COUNT(*) FROM prescription_items i WHERE i.prescription_id=p.id) items,
+      (SELECT COUNT(*) FROM prescription_items i WHERE i.prescription_id=p.id AND i.status='pending') pending_items
+    FROM prescriptions p LEFT JOIN users u ON u.id=p.user_id WHERE p.status=? ORDER BY p.id DESC LIMIT 200`).all(status);
+  res.json(rows);
+});
+
 router.get('/stats', (_req, res) => {
   const one = (sql) => db.prepare(sql).get().n;
   const newUsers = db.prepare(`SELECT date(created_at) d, COUNT(*) n FROM users
@@ -621,7 +648,7 @@ router.patch('/users/:id', (req, res) => {
   const { role, active, name, phone, city } = req.body || {};
   const user = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id);
   if (!user) return res.status(404).json({ error: 'Not found' });
-  if (role && !['user', 'admin'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
+  if (role && !['user', 'pharmacist', 'admin'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
   if (user.id === req.user.id && role && role !== 'admin') return res.status(400).json({ error: 'لا يمكنك إزالة صلاحيتك' });
   if (user.id === req.user.id && active === 0) return res.status(400).json({ error: 'لا يمكنك تعطيل حسابك' });
   db.prepare('UPDATE users SET role=COALESCE(?,role), active=COALESCE(?,active), name=COALESCE(?,name), phone=COALESCE(?,phone), city=COALESCE(?,city) WHERE id=?')

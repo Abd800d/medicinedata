@@ -1,6 +1,6 @@
 {
   "name": "medicinedata",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "MDA — MedicineData: pharmaceutical reference, Yemen/Arab market products, prescriptions and pharmacy management.",
   "type": "module",
@@ -23,7 +23,8 @@
     "images:check": "node scripts/apply-images.mjs --check",
     "images:fetch": "node scripts/fetch-images.mjs",
     "barcodes": "node scripts/assign-barcodes.mjs",
-    "bundle:data:check": "node scripts/build-offline-bundle.mjs --out /tmp/catalog.check.json"
+    "bundle:data:check": "node scripts/build-offline-bundle.mjs --out /tmp/catalog.check.json",
+    "test:rx": "node scripts/test-rx.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.2",

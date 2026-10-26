@@ -6,7 +6,9 @@ import { db, getSetting, setSetting } from './db.js';
 
 const SECRET = (() => {
   if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
-  let s = getSetting('jwt_secret');
+  /* Prefer an environment secret (Render env var), else a random per-database secret.
+     A secret must never be shipped to clients — see scripts/build-offline-bundle.mjs. */
+  let s = String(process.env.JWT_SECRET || '').trim() || getSetting('jwt_secret');
   if (!s) { s = crypto.randomBytes(48).toString('hex'); setSetting('jwt_secret', s); }
   return s;
 })();
@@ -52,6 +54,17 @@ export function authRequired(req, res, next) {
   if (!req.user) return res.status(401).json({ error: 'يجب تسجيل الدخول / Login required' });
   next();
 }
+
+/** Any of the listed roles (admin always allowed). */
+export function roleRequired(...roles) {
+  return (req, res, next) => {
+    if (!req.user) return res.status(401).json({ error: 'يجب تسجيل الدخول / Login required' });
+    if (req.user.role === 'admin' || roles.includes(req.user.role)) return next();
+    return res.status(403).json({ error: 'تحتاج صلاحية صيدلي أو مدير / Pharmacist or admin only', code: 'FORBIDDEN_ROLE' });
+  };
+}
+
+export const ROLES = ['user', 'pharmacist', 'admin'];
 
 export function adminRequired(req, res, next) {
   if (!req.user) return res.status(401).json({ error: 'يجب تسجيل الدخول / Login required' });

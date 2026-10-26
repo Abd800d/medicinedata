@@ -5,10 +5,10 @@ const memory = new Map<string, { at: number; data: unknown }>();
 
 export function useApi<T>(path: string | null, params?: Record<string, unknown>, opts: { ttl?: number; enabled?: boolean } = {}) {
   const { ttl = 60_000, enabled = true } = opts;
-  const privatePath = !!path && /^\/api\/(admin|auth|community|prescriptions|ai)\//.test(path);
+  const privatePath = !!path && /^\/api\/(admin|auth|community|prescriptions|ai|rx)\//.test(path);
   const key = path ? path + '?' + JSON.stringify(params || {}) : '';
   const [data, setData] = useState<T | null>(() => {
-    if (!key || /^\/api\/(admin|auth|community|prescriptions|ai)\//.test(key)) return null;
+    if (!key || /^\/api\/(admin|auth|community|prescriptions|ai|rx)\//.test(key)) return null;
     const cached = memory.get(key);
     return cached && Date.now() - cached.at < ttl ? (cached.data as T) : null;
   });

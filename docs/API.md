@@ -142,6 +142,46 @@
 | `POST /admin/verify` | تعليم منتجات كموثّقة (`{ ids: [] }`) |
 | `GET /admin/export` | نسخة JSON كاملة (يلزم Bearer) |
 
+## تحليل الوصفات بالذكاء الاصطناعي · Prescription AI (v1.2.0)
+
+كل المسارات تحت `/api/rx` وتحتاج `Authorization: Bearer`. لا مفتاح AI يمرّ للعميل.
+
+| الطريقة | المسار | الوصف |
+| --- | --- | --- |
+| GET | `/rx/status` | هل التحليل مفعّل + المزوّد/النموذج/إصدار التعليمات (بلا مفتاح أو عنوان) |
+| GET | `/rx/consent` | حالة الموافقة + نصّها الحالي |
+| POST | `/rx/consent` | `{ granted: true\|false }` — تسجيل/سحب الموافقة |
+| POST | `/rx/analyze` | `multipart: image` أو `{ text }` + `keep_image=1` اختياري ⇒ 201 `{ id, analysis, ai }` · **428** بلا موافقة · **503** بلا مفتاح · **429** تجاوز المعدّل |
+| POST | `/rx/:id/reanalyze` | إعادة التحليل (صورة محفوظة أو نص مصحّح) |
+| GET | `/rx/:id` | التحليل + البنود + المراجعات + آخر نداءات النموذج (المالك أو الطاقم — تُسجَّل قراءة الطاقم) |
+| PATCH | `/rx/:id/items/:itemId` | تصحيح يدوي (صيدلي/مدير): `name`, `matched_drug_id`, `dose`, `frequency`, `duration`, `strength`, `form`, `route` … |
+| POST | `/rx/:id/confirm` | اعتماد المراجعة (صيدلي/مدير) — **409** ما دام بند `pending` إلا مع `accept_uncertain: true` |
+| POST | `/rx/:id/reject` | رفض مع `notes` |
+| DELETE | `/rx/:id` | محو صورة/بيانات المريض نهائيًا مع إبقاء أثر التدقيق |
+| GET | `/rx/queue?status=` | طابور الصيدلي (بلا بيانات مريض في القائمة) |
+
+**الاستجابة المختصرة للتحليل:**
+
+```json
+{ "id": 12, "needs_pharmacist": true,
+  "analysis": {
+    "readable": true, "summary": { "items": 3, "matched": 2, "needs_review": 2, "auto_accepted": 0, "requires_pharmacist": true },
+    "items": [{ "line_no": 1, "name": "Augmentin", "strength": "1g", "confidence": 0.94,
+                "field_confidence": { "name": 0.97, "dose": 0.9 },
+                "uncertain_fields": [], "matched": { "drug_id": 143, "product_id": 311, "score": 0.95 },
+                "alternatives": [ … ], "dossier": { "drug": { … }, "brands": [ … ] },
+                "needs_review": false }],
+    "flags": [{ "severity": "high", "type": "duplicate_ingredient", "action_ar": "يحتاج إلى مراجعة الصيدلي" }],
+    "disclaimer_ar": "…", "source": { "model": "…", "prompt_version": "rx-1.0.0", "analysed_at": "…" } } }
+```
+
+### سجل التدقيق (مدير)
+
+| الطريقة | المسار | الوصف |
+| --- | --- | --- |
+| GET | `/admin/audit?limit=&action=&target=` | آخر الأحداث مع `meta` (قبل/بعد التصحيح مثلًا) |
+| GET | `/admin/audit/verify` | فحص سلسلة التجزئة؛ `{ ok, entries, broken_at? }` |
+
 ## أمثلة
 
 ```bash
@@ -154,10 +194,14 @@ TOKEN=$(curl -s -X POST $API/auth/login -H 'Content-Type: application/json' \
 # بحث
 curl -s "$API/catalog/search?q=بنادول" | jq '.products[0]'
 
-# تحليل وصفة نصية
-curl -s -X POST $API/prescriptions/1/analyze -H "Authorization: Bearer $TOKEN" \
+# تحليل وصفة نصية (المسار الجديد)
+curl -s -X POST $API/rx/analyze -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
-  -d '{"text":"Augmentin 1g BID\nPanadol 500mg TID\nConcor 5mg OD"}' | jq '.items[].matched.generic_name'
+  -d '{"text":"Augmentin 1g BID\nPanadol 500mg TID\nConcor 5mg OD"}' | jq '.analysis.items[].matched.generic_name'
+
+# اعتماد الصيدلي بعد التصحيح
+curl -s -X POST $API/rx/12/confirm -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"accept_uncertain":true,"notes":"راجعتها"}'
 
 # إضافة صنف للصيدلية
 curl -s -X POST $API/pharmacy -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \

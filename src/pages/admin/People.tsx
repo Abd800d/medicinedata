@@ -65,6 +65,7 @@ function UsersPanel() {
                 <div className="flex items-center gap-1.5">
                   <span className="truncate text-[12px] font-bold">{u.name}</span>
                   {u.role === 'admin' && <Badge tone="amber">admin</Badge>}
+                  {u.role === 'pharmacist' && <Badge tone="emerald">صيدلي</Badge>}
                   {!u.active && <Badge tone="rose">موقوف</Badge>}
                 </div>
                 <div className="truncate text-[10px] text-ink-400" dir="ltr">{u.email}</div>
@@ -72,7 +73,9 @@ function UsersPanel() {
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 <select value={u.role} onChange={(e) => patch(u, { role: e.target.value })} className="rounded-lg border px-1 py-1 text-[10px] font-bold border-white/[.09] bg-white/[.05]">
-                  <option value="user">user</option><option value="admin">admin</option>
+                  <option value="user">user</option>
+                  <option value="pharmacist">pharmacist · صيدلي</option>
+                  <option value="admin">admin</option>
                 </select>
                 <button onClick={() => patch(u, { active: u.active ? 0 : 1 })} className={cx('icon-btn h-7 w-7', u.active ? 'text-emerald-300' : 'text-ink-400')} title={u.active ? 'تعطيل' : 'تفعيل'}>{u.active ? <CheckCircle2 className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}</button>
                 <button onClick={() => { setPwUser(u); setPw(''); }} className="icon-btn h-7 w-7 text-sky-300"><Lock className="h-3.5 w-3.5" /></button>

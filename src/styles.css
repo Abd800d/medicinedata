@@ -125,6 +125,7 @@ body {
   .link { @apply text-brand-300 underline-offset-4 hover:underline; }
   .prose-ar { @apply text-[13.5px] leading-7 text-ink-300; }
 
+  .mini-input { @apply w-full rounded-lg border border-white/[.09] bg-white/[.05] px-2 py-1 text-[11px] text-ink-100 outline-none focus:border-brand-400/60; }
   .icon-btn {
     @apply inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/[.07] bg-white/[.04] text-ink-300
            transition hover:border-brand-400/30 hover:bg-white/[.09] hover:text-white active:scale-95;
