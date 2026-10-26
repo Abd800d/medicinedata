@@ -83,11 +83,13 @@ export default function About() {
       <div className="grid grid-cols-2 gap-2">
         <Link to="/community" className="btn-soft"><MessageCircle className="h-4 w-4" />{ar ? 'تواصل معنا' : 'Contact us'}</Link>
         <Link to="/jobs" className="btn-ghost"><Briefcase className="h-4 w-4" />{ar ? 'لوحة الوظائف' : 'Jobs board'}</Link>
+        <Link to="/legal/privacy" className="btn-ghost"><ShieldCheck className="h-4 w-4" />{ar ? 'سياسة الخصوصية' : 'Privacy policy'}</Link>
+        <Link to="/legal/terms" className="btn-ghost"><BookOpen className="h-4 w-4" />{ar ? 'شروط الاستخدام' : 'Terms of use'}</Link>
       </div>
       <p className="pb-2 text-center text-[10px] text-ink-400">© {new Date().getFullYear()} {config.owner_name} · MDA · {ar ? 'جميع الحقوق محفوظة' : 'All rights reserved'}</p>
       <div className="flex justify-center gap-2 pb-2 text-[9.5px] text-ink-400">
         <span className="inline-flex items-center gap-1"><Globe2 className="h-2.5 w-2.5" />Yemen</span>
-        <span>·</span><span className="inline-flex items-center gap-1"><Sparkles className="h-2.5 w-2.5" />v1.0.0</span>
+        <span>·</span><span className="inline-flex items-center gap-1"><Sparkles className="h-2.5 w-2.5" />v{__APP_VERSION__}</span>
         <span>·</span><span className="inline-flex items-center gap-1"><BadgeCheck className="h-2.5 w-2.5" />{t('common.verified')}</span>
       </div>
     </div>

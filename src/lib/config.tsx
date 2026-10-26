@@ -28,6 +28,10 @@ export type AppConfig = {
   welcome_text?: string;
   welcome_text_ar?: string;
   welcome_text_en?: string;
+  privacy_url?: string;
+  terms_url?: string;
+  legal_version?: string;
+  legal_updated?: string;
 };
 
 const DEFAULTS: AppConfig = {

@@ -21,7 +21,7 @@ const ok = (name, cond, extra = '') => {
   if (cond) { pass++; console.log(`  ✓ ${name}`); } else { fail++; console.log(`  ✗ ${name} ${extra}`); }
 };
 
-console.log('\nMDA UI test — lock + theme\n');
+console.log('\nMDA UI test — lock + theme + privacy\n');
 
 execSync(
   `npx esbuild scripts/ui-entry.tsx --bundle --format=esm --platform=browser --jsx=automatic --loader:.tsx=tsx --outfile=${BUNDLE} --log-level=error --define:process.env.NODE_ENV='"development"'`,
@@ -97,6 +97,47 @@ ok('offers biometrics only when available (disabled here)', markup.includes('ari
 ok('has a recovery path', markup.includes('نسيت الرقم السري؟'));
 ok('states that the PIN never leaves the phone', markup.includes('لا يُرسل رقمك إلى الخادم'));
 ok('does not leak the stored digest', !markup.includes(hash1.slice(0, 12)));
+
+/* ---------------- screenshot protection (v1.8.0) ---------------- */
+console.log('privacy · per-prescription FLAG_SECURE');
+execSync(`npx esbuild src/lib/secure.ts --bundle --format=esm --platform=browser --outfile=${path.join(ROOT, '.smoke', 'secure.mjs')} --log-level=error`, { cwd: ROOT, stdio: 'inherit' });
+const sec = await import(`${ROOT}/.smoke/secure.mjs?v=${Math.random()}`);
+
+localStorage.clear();
+ok('nothing is protected by default', !sec.globalSecure() && !sec.isRxSecure(7));
+ok('the web build has no native bridge', sec.nativeSecureAvailable() === false);
+
+sec.setRxSecure(7, true);
+ok('flagging one prescription persists its id', sec.isRxSecure(7) && !sec.isRxSecure(8));
+ok('the effective state follows the per-record flag', sec.effectiveSecure(7) === true);
+ok('the shell mirror records "1"', localStorage.getItem(sec.SECURE_NOW_KEY) === '1');
+
+sec.setRxSecure(7, false);
+ok('unflagging restores the unprotected state', !sec.isRxSecure(7) && sec.effectiveSecure(7) === false);
+ok('the shell mirror records "0"', localStorage.getItem(sec.SECURE_NOW_KEY) === '0');
+
+sec.setGlobalSecure(true);
+ok('the device-wide switch writes its own key', localStorage.getItem(sec.SECURE_GLOBAL_KEY) === '1');
+ok('the device switch protects every prescription', sec.effectiveSecure(99) === true);
+sec.setRxSecure(42, true);
+sec.setRxSecure(42, false);
+ok('clearing one record keeps the global protection', sec.effectiveSecure(42) === true);
+sec.setGlobalSecure(false);
+ok('turning the device switch off drops protection', sec.effectiveSecure(42) === false);
+
+let bridged = [];
+globalThis.window.MDASecure = { set: (v) => bridged.push(v) };
+ok('the bridge is detected once present', sec.nativeSecureAvailable() === true);
+sec.applyNativeSecure(true);
+sec.applyNativeSecure(false);
+ok('the bridge receives "1" then "0"', bridged.join(',') === '1,0', bridged.join(','));
+delete globalThis.window.MDASecure;
+
+const rxMarkup = ui.renderRxSecureMarkup(7);
+ok('the prescription screen shows the block-screenshots card', rxMarkup.includes('منع لقطات الشاشة'));
+ok('it names the scope of the switch', rxMarkup.includes('#7'));
+ok('it explains the browser limitation', rxMarkup.includes('المتصفح لا يستطيع منع لقطات الشاشة'));
+ok('it is an accessible switch', rxMarkup.includes('role="switch"') && rxMarkup.includes('aria-checked'));
 
 /* ---------------- theme ---------------- */
 console.log('theme · dark / light / system');

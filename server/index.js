@@ -10,6 +10,7 @@ import compression from 'compression';
 import { fileURLToPath } from 'node:url';
 import { db } from './db.js';
 import api from './routes/index.js';
+import { privacyHtml, termsHtml, legalUrls } from './lib/legal.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -31,6 +32,26 @@ app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '30d', immutable: true 
 app.use('/seed-images', express.static(path.join(ROOT, 'public', 'seed-images'), { maxAge: '30d' }));
 
 app.use('/api', api);
+
+/*
+ * Public legal pages — a Play Store listing needs a URL that opens without JS or login.
+ * Read-only and identical for every visitor, so they are also the only cross-origin
+ * friendly endpoints: the Android shell (origin https://localhost) renders them in-app.
+ */
+const legalHeaders = (res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+};
+app.get('/privacy', (_req, res) => { legalHeaders(res); res.send(privacyHtml()); });
+app.get('/terms', (_req, res) => { legalHeaders(res); res.send(termsHtml()); });
+/* Machine-readable pointer (used by the app's About screen and by store tooling). */
+app.get('/.well-known/mda-legal.json', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.json(legalUrls(req));
+});
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, app: 'MDA', version: '1.0.0' }));
 

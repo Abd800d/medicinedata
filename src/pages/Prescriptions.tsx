@@ -8,6 +8,7 @@ import {
 import { useI18n } from '../lib/i18n';
 import { useAuth } from '../lib/auth';
 import { api, assetUrl } from '../lib/api';
+import RxSecureToggle from '../components/RxSecureToggle';
 import { useApi } from '../lib/useApi';
 import { Badge, EmptyState, PageLoader, TextArea, useToast } from '../components/ui';
 import { cx, dateFmt } from '../lib/utils';
@@ -280,6 +281,9 @@ export default function Prescriptions() {
           <span className="rounded-full bg-white/15 px-2 py-1"><Database className="me-1 inline h-3 w-3" /> مطابقة مع {summary?.matched ?? 0} من قاعدة MDA</span>
         </div>
       </div>
+
+      {/* Screenshot protection for the prescription in front of the pharmacist (v1.8.0) */}
+      {user && <RxSecureToggle rxId={current?.id ?? null} />}
 
       {!user && (
         <div className="card flex items-center gap-3 p-4">

@@ -157,6 +157,43 @@ ok('no orphaned prescription photo is left on disk', leftovers === 0, `found ${l
 const chain2 = await call('/api/admin/audit/verify', { token: admin });
 ok('erasure does not break the audit chain', chain2.json?.ok === true);
 
+console.log('9 · Play package (v1.8.0)');
+
+const raw = async (p) => {
+  const res = await fetch(API + p);
+  return { status: res.status, type: res.headers.get('content-type') || '', text: await res.text() };
+};
+const priv = await raw('/privacy');
+ok('the privacy policy is served as HTML without any auth', priv.status === 200 && priv.type.includes('text/html'));
+ok('it is the Arabic policy, not a placeholder', priv.text.includes('سياسة الخصوصية') && priv.text.includes('عبدالمجيد'));
+ok('it renders without JavaScript (no script tags)', !/<script/i.test(priv.text));
+ok('it names the erasure right the app implements', /حذف/.test(priv.text));
+const terms = await raw('/terms');
+ok('the terms page is public too', terms.status === 200 && terms.text.includes('شروط الاستخدام'));
+const corsRes = await fetch(`${API}/privacy`, { headers: { Origin: 'https://localhost' } });
+ok('the policy is readable from the Android shell origin', corsRes.headers.get('access-control-allow-origin') === '*');
+await corsRes.text();
+ok('the terms forbid auto-diagnosis wording', /تشخيص/.test(terms.text));
+
+const cfg = (await call('/api/config')).json || {};
+ok('config advertises the same policy URLs the store needs', /^https?:\/\/.+\/privacy$/.test(cfg.privacy_url || '') && /\/terms$/.test(cfg.terms_url || ''));
+ok('config carries a policy version for the consent log', !!cfg.legal_version);
+
+const anonKs = await call('/api/admin/keystore', { method: 'POST', body: { password: 'WhateverPass-2026' } });
+ok('keystore generation needs an admin token', anonKs.status === 401);
+const weakKs = await call('/api/admin/keystore', { method: 'POST', token: admin, body: { password: 'short' } });
+ok('a short keystore password is rejected', weakKs.status === 400 && weakKs.json?.error === 'password-too-short');
+const ks = await call('/api/admin/keystore', { method: 'POST', token: admin, body: { password: 'E2E-Keystore-2026!' } });
+const ksBuf = ks.json?.base64 ? Buffer.from(ks.json.base64, 'base64') : Buffer.alloc(0);
+ok('a real PKCS#12 keystore is produced', ks.status === 200 && ksBuf.length > 1500);
+ok('the keystore is a PKCS#12 container (DER SEQUENCE)', ksBuf[0] === 0x30);
+ok('it carries the alias the workflow expects', ks.json?.alias === 'mda-upload');
+ok('it reports the SHA-256 fingerprint for Play Console', /^[0-9A-F]{2}(:[0-9A-F]{2}){31}$/.test(ks.json?.sha256 || ''));
+ok('validity reaches Google Play\'s 25-year minimum', Number((ks.json?.not_after || '0').slice(0, 4)) >= 2050);
+ok('the response tells the owner where to paste the secrets', Array.isArray(ks.json?.commands) && ks.json.commands.some((c) => c.includes('ANDROID_KEYSTORE_BASE64')));
+const stored = fs.readdirSync(path.join(process.cwd(), 'data')).filter((f) => f.endsWith('.p12'));
+ok('the private key is never written to disk', stored.length === 0);
+
 /* ------------------------------------------------------------------ cleanup */
 console.log('cleanup');
 const users = await call('/api/admin/users?q=e2e', { token: admin });

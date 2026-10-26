@@ -8,6 +8,7 @@ import { AUTO_OPTIONS, useAppLock } from '../lib/lock';
 import { useI18n } from '../lib/i18n';
 import { Badge, useToast } from './ui';
 import { cx } from '../lib/utils';
+import { globalSecure, setGlobalSecure } from '../lib/secure';
 
 const AUTO_LABEL = (m: number, ar: boolean) =>
   m === 0 ? (ar ? 'فورًا عند الخروج' : 'Immediately') :
@@ -27,15 +28,15 @@ export default function LockSettings() {
   const [confirm, setConfirm] = useState('');
   const [oldPin, setOldPin] = useState('');
   const [busy, setBusy] = useState(false);
-  const [secure, setSecure] = useState(() => {
-    try { return localStorage.getItem('mda.secureFlag') === '1'; } catch { return false; }
-  });
+  const [secure, setSecure] = useState(() => globalSecure());
 
   /* Screenshot protection is applied by the Android shell (MainActivity) reading this
      key; on the web it is a no-op, so the card says where it actually works. */
   const toggleSecure = () => {
     const next = !secure;
-    try { localStorage.setItem('mda.secureFlag', next ? '1' : '0'); } catch { /* private mode */ }
+    /* Writes the key, pushes it to the Android window flags right away, and keeps a
+       per-prescription flag added from the prescription screen intact. */
+    setGlobalSecure(next);
     setSecure(next);
     push(next ? (ar ? 'سيُمنع تصوير الشاشة في تطبيق أندرويد' : 'Screenshots will be blocked in the Android app')
               : (ar ? 'أُلغي منع تصوير الشاشة' : 'Screenshot block disabled'), 'success');

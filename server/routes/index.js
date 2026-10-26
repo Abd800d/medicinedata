@@ -11,6 +11,7 @@ import prescriptionAiRoutes from './prescription-ai.js';
 import { optionalAuth, ensureAdmin, OWNER_EMAIL } from '../auth.js';
 import { getSetting, db } from '../db.js';
 import { idempotency, pruneIdempotency } from '../lib/idempotency.js';
+import { legalUrls } from '../lib/legal.js';
 
 const router = Router();
 router.use(optionalAuth);
@@ -36,6 +37,8 @@ router.get('/config', (_req, res) => {
     disclaimer_ar: getSetting('disclaimer_ar', 'المعلومات لأغراض تعليمية ومرجعية ولا تُغني عن استشارة الطبيب أو الصيدلي.'),
     disclaimer_en: getSetting('disclaimer_en', 'Information is for educational/reference purposes only and does not replace professional medical advice.'),
     ai_enabled: !!(process.env.AI_API_KEY || process.env.OPENAI_API_KEY),
+    /* Same URLs the Play listing must use, so the app never shows a stale policy link. */
+    ...legalUrls(_req),
     google_client_id: process.env.GOOGLE_CLIENT_ID || getSetting('google_client_id', '') || '',
     counts,
     default_lang: getSetting('default_lang', 'ar'),

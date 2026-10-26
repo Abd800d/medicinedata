@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import Welcome from './components/Welcome';
 import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
@@ -8,6 +8,7 @@ import { AuthProvider } from './lib/auth';
 import { PageLoader, ToastProvider } from './components/ui';
 import { SyncProvider } from './lib/sync';
 import { LockProvider, useAppLock } from './lib/lock';
+import { syncSecureFromGlobal } from './lib/secure';
 import LockScreen from './components/LockScreen';
 import Layout from './components/Layout';
 
@@ -19,6 +20,7 @@ const DrugDetail = lazy(() => import('./pages/DrugDetail'));
 const ProductDetail = lazy(() => import('./pages/ProductDetail'));
 const Prescriptions = lazy(() => import('./pages/Prescriptions'));
 const SyncCenter = lazy(() => import('./pages/SyncCenter'));
+const Legal = lazy(() => import('./pages/Legal'));
 const ScanPage = lazy(() => import('./pages/ScanPage'));
 const AiAssistant = lazy(() => import('./pages/AiAssistant'));
 const Community = lazy(() => import('./pages/Community'));
@@ -80,6 +82,9 @@ function NotFound() {
 /* The lock overlay lives above the router; the app keeps running behind it. */
 function LockGate({ children }: { children: React.ReactNode }) {
   const { locked } = useAppLock();
+  /* Cold start: the native window must follow the device-wide switch, not a value left
+     behind by the last prescription that was open. */
+  useEffect(() => { syncSecureFromGlobal(); }, []);
   return (
     <>
       {children}
@@ -121,6 +126,7 @@ export default function App() {
                     <Route path="offline" element={<Offline />} />
                     <Route path="server" element={<ServerSettings />} />
                     <Route path="sync" element={<SyncCenter />} />
+                    <Route path="legal/:doc" element={<Legal />} />
                     <Route path="about" element={<About />} />
                     <Route path="auth" element={<Auth />} />
                     <Route path="profile" element={<Profile />} />

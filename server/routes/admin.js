@@ -17,6 +17,7 @@ import {
 import { datasetCatalog, exportDataset, exportAll } from '../lib/exporter.js';
 import { encryptFile, decryptBuffer, inspectBackup, restoreSnapshot, snapshotToTemp, databaseSummary } from '../lib/backup.js';
 import { audit } from '../lib/audit.js';
+import { generateUploadKeystore, secretCommands } from '../lib/keystore.js';
 
 const router = Router();
 router.use(adminRequired);
@@ -30,6 +31,57 @@ const int = (v) => (v === undefined || v === null || v === '' ? null : Number(v)
 const clean = (v) => (v === undefined || v === null ? null : String(v).trim() || null);
 
 /* ---------------- Stats ---------------- */
+/* ---------------- Play upload key (v1.8.0) ---------------- */
+/*
+ * Generates the PKCS#12 upload keystore in-process, for owners who only have a phone:
+ * Google Play rejects unsigned bundles and `keytool` needs a JDK, so this is the only
+ * way to get a real signing key without a computer. The key is returned once and is not
+ * stored; the admin copies it into the four GitHub secrets (or keeps the .p12 safely).
+ */
+router.post('/keystore', (req, res) => {
+  try {
+    const password = String(req.body?.password || '');
+    if (password.length < 12) {
+      return res.status(400).json({
+        error: 'password-too-short',
+        message_ar: 'كلمة مرور المخزن يجب أن تكون 12 حرفًا على الأقل (تُستخدم لتشفير الملف).',
+        message_en: 'Keystore password must be at least 12 characters.',
+      });
+    }
+    const out = generateUploadKeystore({
+      password,
+      alias: String(req.body?.alias || 'mda-upload').slice(0, 64),
+      commonName: String(req.body?.common_name || 'MDA Medicine Data').slice(0, 80),
+      organization: String(req.body?.organization || 'MDA').slice(0, 80),
+      country: String(req.body?.country || 'YE').slice(0, 2),
+    });
+    audit('keystore.generate', {
+      actor: req.user, targetType: 'keystore', targetId: null,
+      meta: { alias: out.alias, sha256: out.sha256, bytes: out.bytes, fingerprint_sha1: out.sha1 },
+      ip: req.ip,
+    });
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({
+      ok: true,
+      filename: 'mda-upload.p12',
+      base64: out.base64,
+      bytes: out.bytes,
+      alias: out.alias,
+      sha256: out.sha256,
+      sha1: out.sha1,
+      subject: out.subject,
+      not_after: out.notAfter,
+      password: out.password,
+      commands: secretCommands({ ...out, password: 'YOUR-PASSWORD' }),
+      warning_ar: 'نزّل الملف واحفظه في مكان آمن الآن — لن يُخزَّن على الخادم ولا يمكن استرجاعه بعد إغلاق الصفحة. إن فقدته، اطلب إعادة تعيين مفتاح الرفع من Play Console.',
+      warning_en: 'Download and store the file now — it is never saved on the server. If lost, request an upload key reset in Play Console.',
+    });
+  } catch (e) {
+    console.error('[MDA] keystore error', e);
+    res.status(500).json({ error: 'keystore-failed', message: String(e?.message || e) });
+  }
+});
+
 /* ---------------- Audit log (immutable, hash-chained) ---------------- */
 router.get('/audit', (req, res) => {
   const limit = Math.min(500, Math.max(1, Number(req.query.limit) || 100));

@@ -50,11 +50,19 @@ convert "$OUT/icon.png" -resize 660x660 -background none -gravity center -extent
 
 # ---- Web / PWA ----
 mkdir -p public/icons
-convert "$OUT/icon.png" -resize 512x512 -strip public/icons/icon-512.png
-convert "$OUT/icon.png" -resize 192x192 -strip public/icons/icon-192.png
-convert "$OUT/icon.png" -resize 180x180 -strip public/icons/apple-touch-icon.png
-convert "$OUT/icon.png" -resize 512x512 -strip public/icons/mda-icon.png
-convert "$OUT/icon.png" -resize 64x64 -strip public/favicon.png
+# 8-bit + maximum deflate: the 16-bit sources were 566 KB per 512px icon (they ship inside
+# the APK). Same pixels, ~78 KB. `-depth 8` is lossless here: the drawing has no >8-bit needs.
+PNGOPT=(-depth 8 -strip -define png:compression-level=9 -define png:compression-filter=5)
+convert "$OUT/icon.png" -resize 512x512 "${PNGOPT[@]}" public/icons/icon-512.png
+convert "$OUT/icon.png" -resize 192x192 "${PNGOPT[@]}" public/icons/icon-192.png
+convert "$OUT/icon.png" -resize 180x180 "${PNGOPT[@]}" public/icons/apple-touch-icon.png
+convert "$OUT/icon.png" -resize 64x64 "${PNGOPT[@]}" public/favicon.png
+# (mda-icon.png was a byte-identical copy of icon-512.png and is no longer generated.)
+
+# ---- Play Store assets ----
+mkdir -p store
+# Play requires a 512x512 32-bit PNG with NO alpha channel.
+convert "$OUT/icon.png" -resize 512x512 -background '#050c1a' -alpha remove -alpha off "${PNGOPT[@]}" store/icon-512.png
 
 # ---- Android ----
 RES=android/app/src/main/res

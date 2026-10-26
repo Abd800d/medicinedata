@@ -7,11 +7,11 @@ android {
         applicationId "com.mda.medicinedata"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Overridable from CI: ./gradlew assembleRelease -PversionCode=42 -PversionName=1.7.0
+        // Overridable from CI: ./gradlew assembleRelease -PversionCode=42 -PversionName=1.8.0
         def ciVersionCode = project.findProperty("versionCode")?.toString()?.trim()
         def ciVersionName = project.findProperty("versionName")?.toString()?.trim()
-        versionCode(ciVersionCode ? ciVersionCode.toInteger() : 7)
-        versionName(ciVersionName ?: "1.7.0")
+        versionCode(ciVersionCode ? ciVersionCode.toInteger() : 8)
+        versionName(ciVersionName ?: "1.8.0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
