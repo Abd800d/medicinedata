@@ -386,6 +386,13 @@ ensureColumn('prescriptions', 'patient_context_json', 'patient_context_json TEXT
 ensureColumn('pharmacy_items', 'version', 'version INTEGER NOT NULL DEFAULT 1');   // optimistic concurrency for offline edits
 ensureColumn('pharmacy_items', 'client_uuid', 'client_uuid TEXT');                 // id of an item created offline
 ensureColumn('prescription_items', 'uncertain_fields_json', 'uncertain_fields_json TEXT');
+ensureColumn('product_images', 'uploaded_by', 'uploaded_by INTEGER');       // who added/replaced the photo
+ensureColumn('product_images', 'bytes', 'bytes INTEGER');                   // size after client-side compression
+ensureColumn('product_images', 'width', 'width INTEGER');
+ensureColumn('product_images', 'height', 'height INTEGER');
+ensureColumn('product_images', 'updated_at', 'updated_at TEXT');            // last edit (crop/rotate/replace)
+ensureColumn('product_images', 'edited', 'edited INTEGER DEFAULT 0');       // 1 = cropped/rotated/compressed before upload
+ensureColumn('product_images', 'bytes_original', 'bytes_original INTEGER'); // size before compression
 db.exec("CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode)");
 db.exec("CREATE INDEX IF NOT EXISTS idx_ai_runs_user ON ai_runs(user_id, created_at)");
 db.exec("CREATE INDEX IF NOT EXISTS idx_rx_items ON prescription_items(prescription_id)");

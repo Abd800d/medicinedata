@@ -8,20 +8,22 @@ import { api, getToken } from '../../lib/api';
 import { useApi } from '../../lib/useApi';
 import { Badge, Field, PageLoader, Select, useToast } from '../../components/ui';
 import { cx, dateFmt, num } from '../../lib/utils';
+import ProductGallery from './ProductGallery';
 
 const TEMPLATE = 'generic_name,generic_ar,trade_name,trade_name_ar,strength,dosage_form,pack_size,manufacturer,manufacturer_country,agent,country,barcode,price,currency,image_url,system,category,drug_class,atc_code,indications_ar,dosage_adult,dosage_child,warnings,side_effects,contraindications,verified';
 
 export default function Media() {
-  const [tab, setTab] = useState<'import' | 'images' | 'history'>('import');
+  const [tab, setTab] = useState<'import' | 'images' | 'gallery' | 'history'>('import');
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-1 rounded-xl p-1 bg-white/[.05]">
-        {([['import', 'استيراد البيانات'], ['images', 'الصور'], ['history', 'السجل']] as const).map(([k, label]) => (
+      <div className="grid grid-cols-4 gap-1 rounded-xl p-1 bg-white/[.05]">
+        {([['import', 'استيراد البيانات'], ['images', 'دفعة صور'], ['gallery', 'معرض المنتج'], ['history', 'السجل']] as const).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)} className={cx('rounded-lg py-1.5 text-[11px] font-bold', tab === k ? 'bg-brand-grad text-white shadow-glow' : 'text-ink-500')}>{label}</button>
         ))}
       </div>
       {tab === 'import' && <ImportPanel />}
       {tab === 'images' && <ImagesPanel />}
+      {tab === 'gallery' && <ProductGallery />}
       {tab === 'history' && <HistoryPanel />}
     </div>
   );
@@ -34,18 +36,23 @@ function ImportPanel() {
   const [file, setFile] = useState<File | null>(null);
   const [systemId, setSystemId] = useState('');
   const [verify, setVerify] = useState(false);
+  const [mode, setMode] = useState<'upsert' | 'insert' | 'update'>('upsert');
+  const [table, setTable] = useState('');
   const [progress, setProgress] = useState(0);
   const [busy, setBusy] = useState(false);
   const [job, setJob] = useState<any>(null);
   const [preview, setPreview] = useState<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const send = (dryRun: boolean) => new Promise<any>((resolve, reject) => {
+  const send = (dryRun: boolean, tableOverride?: string) => new Promise<any>((resolve, reject) => {
     if (!file) return reject(new Error('اختر ملفًا أولًا'));
     const fd = new FormData();
     fd.append('file', file);
     if (systemId) fd.append('system_id', systemId);
     if (verify) fd.append('verify', '1');
+    fd.append('mode', mode);
+    const chosenTable = tableOverride ?? table;
+    if (chosenTable) fd.append('table', chosenTable);
     if (dryRun) fd.append('dryRun', '1');
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/admin/import');
@@ -63,10 +70,10 @@ function ImportPanel() {
     xhr.send(fd);
   });
 
-  const start = async (dryRun: boolean) => {
+  const start = async (dryRun: boolean, tableOverride?: string) => {
     setBusy(true); setProgress(0); setPreview(null);
     try {
-      const res = await send(dryRun);
+      const res = await send(dryRun, tableOverride);
       if (dryRun) { setPreview(res); push('تمت معاينة الملف'); }
       else { setJob(res); push('بدأ الاستيراد في الخلفية'); }
     } catch (e: any) { push(e.message === 'NETWORK' ? 'تعذر الاتصال بالخادم' : e.message, 'error'); }
@@ -84,18 +91,28 @@ function ImportPanel() {
     <div className="space-y-3">
       <div className="card p-4">
         <div className="mb-2 flex items-center gap-2"><FileSpreadsheet className="h-4 w-4 text-violet-300" /><h2 className="text-[12.5px] font-extrabold">استيراد قاعدة البيانات</h2></div>
-        <p className="text-[11px] leading-5 text-ink-500">CSV (حتى ملايين الصفوف، معالجة متدفقة) · Excel (XLSX) · JSON. تُطابَق الأعمدة تلقائيًا بالعربية أو الإنجليزية، ويُنشأ الدواء والشركة والوكيل والتصنيف تلقائيًا عند الحاجة.</p>
+        <p className="text-[11px] leading-5 text-ink-500">
+          CSV / TSV (حتى ملايين الصفوف، معالجة متدفقة) · Excel (XLSX/XLS) · JSON · <b>XML</b> (سجلات &lt;drug&gt;/&lt;product&gt; مع وراثة الحقول) · <b>SQLite</b> (ملف .db يُفتح للقراءة فقط، ويُكتشف الجدول تلقائيًا).
+          تُطابَق الأعمدة تلقائيًا بالعربية أو الإنجليزية، ويُنشأ الدواء والشركة والوكيل والتصنيف تلقائيًا عند الحاجة.
+        </p>
 
         <label className={cx('mt-3 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 text-center transition',
           file ? 'border-brand-400/60 bg-brand-500/10' : 'border-white/[.08] hover:border-brand-400/50')}>
           {busy ? <Loader2 className="mb-2 h-7 w-7 animate-spin text-brand-300" /> : file ? <CheckCircle2 className="mb-2 h-7 w-7 text-brand-300" /> : <UploadCloud className="mb-2 h-7 w-7 text-ink-400" />}
-          <span className="text-[12px] font-bold text-ink-200">{file ? file.name : 'اختر ملف CSV / XLSX / JSON'}</span>
+          <span className="text-[12px] font-bold text-ink-200">{file ? file.name : 'اختر ملف CSV / XLSX / JSON / XML / SQLite'}</span>
           <span className="mt-0.5 text-[10.5px] text-ink-400">{file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : 'اضغط للاختيار من جهازك'}</span>
-          <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls,.json,text/csv" className="hidden" onChange={(e) => { setFile(e.target.files?.[0] || null); setJob(null); setPreview(null); }} />
+          <input ref={inputRef} type="file" accept=".csv,.tsv,.xlsx,.xls,.json,.xml,.db,.sqlite,.sqlite3" className="hidden" onChange={(e) => { setFile(e.target.files?.[0] || null); setJob(null); setPreview(null); }} />
         </label>
         {progress > 0 && progress < 100 && <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full rounded-full bg-brand-600 transition-all" style={{ width: `${progress}%` }} /></div>}
 
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <Field label="طريقة الإدخال">
+            <Select value={mode} onChange={(e) => setMode(e.target.value as any)}>
+              <option value="upsert">إدراج وتحديث — الأفضل عمومًا</option>
+              <option value="insert">إدراج الجديد فقط — تجاهل الموجود</option>
+              <option value="update">تحديث الموجود فقط — تجاهل الجديد</option>
+            </Select>
+          </Field>
           <Field label="الجهاز الافتراضي (اختياري)"><Select value={systemId} onChange={(e) => setSystemId(e.target.value)}>
             <option value="">— بدون —</option>{(systems || []).map((s) => <option key={s.id} value={s.id}>{s.name_ar}</option>)}
           </Select></Field>
@@ -114,7 +131,28 @@ function ImportPanel() {
       {preview && (
         <div className="card p-4">
           <div className="mb-1.5 flex items-center justify-between"><h3 className="text-[12px] font-extrabold">نتيجة المعاينة</h3><Badge tone="sky">{preview.kind}</Badge></div>
-          <div className="flex gap-2 text-[11px]"><span className="text-emerald-300">صالح: {preview.ok}</span><span className="text-rose-300">فاشل: {preview.failed}</span><span className="text-ink-400">صفوف: {preview.rows}</span></div>
+          <div className="flex flex-wrap gap-2 text-[11px]">
+            <span className="text-emerald-300">صالح: {preview.ok}</span>
+            <span className="text-amber-300">تم تجاهله: {preview.skipped ?? 0}</span>
+            <span className="text-rose-300">فاشل: {preview.failed}</span>
+            <span className="text-ink-400">صفوف: {preview.rows}</span>
+            <Badge tone="neutral">{preview.mode || 'upsert'}</Badge>
+          </div>
+          {preview.detected?.tables?.length > 0 && (
+            <div className="mt-2 rounded-lg p-2 text-[10px] text-ink-400 bg-white/[.05]">
+              <div className="mb-1 font-bold text-ink-300">جداول ملف SQLite (أعلى = الأنسب):</div>
+              <div className="space-y-1">
+                {preview.detected.tables.map((t: any) => (
+                  <button key={t.name} onClick={() => { setTable(t.name); start(true, t.name); }}
+                    className={cx('flex w-full items-center gap-2 rounded-lg px-2 py-1 text-start', table === t.name ? 'bg-brand-500/20 text-brand-200' : 'hover:bg-white/[.06]')}>
+                    <span className="font-mono">{t.name}</span>
+                    <span className="text-ink-500">{t.rows} صف</span>
+                    <span className="ms-auto text-ink-500">{t.mappedFields ?? t.score} حقول مطابقة</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {preview.errors?.length > 0 && <ul className="mt-2 space-y-1 text-[10.5px] text-rose-300">{preview.errors.map((e: string, i: number) => <li key={i}>• {e}</li>)}</ul>}
           {preview.sample?.length > 0 && <div className="mt-2 rounded-lg p-2 text-[10px] text-ink-500 bg-white/[.05]"><b>الأعمدة المكتشفة:</b> {preview.sample[0].join(', ')}</div>}
         </div>
@@ -127,7 +165,10 @@ function ImportPanel() {
         <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10.5px] text-ink-500 sm:grid-cols-3">
           {['generic_name / الاسم العلمي', 'trade_name / الاسم التجاري', 'strength / القوة', 'dosage_form / الشكل', 'manufacturer / الشركة', 'agent / الوكيل', 'country / الدولة', 'barcode / الباركود', 'price / السعر', 'image_url / الصورة', 'system / الجهاز', 'category / التصنيف', 'indications_ar / الاستخدامات', 'dosage_adult / الجرعة', 'verified / موثق'].map((c) => <span key={c}>• {c}</span>)}
         </div>
-        <p className="mt-2 rounded-lg p-2 text-[10px] leading-5 bg-amber-500/10 text-amber-200">الاستيراد لا يحذف البيانات الحالية؛ يحدّث السجلات المتطابقة (نفس الاسم العلمي/التجاري/التركيز) ويضيف الجديد.</p>
+        <p className="mt-2 rounded-lg p-2 text-[10px] leading-5 bg-amber-500/10 text-amber-200">
+          الاستيراد لا يحذف البيانات الحالية: يحدّث السجلات المتطابقة (نفس الاسم العلمي/التجاري/التركيز) ويضيف الجديد — أو يتجاهلها حسب «طريقة الإدخال».
+          الملفات المرفوعة تُحذف من الخادم بعد انتهاء الاستيراد، وتقرير كل عملية (نجح/فشل/تم تجاهله/أول 10 أخطاء) محفوظ في تبويب «السجل».
+        </p>
       </div>
     </div>
   );

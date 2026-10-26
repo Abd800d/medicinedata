@@ -12,14 +12,19 @@ import { searchNorm, normalize } from '../lib/search.js';
 import { verifyChain } from '../lib/audit.js';
 import {
   createImporter, csvRows, xlsxRows, jsonRows, detectKind, countRows,
+  readRows, xmlRows, sqliteRows, inspectFile, SUPPORTED_EXTENSIONS,
 } from '../lib/importer.js';
+import { datasetCatalog, exportDataset, exportAll } from '../lib/exporter.js';
+import { encryptFile, decryptBuffer, inspectBackup, restoreSnapshot, snapshotToTemp, databaseSummary } from '../lib/backup.js';
+import { audit } from '../lib/audit.js';
 
 const router = Router();
 router.use(adminRequired);
 
 const productUpload = makeUploader('products');
 const miscUpload = makeUploader('misc');
-const importUpload = makeUploader('imports', { anyData: true });
+const importUpload = makeUploader('imports', { anyData: true, maxBytes: 64 * 1024 * 1024 });
+const backupUpload = makeUploader('backups', { anyData: true, maxBytes: 256 * 1024 * 1024 });
 
 const int = (v) => (v === undefined || v === null || v === '' ? null : Number(v));
 const clean = (v) => (v === undefined || v === null ? null : String(v).trim() || null);
@@ -337,7 +342,9 @@ router.delete('/products/:id', (req, res) => {
 
 /* ---------------- Product images ---------------- */
 router.get('/products/:id/images', (req, res) => {
-  res.json(db.prepare('SELECT * FROM product_images WHERE product_id=? ORDER BY sort_order, id').all(req.params.id));
+  res.json(db.prepare(`SELECT pi.*, u.name AS uploaded_by_name, u.email AS uploaded_by_email
+    FROM product_images pi LEFT JOIN users u ON u.id=pi.uploaded_by
+    WHERE pi.product_id=? ORDER BY pi.sort_order, pi.id`).all(req.params.id));
 });
 router.post('/products/:id/images', productUpload.array('images', 12), (req, res) => {
   const product = db.prepare('SELECT * FROM products WHERE id=?').get(req.params.id);
@@ -346,8 +353,20 @@ router.post('/products/:id/images', productUpload.array('images', 12), (req, res
   for (const f of req.files || []) {
     const url = `/uploads/products/${path.basename(f.path)}`;
     const sort = db.prepare('SELECT COALESCE(MAX(sort_order),0)+1 n FROM product_images WHERE product_id=?').get(product.id).n;
-    const info = db.prepare('INSERT INTO product_images(product_id,url,source,sort_order) VALUES(?,?,?,?)').run(product.id, url, 'upload', sort);
+    const meta = {
+      bytes: f.size || null,
+      edited: req.body?.edited === '1' ? 1 : 0,
+      bytes_original: Number(req.body?.bytes_original) || null,
+      width: Number(req.body?.width) || null,
+      height: Number(req.body?.height) || null,
+    };
+    const info = db.prepare(`INSERT INTO product_images(product_id,url,source,sort_order,uploaded_by,bytes,width,height,edited,bytes_original,updated_at)
+      VALUES(?,?,?,?,?,?,?,?,?,?,datetime('now'))`)
+      .run(product.id, url, 'upload', sort, req.user?.id ?? null, meta.bytes, meta.width, meta.height, meta.edited, meta.bytes_original);
     created.push(db.prepare('SELECT * FROM product_images WHERE id=?').get(info.lastInsertRowid));
+  }
+  if (created.length) {
+    audit('image.upload', { actor: req.user, targetType: 'product', targetId: product.id, meta: { count: created.length, bytes: created.reduce((n, c) => n + (c.bytes || 0), 0), edited: req.body?.edited === '1' }, ip: req.ip });
   }
   const replaceable = !product.image_url || product.image_source === 'generated' || product.image_url.startsWith('/api/catalog/');
   if (created.length && replaceable) {
@@ -373,9 +392,33 @@ router.put('/products/:id/image', (req, res) => {
   db.prepare('UPDATE products SET image_url=?, image_source=?, updated_at=datetime(\'now\') WHERE id=?').run(url, 'admin', product.id);
   res.json({ ok: true, image_url: url });
 });
+/* Reorder / re-edit an existing photo (sort_order, source note). */
+router.patch('/product-images/:imageId', (req, res) => {
+  const img = db.prepare('SELECT * FROM product_images WHERE id=?').get(req.params.imageId);
+  if (!img) return res.status(404).json({ error: 'Not found' });
+  const sort = req.body?.sort_order === undefined ? null : int(req.body.sort_order);
+  if (sort !== null) db.prepare('UPDATE product_images SET sort_order=?, updated_at=datetime(\'now\') WHERE id=?').run(sort, img.id);
+  audit('image.update', { actor: req.user, targetType: 'product_image', targetId: img.id, meta: { sort_order: sort }, ip: req.ip });
+  res.json(db.prepare('SELECT * FROM product_images WHERE id=?').get(img.id));
+});
+
+/* Atomically apply a new order (array of image ids, first = primary candidate). */
+router.post('/products/:id/images/reorder', (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids.map((x) => Number(x)).filter((x) => Number.isFinite(x)) : [];
+  if (!ids.length) return res.status(400).json({ error: 'ids are required' });
+  const product = db.prepare('SELECT id FROM products WHERE id=?').get(req.params.id);
+  if (!product) return res.status(404).json({ error: 'Not found' });
+  db.transaction((list) => {
+    list.forEach((id, i) => db.prepare('UPDATE product_images SET sort_order=? WHERE id=? AND product_id=?').run(i, id, product.id));
+  })(ids);
+  audit('image.reorder', { actor: req.user, targetType: 'product', targetId: product.id, meta: { ids }, ip: req.ip });
+  res.json(db.prepare('SELECT * FROM product_images WHERE product_id=? ORDER BY sort_order, id').all(product.id));
+});
+
 router.delete('/product-images/:imageId', (req, res) => {
   const img = db.prepare('SELECT * FROM product_images WHERE id=?').get(req.params.imageId);
   if (img) {
+    audit('image.delete', { actor: req.user, targetType: 'product_image', targetId: img.id, meta: { url: img.url, product_id: img.product_id }, ip: req.ip });
     db.prepare('DELETE FROM product_images WHERE id=?').run(img.id);
     const p = db.prepare('SELECT * FROM products WHERE id=?').get(img.product_id);
     if (p && p.image_url === img.url) {
@@ -580,18 +623,21 @@ const importsInFlight = new Map();
 
 async function runImport(importId, filePath, kind, opts) {
   const importer = createImporter();
-  let ok = 0; let failed = 0; let processed = 0; let lastSave = 0;
+  let ok = 0; let failed = 0; let skipped = 0; let processed = 0; let lastSave = 0;
   const errors = [];
   const started = Date.now();
   const update = db.prepare('UPDATE imports SET rows_ok=?, rows_failed=?, log=? WHERE id=?');
   const save = (status) => {
-    update.run(ok, failed, JSON.stringify({ processed, failed, total: null, elapsed_ms: Date.now() - started, errors: errors.slice(0, 10) }), importId);
+    update.run(ok, failed, JSON.stringify({ processed, failed, skipped, total: null, elapsed_ms: Date.now() - started, errors: errors.slice(0, 10) }), importId);
     if (status) db.prepare('UPDATE imports SET status=? WHERE id=?').run(status, importId);
   };
   const consume = (rows) => {
     db.transaction((batch) => {
       for (const raw of batch) {
-        try { importer(raw, opts); ok++; } catch (e) {
+        try {
+          const out = importer(raw, opts);
+          if (out?.skipped) skipped++; else ok++;
+        } catch (e) {
           failed++;
           if (errors.length < 10) errors.push({ row: processed + 1, error: e.message, keys: Object.keys(raw).slice(0, 8) });
         }
@@ -612,7 +658,8 @@ async function runImport(importId, filePath, kind, opts) {
       }
       if (batch.length) consume(batch);
     } else {
-      const rows = kind === 'xlsx' ? xlsxRows(filePath) : jsonRows(filePath);
+      /* XLSX / JSON / XML / SQLite are read in one go, then imported in batches. */
+      const rows = readRows(filePath, kind, { table: opts.table });
       for (let i = 0; i < rows.length; i += 1000) {
         consume(rows.slice(i, i + 1000));
         await new Promise((r) => setImmediate(r));
@@ -625,49 +672,75 @@ async function runImport(importId, filePath, kind, opts) {
   } finally {
     importsInFlight.delete(importId);
     try { fs.unlinkSync(filePath); } catch { /* keep */ }
-    db.prepare('UPDATE imports SET log=? WHERE id=?').run(JSON.stringify({ processed, errors: errors.slice(0, 10), elapsed_ms: Date.now() - started }), importId);
+    db.prepare('UPDATE imports SET log=? WHERE id=?').run(JSON.stringify({ processed, failed, skipped, errors: errors.slice(0, 10), elapsed_ms: Date.now() - started }), importId);
   }
 }
 
 router.post('/import', importUpload.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'file is required (CSV, XLSX, JSON)' });
+  if (!req.file) return res.status(400).json({ error: 'file is required', supported: SUPPORTED_EXTENSIONS });
   const kind = detectKind(req.file.originalname);
-  if (!kind) { try { fs.unlinkSync(req.file.path); } catch { /* ignore */ } return res.status(400).json({ error: 'صيغة غير مدعومة — استخدم CSV أو XLSX أو JSON' }); }
-  const opts = { defaultSystemId: int(req.body?.system_id), verifyAll: req.body?.verify === '1' };
+  const cleanup = () => { try { fs.unlinkSync(req.file.path); } catch { /* ignore */ } };
+  if (!kind) {
+    cleanup();
+    return res.status(400).json({ error: `صيغة غير مدعومة — الصيغ المدعومة: ${SUPPORTED_EXTENSIONS}`, supported: SUPPORTED_EXTENSIONS });
+  }
+  const mode = ['upsert', 'insert', 'update'].includes(req.body?.mode) ? req.body.mode : 'upsert';
+  const table = req.body?.table ? String(req.body.table) : null;
+  const opts = { defaultSystemId: int(req.body?.system_id), verifyAll: req.body?.verify === '1', mode, table };
   const dryRun = req.body?.dryRun === '1' || req.query.dryRun === '1';
 
   if (dryRun) {
     const importer = createImporter();
-    const preview = { rows: 0, ok: 0, failed: 0, errors: [], sample: [] };
+    const preview = { rows: 0, ok: 0, failed: 0, skipped: 0, errors: [], sample: [] };
     try {
-      const rows = [];
-      if (kind === 'csv') { for await (const r of csvRows(req.file.path)) { rows.push(r); if (rows.length >= 50) break; } }
-      else if (kind === 'xlsx') rows.push(...xlsxRows(req.file.path).slice(0, 50));
-      else rows.push(...jsonRows(req.file.path).slice(0, 50));
+      preview.detected = inspectFile(req.file.path, kind, table);
+      const rows = readRows(req.file.path, kind, { table, limit: 50 });
       db.exec('SAVEPOINT dryrun');
       for (const r of rows) {
         preview.rows++;
         if (preview.sample.length < 3) preview.sample.push(Object.keys(r).slice(0, 10));
-        try { importer(r, opts); preview.ok++; } catch (e) { preview.failed++; if (preview.errors.length < 10) preview.errors.push(e.message); }
+        try {
+          const out = importer(r, opts);
+          if (out?.skipped) preview.skipped++; else preview.ok++;
+        } catch (e) { preview.failed++; if (preview.errors.length < 10) preview.errors.push(e.message); }
       }
       db.exec('ROLLBACK TO dryrun'); db.exec('RELEASE dryrun');
-      try { fs.unlinkSync(req.file.path); } catch { /* ignore */ }
-      return res.json({ dryRun: true, kind, ...preview });
+      cleanup();
+      return res.json({ dryRun: true, kind, mode, ...preview });
     } catch (e) {
       try { db.exec('ROLLBACK TO dryrun'); db.exec('RELEASE dryrun'); } catch { /* ignore */ }
-      try { fs.unlinkSync(req.file.path); } catch { /* ignore */ }
-      return res.status(400).json({ error: e.message, ...preview });
+      cleanup();
+      return res.status(400).json({ error: e.message || 'تعذر قراءة الملف', ...preview });
     }
   }
 
+  const total = await countRows(req.file.path, kind, table).catch(() => null);
   const info = db.prepare('INSERT INTO imports(user_id,filename,kind,status) VALUES(?,?,?,?)').run(req.user.id, req.file.originalname, kind, 'processing');
   const id = info.lastInsertRowid;
   importsInFlight.set(String(id), true);
-  res.status(202).json({ id, status: 'processing' });
+  res.status(202).json({ id, status: 'processing', kind, mode, total });
   setImmediate(() => { runImport(id, req.file.path, kind, opts).catch(() => {}); });
 });
 
-router.get('/imports', (_req, res) => res.json(db.prepare('SELECT * FROM imports ORDER BY id DESC LIMIT 100').all()));
+/* What formats and which columns will be understood — shown before uploading. */
+router.get('/import/capabilities', (_req, res) => {
+  res.json({
+    formats: SUPPORTED_EXTENSIONS,
+    kinds: ['csv', 'xlsx', 'json', 'xml', 'sqlite'],
+    modes: [
+      { key: 'upsert', label_ar: 'إدراج وتحديث (الافتراضي)' },
+      { key: 'insert', label_ar: 'إدراج الجديد فقط — تجاهل الموجود' },
+      { key: 'update', label_ar: 'تحديث الموجود فقط — تجاهل الجديد' },
+    ],
+    template: 'generic_name,generic_ar,trade_name,trade_name_ar,strength,dosage_form,pack_size,manufacturer,manufacturer_country,agent,country,barcode,price,currency,image_url,system,category,drug_class,atc_code,indications_ar,dosage_adult,dosage_child,warnings,side_effects,contraindications,verified',
+  });
+});
+
+router.get('/imports', (_req, res) => res.json(db.prepare('SELECT * FROM imports ORDER BY id DESC LIMIT 100').all().map((row) => {
+  let log = null;
+  try { log = JSON.parse(row.log || 'null'); } catch { log = null; }
+  return { ...row, log, rows_skipped: log?.skipped ?? 0 };
+})));
 router.get('/imports/:id', (req, res) => {
   const row = db.prepare('SELECT * FROM imports WHERE id=?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'Not found' });
@@ -861,6 +934,90 @@ router.get('/export', (_req, res) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="mda-export-${new Date().toISOString().slice(0, 10)}.json"`);
   res.send(JSON.stringify(payload));
+});
+
+/* ---------------- Export (CSV / JSON / XLSX) ---------------- */
+router.get('/datasets', (_req, res) => res.json({ datasets: datasetCatalog() }));
+
+const sendFile = (res, out) => {
+  res.setHeader('Content-Type', out.contentType);
+  res.setHeader('Content-Disposition', `attachment; filename="${out.filename}"`);
+  res.setHeader('X-Rows', String(out.rows));
+  res.send(out.buffer);
+};
+
+router.get('/export-all', (req, res, next) => {
+  try {
+    const format = ['xlsx', 'json'].includes(String(req.query.format)) ? String(req.query.format) : 'xlsx';
+    const out = exportAll(format);
+    audit('export.all', { actor: req.user, meta: { format, rows: out.rows }, ip: req.ip });
+    sendFile(res, out);
+  } catch (e) { next(e); }
+});
+
+router.get('/export/:dataset', (req, res, next) => {
+  try {
+    const format = ['csv', 'json', 'xlsx'].includes(String(req.query.format)) ? String(req.query.format) : 'csv';
+    const out = exportDataset(String(req.params.dataset), format);
+    audit('export.dataset', { actor: req.user, targetType: 'dataset', targetId: req.params.dataset, meta: { format, rows: out.rows }, ip: req.ip });
+    sendFile(res, out);
+  } catch (e) {
+    if (e.status === 400) return res.status(400).json({ error: e.publicMessage || e.message });
+    next(e);
+  }
+});
+
+/* ---------------- Encrypted backups ---------------- */
+router.get('/backup/summary', (_req, res) => {
+  res.json({ ...databaseSummary(db, process.env.DB_FILE || path.join(process.cwd(), 'data', 'mda.db')), app_version: process.env.APP_VERSION || null });
+});
+
+router.post('/backup', (req, res, next) => {
+  const passphrase = String(req.body?.passphrase || '');
+  if (passphrase.length < 8) return res.status(400).json({ error: 'كلمة مرور النسخة يجب أن تكون 8 أحرف على الأقل — بدونها لا يمكن استعادة الملف', code: 'WEAK_PASSPHRASE' });
+  let snap = null;
+  try {
+    const summary = databaseSummary(db, process.env.DB_FILE || '');
+    snap = snapshotToTemp(db);
+    const { buffer, header } = encryptFile(snap, passphrase, {
+      app_version: process.env.APP_VERSION || null,
+      counts: summary.counts,
+      created_by: req.user.email,
+    });
+    audit('backup.create', { actor: req.user, meta: { bytes: buffer.length, counts: summary.counts }, ip: req.ip });
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="mda-backup-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.mdaenc"`);
+    res.setHeader('X-Backup-Created', header.created_at);
+    res.send(buffer);
+  } catch (e) { next(e); } finally {
+    if (snap) { try { fs.unlinkSync(snap); fs.rmdirSync(path.dirname(snap)); } catch { /* ignore */ } }
+  }
+});
+
+router.post('/backup/inspect', backupUpload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'ملف النسخة مطلوب' });
+  try {
+    const info = inspectBackup(fs.readFileSync(req.file.path));
+    res.json({ ok: true, ...info });
+  } catch (e) {
+    res.status(400).json({ error: e.publicMessage || e.message });
+  } finally { try { fs.unlinkSync(req.file.path); } catch { /* ignore */ } }
+});
+
+router.post('/backup/restore', backupUpload.single('file'), (req, res, next) => {
+  if (!req.file) return res.status(400).json({ error: 'ملف النسخة مطلوب' });
+  const passphrase = String(req.body?.passphrase || '');
+  if (!passphrase) { try { fs.unlinkSync(req.file.path); } catch { /* ignore */ } return res.status(400).json({ error: 'كلمة مرور النسخة مطلوبة' }); }
+  try {
+    const { plain, header } = decryptBuffer(fs.readFileSync(req.file.path), passphrase);
+    const safetyDir = path.join(path.dirname(process.env.DB_FILE || path.join(process.cwd(), 'data', 'mda.db')), 'backups');
+    const result = restoreSnapshot(db, plain, { safetyDir });
+    audit('backup.restore', { actor: req.user, meta: { created_at: header.created_at, counts: result.counts, skipped: result.skipped }, ip: req.ip });
+    res.json({ ok: true, restored: result.counts, skipped: result.skipped, safety_copy: result.safety_copy ? path.basename(result.safety_copy) : null });
+  } catch (e) {
+    if (e.status === 400) return res.status(400).json({ error: e.publicMessage || e.message });
+    next(e);
+  } finally { try { fs.unlinkSync(req.file.path); } catch { /* ignore */ } }
 });
 
 /* Health / diagnostics for the admin dashboard */

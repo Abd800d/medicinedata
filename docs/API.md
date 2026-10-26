@@ -193,6 +193,17 @@
 | GET | `/admin/audit?limit=&action=&target=` | آخر الأحداث مع `meta` (قبل/بعد التصحيح مثلًا) |
 | GET | `/admin/audit/verify` | فحص سلسلة التجزئة؛ `{ ok, entries, broken_at? }` |
 | GET | `/admin/ai-stats?days=30` | جودة التحليل: نداءات/فشل/متوسط زمن لكل نموذج، حالة الوصفات، معدل التصحيح اليدوي، توزيع التنبيهات — **بلا أي نص مريض** |
+| GET | `/admin/import/capabilities` | الصيغ والأوضاع والأعمدة المدعومة |
+| POST | `/admin/import` | استيراد CSV/XLSX/JSON/XML/SQLite (`mode=upsert\|insert\|update`، `table`، `dryRun=1`) |
+| GET | `/admin/datasets` | مجموعات التصدير المتاحة + عدد الصفوف |
+| GET | `/admin/export/:dataset` | تصدير جدول (`format=csv\|json\|xlsx`) |
+| GET | `/admin/export-all` | تصدير الكل (`format=xlsx\|json`) |
+| GET | `/admin/backup/summary` | حجم القاعدة وعدد الجداول |
+| POST | `/admin/backup` | نسخة مشفّرة (`{passphrase}` ≥ 8 أحرف) |
+| POST | `/admin/backup/inspect` | قراءة رأس النسخة بلا كلمة مرور |
+| POST | `/admin/backup/restore` | استعادة (`file` + `passphrase`) — تعيد بناء FTS5 |
+| GET/POST | `/admin/products/:id/images`, `/admin/products/:id/images/reorder` | معرض الصور ومَن أضافها |
+| PATCH/DELETE | `/admin/product-images/:id` | تعديل صورة/حذفها |
 
 ### مثال: تسجيل حساسية ثم تحليل
 

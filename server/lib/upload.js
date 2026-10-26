@@ -18,7 +18,7 @@ export function makeUploader(subdir = 'misc', opts = {}) {
   });
   return multer({
     storage,
-    limits: { fileSize: 12 * 1024 * 1024 },
+    limits: { fileSize: opts.maxBytes || 12 * 1024 * 1024 },
     fileFilter: opts.anyData ? (_req, _file, cb) => cb(null, true) : (_req, file, cb) => {
       if (ALLOWED.has(file.mimetype)) cb(null, true);
       else cb(Object.assign(new Error('Unsupported image type'), { status: 400, publicMessage: 'نوع الصورة غير مدعوم' }));
