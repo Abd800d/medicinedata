@@ -18,6 +18,7 @@ import { datasetCatalog, exportDataset, exportAll } from '../lib/exporter.js';
 import { encryptFile, decryptBuffer, inspectBackup, restoreSnapshot, snapshotToTemp, databaseSummary } from '../lib/backup.js';
 import { audit } from '../lib/audit.js';
 import { generateUploadKeystore, secretCommands } from '../lib/keystore.js';
+import { aiAdminView, saveAiConfig, testAiConfig } from '../lib/ai-config.js';
 
 const router = Router();
 router.use(adminRequired);
@@ -31,6 +32,55 @@ const int = (v) => (v === undefined || v === null || v === '' ? null : Number(v)
 const clean = (v) => (v === undefined || v === null ? null : String(v).trim() || null);
 
 /* ---------------- Stats ---------------- */
+/* ---------------- AI settings (v1.8.1) ---------------- */
+/*
+ * Lets an admin enable the AI from the phone: provider preset, key, model, and a real
+ * self-test that reports the exact failure class (auth / model / quota / network).
+ * The key is encrypted at rest and never returned — only a mask.
+ */
+router.get('/ai', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(aiAdminView());
+});
+
+router.put('/ai', (req, res) => {
+  try {
+    const before = aiAdminView();
+    const view = saveAiConfig(req.body || {}, req.user);
+    audit('ai.configure', {
+      actor: req.user, targetType: 'settings', targetId: 'ai',
+      meta: {
+        provider: view.provider, model: view.model, vision_model: view.vision_model,
+        key_changed: Boolean(req.body?.api_key) || req.body?.clear_key === true,
+        key_source: view.key_source, previous_provider: before.provider,
+      },
+      ip: req.ip,
+    });
+    res.json(view);
+  } catch (e) {
+    const map = {
+      BAD_PROVIDER: 'مزوّد غير معروف / Unknown provider',
+      BAD_BASE_URL: 'العنوان يجب أن يبدأ بـhttps:// / Base URL must start with https://',
+      BAD_KEY: 'المفتاح غير صالح (12 حرفًا على الأقل، بلا مسافات) / Invalid key',
+      NO_SECRET: 'الخادم بلا JWT_SECRET — لا يمكن تشفير المفتاح / Server has no JWT_SECRET',
+    };
+    if (map[e?.code]) return res.status(400).json({ error: e.code, message: map[e.code] });
+    console.error('[MDA] ai config error', e);
+    res.status(500).json({ error: 'ai-config-failed', message: String(e?.message || e) });
+  }
+});
+
+router.post('/ai/test', async (req, res) => {
+  const result = await testAiConfig({ timeoutMs: Number(req.body?.timeout_ms) || 20000 });
+  audit('ai.test', {
+    actor: req.user, targetType: 'settings', targetId: 'ai',
+    meta: { ok: result.ok, kind: result.kind || null, provider: result.provider, model: result.model, latency_ms: result.latency_ms },
+    ip: req.ip,
+  });
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(result);
+});
+
 /* ---------------- Play upload key (v1.8.0) ---------------- */
 /*
  * Generates the PKCS#12 upload keystore in-process, for owners who only have a phone:

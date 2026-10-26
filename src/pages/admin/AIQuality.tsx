@@ -3,6 +3,7 @@ import { Activity, AlertTriangle, BarChart3, Bot, CheckCircle2, Clock, Database,
 import { useApi } from '../../lib/useApi';
 import { Badge, PageLoader } from '../../components/ui';
 import { cx, dateFmt } from '../../lib/utils';
+import AiSettings from './AiSettings';
 
 /**
  * AI quality panel — answers three questions with numbers, not impressions:
@@ -44,7 +45,9 @@ export default function AIQuality() {
   const maxFlag = Math.max(1, ...flags.map((f) => f.count));
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      <AiSettings />
+      <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="section-title inline-flex items-center gap-1.5"><Bot className="h-4 w-4 text-brand-300" />جودة التحليل الذكي</h2>
@@ -133,6 +136,7 @@ export default function AIQuality() {
 
       <div className="rounded-xl border border-sky-400/20 bg-sky-500/[.06] p-2.5 text-[10px] leading-5 text-sky-200">
         معدل التصحيح اليدوي المرتفع ليس عيبًا في التطبيق بحد ذاته — هو مقياس لجودة قراءة النموذج. الهدف: انخفاضه مع بقاء الاعتماد النهائي بشريًا دائمًا.
+      </div>
       </div>
     </div>
   );

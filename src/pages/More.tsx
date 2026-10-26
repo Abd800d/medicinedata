@@ -149,6 +149,35 @@ export default function More() {
         </button>
       </div>
 
+      {/* Activation shortcuts — the three things that make the app "fully on" */}
+      <div className="card overflow-hidden">
+        <div className="border-b border-white/[.06] px-3.5 py-2.5 text-[11px] font-bold text-ink-400">
+          {lang === 'ar' ? 'التشغيل والتفعيل' : 'Setup & activation'}
+        </div>
+        <Link to={user?.role === 'admin' ? '/admin?tab=ai' : '/prescriptions'} className="flex w-full items-center gap-3 px-3 py-2.5 text-start transition hover:bg-white/[.04]">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300"><Bot className="h-4 w-4" /></span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12.5px] font-bold text-white">{lang === 'ar' ? 'الذكاء الاصطناعي' : 'Artificial intelligence'}</div>
+            <div className="truncate text-[10px] text-ink-400">
+              {user?.role === 'admin'
+                ? (lang === 'ar' ? 'مزوّد + مفتاح + اختبار حقيقي — من هنا' : 'Provider, key and a real self-test')
+                : (lang === 'ar' ? 'يفعّله المدير من لوحة الإدارة (مفتاح مجاني)' : 'An admin enables it (free key)')}
+            </div>
+          </div>
+          <ChevronLeft className="h-3.5 w-3.5 text-ink-500 rtl:block ltr:hidden" /><ChevronRight className="hidden h-3.5 w-3.5 text-ink-500 ltr:block" />
+        </Link>
+        <Link to="/legal/privacy" className="flex w-full items-center gap-3 px-3 py-2.5 text-start transition hover:bg-white/[.04]">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-300"><ShieldCheck className="h-4 w-4" /></span>
+          <div className="flex-1"><div className="text-[12.5px] font-bold text-white">{lang === 'ar' ? 'سياسة الخصوصية' : 'Privacy policy'}</div><div className="text-[10px] text-ink-400">{lang === 'ar' ? 'نفس الصفحة التي يفتحها متجر Google Play' : 'The very page Google Play links to'}</div></div>
+          <ChevronLeft className="h-3.5 w-3.5 text-ink-500 rtl:block ltr:hidden" /><ChevronRight className="hidden h-3.5 w-3.5 text-ink-500 ltr:block" />
+        </Link>
+        <Link to="/legal/terms" className="flex w-full items-center gap-3 px-3 py-2.5 text-start transition hover:bg-white/[.04]">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[.05] text-ink-300"><ScrollText className="h-4 w-4" /></span>
+          <div className="flex-1"><div className="text-[12.5px] font-bold text-white">{lang === 'ar' ? 'شروط الاستخدام' : 'Terms of use'}</div><div className="text-[10px] text-ink-400">{lang === 'ar' ? 'حدود الاستخدام وإخلاء المسؤولية' : 'Scope of use and disclaimer'}</div></div>
+          <ChevronLeft className="h-3.5 w-3.5 text-ink-500 rtl:block ltr:hidden" /><ChevronRight className="hidden h-3.5 w-3.5 text-ink-500 ltr:block" />
+        </Link>
+      </div>
+
       <div className="card space-y-2 p-4">
         <div className="flex items-center gap-2 text-[11px] font-bold text-ink-500"><MessageCircle className="h-3.5 w-3.5" />{t('more.contact')}</div>
         <a href={`https://wa.me/${(config.whatsapp || '').replace(/[^\d]/g, '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[11.5px] font-bold bg-emerald-500/10 text-emerald-200"><Phone className="h-3.5 w-3.5" />WhatsApp · {config.whatsapp}</a>

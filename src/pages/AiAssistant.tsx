@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { useI18n } from '../lib/i18n';
 import { useApi } from '../lib/useApi';
 import { RichText } from '../components/catalog';
+import AiSetupHint from '../components/AiSetupHint';
 import { Badge, Spinner, useToast } from '../components/ui';
 import { copyText, cx } from '../lib/utils';
 
@@ -62,6 +63,8 @@ export default function AiAssistant() {
           <span className="rounded-full bg-white/10 px-2 py-0.5">MDA database</span>
         </div>
       </div>
+
+      <AiSetupHint />
 
       <div className="card min-h-[320px] p-3.5">
         {!messages.length && (
