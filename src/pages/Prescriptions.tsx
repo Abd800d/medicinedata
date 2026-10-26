@@ -153,7 +153,11 @@ export default function Prescriptions() {
       } else {
         res = await api.slow.post<any>('/api/rx/analyze', { text: manualText, lang: lang === 'en' ? 'en' : 'ar' });
       }
-      setCurrent({ id: res.id, status: 'pending_review', created_at: new Date().toISOString(), image_url: res.image_kept && file ? null : null, analysis: res.analysis });
+      /* Re-read from the server: the stored lines carry real item ids (needed for
+         corrections) and a fresh dossier built from the current database. */
+      let full: RxRow = { id: res.id, status: 'pending_review', created_at: new Date().toISOString(), analysis: res.analysis };
+      try { full = await api.slow.get<RxRow>(`/api/rx/${res.id}`); } catch { /* keep the response payload */ }
+      setCurrent(full);
       setManualText(res.analysis?.items?.map((i: Item) => i.raw_text || i.name).filter(Boolean).join('\n') || manualText);
       setShowManual(false);
       reloadHistory(); reloadQueue();
@@ -317,7 +321,7 @@ export default function Prescriptions() {
       )}
 
       {/* capture */}
-      <div className={cx('card p-4', user && !consent?.granted && 'pointer-events-none opacity-50')}>
+      <div className={cx('card p-4', (!user || !consent?.granted) && 'pointer-events-none opacity-50')}>
         <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
         <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
         {!preview ? (
@@ -329,6 +333,7 @@ export default function Prescriptions() {
               <button onClick={() => cameraRef.current?.click()} className="btn-primary"><Camera className="h-4 w-4" />الكاميرا</button>
               <button onClick={() => galleryRef.current?.click()} className="btn-ghost"><ImageIcon className="h-4 w-4" />المعرض</button>
             </div>
+            {!user && <div className="mt-2 text-[10px] text-amber-300">سجّل الدخول لتفعيل التحليل — البحث وقاعدة الأدوية متاحان بدون حساب.</div>}
             <button onClick={() => setShowManual((v) => !v)} className="mt-3 text-[10.5px] font-bold text-brand-300 underline">
               أو اكتب نص الوصفة يدويًا
             </button>

@@ -356,6 +356,8 @@ function ensureColumn(table, column, ddl) {
 }
 ensureColumn('products', 'barcode_source', 'barcode_source TEXT');          // internal-ean13 | manufacturer | import | admin
 ensureColumn('products', 'barcode_verified', 'barcode_verified INTEGER DEFAULT 0');
+ensureColumn('prescription_items', 'confidence', 'confidence REAL');   // model reading confidence (≠ match score)
+ensureColumn('prescription_items', 'uncertain_fields_json', 'uncertain_fields_json TEXT');
 db.exec("CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode)");
 db.exec("CREATE INDEX IF NOT EXISTS idx_ai_runs_user ON ai_runs(user_id, created_at)");
 db.exec("CREATE INDEX IF NOT EXISTS idx_rx_items ON prescription_items(prescription_id)");
