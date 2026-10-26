@@ -2,7 +2,7 @@
 
 التطبيق يُغلَّف بـ **Capacitor 6**، ومجلد `android/` جاهز في المستودع.
 
-## سلسلة الأدوات (v1.7.0) — Capacitor 7 / SDK 35
+## سلسلة الأدوات (v1.7.0+) — Capacitor 7 / SDK 35
 
 | المكوّن | الإصدار | الملف |
 | --- | --- | --- |
@@ -172,3 +172,22 @@ cd android && ./gradlew bundleRelease
 ```
 
 ثم ارفع نسخة جديدة إلى Google Play (أو وزّع APK مباشرة).
+
+
+---
+
+## منع لقطات الشاشة — كيف يعمل فعليًا (v1.8.0)
+
+ثلاث طبقات، كلها اختيارية:
+
+| الطبقة | المفتاح | يطبّقه |
+|---|---|---|
+| افتراضي الجهاز | `localStorage['mda.secureFlag']` = `'1'` | `MainActivity.refreshSecureFlag()` عند `onCreate`/`onResume` |
+| وصفة بعينها | `localStorage['mda.secureRx.v1']` (JSON لمُعرّفات الوصفات) | `RxSecureToggle` داخل شاشة الوصفات |
+| الجسر الفوري | `window.MDASecure.set('1'\|'0')` | `SecureBridge` في `MainActivity` (فوري بدون إعادة تشغيل) |
+
+عند التطبيق الفوري يُكتب `mda.secureNow`؛ والـshell يقرأه قبل `mda.secureFlag` في `onResume`،
+فلا يُرفع الحماية عن وصفة محميّة عند العودة من الخلفية. الجسر يرفض الطلبات إذا لم تكن الصفحة
+من أصول التطبيق (`https://localhost` أو `file://`).
+
+على الويب لا يوجد `FLAG_SECURE`؛ المفتاح يحفظ الاختيار فقط والنص يوضّح ذلك.

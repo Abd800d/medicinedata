@@ -3,7 +3,7 @@
 مرجع دوائي عربي/إنجليزي، مبني للجوال أولًا (Mobile-First)، يعمل على الويب كتطبيق PWA ويعمل دون اتصال، ويُغلَّف كتطبيق أندرويد أصلي عبر Capacitor.
 
 > **المؤلف والحقوق:** د. عبدالمجيد عبدالله الماخذي — Dr. Abdulmajeed Abdullah Almakhedhi
-> **الإصدار:** 1.7.0 — Capacitor 7 و Android 15 (SDK 35): جاهز للرفع إلى Google Play + منع لقطات الشاشة اختياريًا
+> **الإصدار:** 1.8.0 — حزمة Play جاهزة: AAB موقّع بخطوة واحدة، سياسة خصوصية وشروط منشورة على الخادم، مفتاح رفع يُولَّد من الهاتف، ومنع لقطات الشاشة لكل وصفة على حدة
 
 ---
 
@@ -22,6 +22,7 @@
 11. [النشر للإنتاج](#النشر-للإنتاج)
 12. [الاختبارات](#الاختبارات)
 13. [الوثائق](#الوثائق)
+13.1 [الرفع إلى Google Play](#الرفع-إلى-google-play)
 14. [حدود النسخة الحالية](#حدود-النسخة-الحالية)
 15. [الترخيص والحقوق](#الترخيص-والحقوق)
 
@@ -193,6 +194,19 @@ cd android && ./gradlew assembleDebug
 للتثبيت خلال دقائق، مع دعم بناء `release` موقّع عبر أسرار المستودع.
 **البناء الموقّع:** push لوسم `v*` يُنتج `app-release.apk` + `app-release.aab` تلقائيًا بعد إضافة
 الأسرار الأربعة — الخطوات في [`docs/SIGNING.md`](docs/SIGNING.md).
+
+### الرفع إلى Google Play
+
+كل ما يحتاجه المتجر جاهز في المستودع، والقائمة الكاملة (قيم الحقول، أمان البيانات، تصنيف المحتوى،
+وصول المراجعين) في [`docs/PLAY.md`](docs/PLAY.md). باختصار:
+
+| الخطوة | من أين |
+|---|---|
+| 1. مفتاح الرفع (بدون Java) | التطبيق → الإدارة → التكاملات → «مفتاح رفع Google Play» → تنزيل `.p12` ونسخ القيم • أو `npm run keystore` |
+| 2. الأسرار الأربعة | GitHub → Settings → Secrets → Actions (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`) |
+| 3. الوسم | `git tag v1.8.0 && git push origin v1.8.0` → Release فيه `.apk` و`.aab` موقّعان |
+| 4. في Play Console | أيقونة `store/icon-512.png` · بانر `store/feature-graphic.png` · لقطات `store/screenshots-src/` ثم `npm run store:assets` |
+| 5. صفحات قانونية | `https://<host>/privacy` و`https://<host>/terms` (HTML من الخادم، بلا JavaScript ولا تسجيل) |
 
 ## النشر للإنتاج
 

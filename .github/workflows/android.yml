@@ -292,6 +292,37 @@ jobs:
             { echo "----- $f (AAB) -----"; grep -E "jar verified|X\.509|Signature algorithm" aab.txt | head -20; } >> signature.txt
           done
 
+      - name: Verify Play bundle (AAB)
+        if: hashFiles('out/*.aab') != ''
+        run: |
+          AAB=$(ls out/*.aab | sort | head -1)
+          SIZE=$(wc -c < "$AAB")
+          echo "AAB: $AAB ($SIZE bytes)"
+          # A real bundle always carries the base module manifest and the bundle config.
+          unzip -l "$AAB" > aab-list.txt
+          for entry in base/manifest/AndroidManifest.xml BundleConfig.pb; do
+            if ! grep -q "$entry" aab-list.txt; then
+              echo "::error::$AAB is missing $entry — Google Play would reject it"
+              exit 1
+            fi
+          done
+          MODULES=$(grep -c "base/dex/" aab-list.txt || true)
+          echo "dex files in base: $MODULES"
+          if [ "$SIZE" -lt 1000000 ]; then
+            echo "::warning::the bundle is only $SIZE bytes — check that the web build really ran"
+          fi
+          {
+            echo ""
+            echo "### Google Play bundle"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| File | \`$(basename "$AAB")\` |"
+            echo "| Size | $SIZE bytes |"
+            echo "| Upload | Play Console → Testing → Internal testing → Create new release |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::$AAB verified — upload it to Play Console (docs/PLAY.md)"
+
       - name: Report signing certificate
         if: always() && env.BUILD_TYPE == 'release'
         env:

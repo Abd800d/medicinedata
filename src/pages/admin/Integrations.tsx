@@ -6,6 +6,7 @@ import { useApi } from '../../lib/useApi';
 import { api } from '../../lib/api';
 import { useToast, Badge, Spinner } from '../../components/ui';
 import { cx } from '../../lib/utils';
+import PlayKeystore from './PlayKeystore';
 
 type Integration = {
   configured: boolean;
@@ -134,6 +135,8 @@ export default function Integrations() {
           </section>
         );
       })}
+
+      <PlayKeystore />
 
       <div className="flex items-start gap-2 rounded-2xl border p-3 text-[11px] leading-5 border-amber-400/25 bg-amber-500/10 text-amber-200">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />

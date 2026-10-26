@@ -8,6 +8,8 @@ import { ConfigProvider, useConfig } from '../src/lib/config';
 import { AuthProvider } from '../src/lib/auth';
 import { LockProvider } from '../src/lib/lock';
 import LockScreen from '../src/components/LockScreen';
+import RxSecureToggle from '../src/components/RxSecureToggle';
+import { ToastProvider } from '../src/components/ui';
 
 /** Static markup of the lock screen (effects do not run during SSR). */
 export function renderLockMarkup() {
@@ -49,3 +51,14 @@ export function mountTheme(container: HTMLElement) {
 }
 
 export { act };
+
+/** Screenshot-protection card, as mounted inside the prescription screen. */
+export function renderRxSecureMarkup(rxId?: number) {
+  return renderToStaticMarkup(
+    <I18nProvider>
+      <ToastProvider>
+        <RxSecureToggle rxId={rxId} />
+      </ToastProvider>
+    </I18nProvider>,
+  );
+}

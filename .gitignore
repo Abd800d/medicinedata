@@ -32,3 +32,5 @@ android/local.properties
 *.jks
 *.p12
 *.b64
+# Generated store screenshots (built from your own phone captures)
+store/screenshots/

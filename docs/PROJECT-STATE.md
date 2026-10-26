@@ -1,11 +1,11 @@
 ## Current State — أين توقفنا الآن
 
-> آخر تحديث: 2026-10-27 · **v1.7.0** (Capacitor 7 / Android 15 SDK 35 + منع لقطات الشاشة).
+> آخر تحديث: 2026-10-27 · **v1.8.0** (حزمة Google Play: AAB موقّع، صفحات قانونية من الخادم، مفتاح رفع من الهاتف، منع لقطات لكل وصفة).
 
 - **v1.4.0:** offline-first للكتابة (طابور، `X-Idempotency-Key`، `409 CONFLICT`، صفحة `/sync`).
 - **v1.5.0:** استيراد XML/SQLite، تصدير CSV/JSON/XLSX، نسخ احتياطية AES‑256‑GCM مع استعادة، ومعرض صور بقصّ وضغط.
 - **v1.6.0:** مظهر ليلي/نهاري/تلقائي عبر متغيّرات CSS + قفل التطبيق (PBKDF2 + بصمة) + اختبارات ui/e2e.
-- **v1.7.0 (الجديد):**
+- **v1.7.0:**
   - **سلسلة أدوات Android حديثة:** Capacitor 7.6.9 (core/android/cli)، AGP 8.7.2، Gradle 8.11.1، JDK 21،
     `compileSdk/targetSdk 35`، `minSdk 23`، وandroidx محدّثة. حُذف `bundledWebRuntime` وأُضيف `navigation`
     إلى `configChanges` حسب دليل الترقية الرسمي.
@@ -14,10 +14,23 @@
     أندرويد لا يمكن اختبارها محليًا في هذه البيئة.
   - **منع لقطات الشاشة:** `MainActivity.java` يقرأ `localStorage['mda.secureFlag']` ويطبّق `FLAG_SECURE`
     عند كل عودة للتطبيق؛ المفتاح في «المزيد ← قفل التطبيق» مع توضيح أنه يعمل في تطبيق أندرويد فقط.
+- **v1.8.0 (الجديد):**
+  - **صفحتان قانونيتان من الخادم:** `GET /privacy` و`GET /terms` (HTML من `server/lib/legal.js`، بلا JavaScript
+    وبلا تسجيل — شرط Play)، ويعرضهما التطبيق أيضًا في `/legal/privacy` و`/legal/terms` من نفس المصدر،
+    ويُعلن رابطهما في `GET /api/config` (`privacy_url`, `terms_url`, `legal_version`).
+  - **مفتاح رفع Play من الهاتف:** `POST /api/admin/keystore` يولّد PKCS#12 (RSA-2048، 30 سنة) بمكتبة node-forge
+    دون Java، ويعيده مرة واحدة؛ لا يُخزَّن. واجهته: الإدارة ← التكاملات ← «مفتاح رفع Google Play»
+    مع تنزيل الملف ونسخ القيم الأربع لأسرار GitHub. بديل CLI: `npm run keystore`.
+  - **منع لقطات الشاشة لكل وصفة:** مفتاح داخل شاشة الوصفات (`src/components/RxSecureToggle.tsx`) يخزّن
+    `mda.secureRx.v1`، ويطبّق فورًا عبر جسر `window.MDASecure.set()` في `MainActivity` (بديل الجلسة
+    `mda.secureNow` يقرأه الـshell عند العودة للتطبيق).
+  - **أصول المتجر:** `store/icon-512.png` (بدون ألفا) و`store/feature-graphic.png` و`npm run store:assets`
+    (يُؤطّر أيضًا لقطاتك إلى 1080×1920). أيقونات الويب أُعيد ترميزها 8-bit (−501 KB على أيقونة 512).
+  - **دليل الرفع:** `docs/PLAY.md` (بيانات التطبيق، تصنيف المحتوى، أمان البيانات، وصول المراجعين، المسارات).
 - **التحقق:** `test:ui` 35 · `test:e2e` 39 · `test:data` 51 · `test:rx` 52 · `test:sync` 22 · `tsc`/`build` ✅
   · بناء Android على Actions (انظر آخر تشغيل في PR الإصدار).
-- **التالي:** تحديث Play Console (بيانات التطبيق، سياسة الخصوصية، لقطات الشاشة)، وربط `FLAG_SECURE` بمبدّل
-  داخل شاشة الوصفة نفسها، ثم مراجعة أداء على أجهزة ضعيفة.
+- **التالي:** إضافة أسرار التوقيع الأربعة (مفتاح الرفع من صفحة الإدارة) → وسم `v1.8.1` ينتج `.aab` موقّعًا
+  → رفعه على Play (Internal أولًا)، ثم لقطات الشاشة الحقيقية عبر `store/screenshots-src/`.
 - **تحذير بيئة:** `node_modules/` و`data/` و`dist/` و`.env` تُفقد عند استعادة مساحة العمل → `npm ci --ignore-scripts` ثم `npm run seed` ثم `npm run build`.
 
 ## Workspace — الملفات المهمة
