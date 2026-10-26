@@ -17,9 +17,9 @@ import path from 'node:path';
 import { db, UPLOAD_DIR } from '../db.js';
 import { authRequired, roleRequired } from '../auth.js';
 import { makeUploader } from '../lib/upload.js';
-import { analyzePrescription, PROMPT_VERSION } from '../lib/ai/prescription.js';
+import { analyzePrescription, PROMPT_VERSION, FIELD_THRESHOLD, ITEM_THRESHOLD } from '../lib/ai/prescription.js';
 import { status as aiStatus, AiError } from '../lib/ai/service.js';
-import { matchName, drugDossier, reviewFlags } from '../lib/ai/match.js';
+import { matchName, drugDossier, dailyDoseMg, documentedMaxDailyMg, reviewFlags } from '../lib/ai/match.js';
 import { audit, recordConsent, latestConsent } from '../lib/audit.js';
 
 const router = Router();
@@ -53,8 +53,8 @@ function loadOwned(req, res) {
 function saveItems(prescriptionId, analysis) {
   db.prepare('DELETE FROM prescription_items WHERE prescription_id=?').run(prescriptionId);
   const ins = db.prepare(`INSERT INTO prescription_items(prescription_id,line_no,raw_text,name,matched_drug_id,matched_product_id,
-    match_score,alternatives_json,strength,form,dose,frequency,duration,route,instructions,field_confidence_json,status)
-    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+    match_score,alternatives_json,strength,form,dose,frequency,duration,route,instructions,field_confidence_json,confidence,uncertain_fields_json,status)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   db.transaction(() => {
     for (const it of analysis.items || []) {
       ins.run(
@@ -63,10 +63,65 @@ function saveItems(prescriptionId, analysis) {
         JSON.stringify(it.alternatives || []),
         it.strength, it.form, it.dose, it.frequency, it.duration, it.route, it.instructions,
         JSON.stringify(it.field_confidence || {}),
+        it.confidence ?? null,
+        JSON.stringify(it.uncertain_fields || []),
         'pending',
       );
     }
   })();
+}
+
+/**
+ * Rebuild a stored line into the same shape the analysis response uses.
+ * Done at read time on purpose: the dossier, alternatives and dose maths are
+ * always the *current* database truth, never a frozen copy from analysis day.
+ */
+function hydrateItem(row) {
+  const fieldConfidence = row.field_confidence_json ? JSON.parse(row.field_confidence_json) : {};
+  const stored = row.alternatives_json ? JSON.parse(row.alternatives_json) : [];
+  const dossier = row.matched_drug_id ? drugDossier(row.matched_drug_id, row.matched_product_id) : null;
+  const pick = stored.find((c) => c.drug_id === row.matched_drug_id && (c.product_id || null) === (row.matched_product_id || null)) || stored[0] || null;
+  const matched = row.matched_drug_id
+    ? {
+      drug_id: row.matched_drug_id,
+      product_id: row.matched_product_id ?? null,
+      score: row.match_score ?? null,
+      matched_on: pick?.matched_on ?? null,
+      generic_name: dossier?.drug?.generic_name ?? pick?.generic_name ?? null,
+      generic_ar: dossier?.drug?.generic_ar ?? pick?.generic_ar ?? null,
+      trade_name: pick?.trade_name ?? null,
+      trade_name_ar: pick?.trade_name_ar ?? null,
+      strength: pick?.strength ?? row.strength ?? null,
+      form: pick?.form ?? row.form ?? null,
+      manufacturer_name: pick?.manufacturer_name ?? null,
+      country: pick?.country ?? null,
+      image_url: pick?.image_url ?? null,
+    }
+    : null;
+  /* Only fields that actually hold a value can be "uncertain"; an empty field is absent, not doubtful. */
+  const storedUncertain = row.uncertain_fields_json ? JSON.parse(row.uncertain_fields_json) : null;
+  const uncertain = Array.isArray(storedUncertain) && storedUncertain.length
+    ? storedUncertain.filter((k) => row[k])
+    : Object.entries(fieldConfidence).filter(([k, v]) => row[k] && (!v || v < FIELD_THRESHOLD)).map(([k]) => k);
+  const confidence = row.confidence ?? (Object.values(fieldConfidence).length
+    ? Math.min(...Object.values(fieldConfidence).filter((v) => v > 0))
+    : 0);
+  const needsReview = !matched || uncertain.length > 0 || (row.match_score ?? 0) < ITEM_THRESHOLD;
+  return {
+    ...row,
+    alternatives: stored,
+    field_confidence: fieldConfidence,
+    uncertain_fields: row.status === 'corrected' ? [] : uncertain,
+    confidence: Number(confidence) || 0,
+    matched,
+    dossier,
+    dose_calc: dailyDoseMg(row.dose, row.frequency, row.strength),
+    documented_max_daily_mg: dossier?.drug
+      ? documentedMaxDailyMg(`${dossier.drug.dosage_adult || ''} ${dossier.drug.dosage_child || ''}`)
+      : null,
+    needs_review: row.status === 'corrected' ? false : needsReview,
+    review_reason: !matched ? 'not_in_database' : uncertain.length ? 'uncertain_fields' : null,
+  };
 }
 
 function logRun({ kind = 'prescription', user, prescriptionId, ai, ok = true, errorCode = null }) {
@@ -218,8 +273,7 @@ router.get('/:id', authRequired, (req, res) => {
   if (row.user_id !== req.user.id) {
     audit('rx.viewed_by_staff', { actor: req.user, targetType: 'prescription', targetId: row.id, ip: req.ip });
   }
-  const items = db.prepare('SELECT * FROM prescription_items WHERE prescription_id=? ORDER BY line_no').all(row.id)
-    .map((i) => ({ ...i, alternatives: i.alternatives_json ? JSON.parse(i.alternatives_json) : [], field_confidence: i.field_confidence_json ? JSON.parse(i.field_confidence_json) : {} }));
+  const items = db.prepare('SELECT * FROM prescription_items WHERE prescription_id=? ORDER BY line_no').all(row.id).map(hydrateItem);
   const reviews = db.prepare(`SELECT r.*, u.name AS reviewer_name FROM prescription_reviews r
     LEFT JOIN users u ON u.id=r.user_id WHERE r.prescription_id=? ORDER BY r.id`).all(row.id);
   const runs = db.prepare('SELECT provider,model,latency_ms,prompt_version,ok,created_at FROM ai_runs WHERE prescription_id=? ORDER BY id DESC LIMIT 5').all(row.id);
