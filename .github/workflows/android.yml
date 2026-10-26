@@ -196,6 +196,33 @@ jobs:
           fi
           exit "$STATUS"
 
+      - name: Verify SDK 35 (Play requirement)
+        run: |
+          APK=$(find android/app/build/outputs -name '*.apk' | sort | head -1)
+          if [ -z "$APK" ]; then echo "::error::no APK produced"; exit 1; fi
+          AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt2 -type f | sort -V | tail -1)
+          "$AAPT" dump badging "$APK" > badging.txt 2>/dev/null || true
+          TARGET=$(grep -oE "targetSdkVersion:'[0-9]+'" badging.txt | grep -oE "[0-9]+" | head -1)
+          MINSDK=$(grep -oE "sdkVersion:'[0-9]+'" badging.txt | grep -oE "[0-9]+" | head -1)
+          VERNAME=$(grep -oE "versionName='[^']*'" badging.txt | head -1 | cut -d"'" -f2)
+          VERCODE=$(grep -oE "versionCode='[^']*'" badging.txt | head -1 | cut -d"'" -f2)
+          echo "APK: $APK"
+          echo "targetSdk=$TARGET minSdk=$MINSDK versionName=$VERNAME versionCode=$VERCODE"
+          {
+            echo "| SDK | Value |"
+            echo "|---|---|"
+            echo "| targetSdk | **${TARGET:-unknown}** |"
+            echo "| minSdk | ${MINSDK:-unknown} |"
+            echo "| versionName | ${VERNAME:-unknown} |"
+            echo "| versionCode | ${VERCODE:-unknown} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -z "$TARGET" ]; then echo "::error::cannot read targetSdkVersion from the built APK"; exit 1; fi
+          if [ "$TARGET" -lt 35 ]; then
+            echo "::error::targetSdk is $TARGET but Google Play requires 35 — the APK would be rejected"
+            exit 1
+          fi
+          echo "::notice::targetSdk $TARGET satisfies the Play requirement"
+
       - name: Publish gradle failure log
         if: failure()
         env:
