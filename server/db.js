@@ -337,6 +337,19 @@ CREATE TABLE IF NOT EXISTS audit_log (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+/* Idempotent write retries from the offline queue (see server/lib/idempotency.js).
+   Only the response is stored — never the request body with patient data. */
+CREATE TABLE IF NOT EXISTS idempotency_keys (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  key TEXT NOT NULL,
+  method TEXT NOT NULL,
+  path TEXT NOT NULL,
+  status_code INTEGER,
+  response_json TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, key)
+);
+
 /* Declared allergies — entered by the user, never inferred.
    code = documented family (penicillin, nsaid...) or mol:<generic_name> for one molecule. */
 CREATE TABLE IF NOT EXISTS user_allergies (
@@ -370,6 +383,8 @@ ensureColumn('products', 'barcode_source', 'barcode_source TEXT');          // i
 ensureColumn('products', 'barcode_verified', 'barcode_verified INTEGER DEFAULT 0');
 ensureColumn('prescription_items', 'confidence', 'confidence REAL');   // model reading confidence (≠ match score)
 ensureColumn('prescriptions', 'patient_context_json', 'patient_context_json TEXT'); // allergies snapshot at analysis time
+ensureColumn('pharmacy_items', 'version', 'version INTEGER NOT NULL DEFAULT 1');   // optimistic concurrency for offline edits
+ensureColumn('pharmacy_items', 'client_uuid', 'client_uuid TEXT');                 // id of an item created offline
 ensureColumn('prescription_items', 'uncertain_fields_json', 'uncertain_fields_json TEXT');
 db.exec("CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode)");
 db.exec("CREATE INDEX IF NOT EXISTS idx_ai_runs_user ON ai_runs(user_id, created_at)");
@@ -377,6 +392,8 @@ db.exec("CREATE INDEX IF NOT EXISTS idx_rx_items ON prescription_items(prescript
 db.exec("CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at)");
 db.exec("CREATE INDEX IF NOT EXISTS idx_consent_user ON user_consents(user_id, kind)");
 db.exec("CREATE INDEX IF NOT EXISTS idx_user_allergies ON user_allergies(user_id)");
+db.exec("CREATE INDEX IF NOT EXISTS idx_idem_created ON idempotency_keys(created_at)");
+db.exec("CREATE INDEX IF NOT EXISTS idx_pharmacy_client_uuid ON pharmacy_items(user_id, client_uuid)");
 
 // Full text search indexes (trigram → typo tolerant substring search)
 db.exec(`

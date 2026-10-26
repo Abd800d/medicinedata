@@ -10,9 +10,12 @@ import submissionRoutes from './submissions.js';
 import prescriptionAiRoutes from './prescription-ai.js';
 import { optionalAuth, ensureAdmin, OWNER_EMAIL } from '../auth.js';
 import { getSetting, db } from '../db.js';
+import { idempotency, pruneIdempotency } from '../lib/idempotency.js';
 
 const router = Router();
 router.use(optionalAuth);
+/* Replay safe responses for retried offline writes (X-Idempotency-Key). */
+router.use(idempotency);
 
 router.get('/config', (_req, res) => {
   const counts = db.prepare(`SELECT
@@ -61,5 +64,7 @@ router.use('/submissions', submissionRoutes);
 router.get('/health', (_req, res) => res.json({ ok: true, app: 'MDA', time: new Date().toISOString() }));
 
 ensureAdmin();
+pruneIdempotency();
+setInterval(pruneIdempotency, 24 * 3600 * 1000).unref?.();
 
 export default router;

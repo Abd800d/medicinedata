@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
 import { useApi } from '../lib/useApi';
 import { api } from '../lib/api';
+import { useSync } from '../lib/sync';
 import { Badge, EmptyState, Field, Modal, PageLoader, Select, SmartImage, TextArea, useToast } from '../components/ui';
 import { cx, dateFmt, fmt, num, useDebounced } from '../lib/utils';
 
@@ -15,15 +16,18 @@ type Item = {
   id: number; product_id?: number | null; name: string; strength?: string; form?: string; quantity: number; unit?: string;
   buy_price?: number; sell_price?: number; expiry_date?: string; batch?: string; supplier?: string; notes?: string;
   trade_name?: string; generic_name?: string; image_url?: string; manufacturer_name?: string;
+  updated_at?: string; version?: number; client_uuid?: string | null;
 };
 type Summary = { items: number; units: number; stock_value: number; potential_value: number; low_stock: number; expiring_soon: number; expired: number };
 
 const emptyForm = {
   id: 0, product_id: '', name: '', strength: '', form: '', quantity: '1', unit: 'box',
   buy_price: '', sell_price: '', expiry_date: '', batch: '', supplier: '', notes: '',
+  updated_at: '', client_uuid: '',
 };
 
 export default function Pharmacy() {
+  const { runOrQueue } = useSync();
   const { user } = useAuth();
   const { t, lang } = useI18n();
   const { push } = useToast();
@@ -74,11 +78,24 @@ export default function Pharmacy() {
     if (!form?.name?.trim()) { push(t('common.requiredField'), 'error'); return; }
     setBusy(true);
     try {
-      if (form.id) await api.put(`/api/pharmacy/${form.id}`, form);
-      else await api.post('/api/pharmacy', form);
-      setForm(null); reload(); push(t('common.saved'));
-    } catch (e: any) { push(e.message || t('common.error'), 'error'); }
-    finally { setBusy(false); }
+      const payload: any = { ...form };
+      if (form.id) {
+        /* optimistic concurrency: send the updated_at we last saw */
+        payload.expected_updated_at = form.updated_at || undefined;
+        const r = await runOrQueue({ method: 'PUT', path: `/api/pharmacy/${form.id}`, body: payload, label: `تعديل: ${form.name}` });
+        if (r.queued) push('لا يوجد اتصال — حُفظ التعديل على الجهاز وسيُزامن تلقائيًا', 'info');
+        else push(t('common.saved'));
+      } else {
+        payload.client_uuid = (crypto as any)?.randomUUID?.() || `c-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const r = await runOrQueue({ method: 'POST', path: '/api/pharmacy', body: payload, label: `إضافة: ${form.name}` });
+        if (r.queued) push('لا يوجد اتصال — سيُضاف الصنف عند المزامنة', 'info');
+        else push(t('common.saved'));
+      }
+      setForm(null); reload();
+    } catch (e: any) {
+      if (e?.status === 409) push('الصنف تغيّر على الخادم — أعد التحميل ثم عدّل', 'error');
+      else push(e.message || t('common.error'), 'error');
+    } finally { setBusy(false); }
   };
 
   const adjust = async (item: Item, delta: number) => {
@@ -91,8 +108,12 @@ export default function Pharmacy() {
 
   const remove = async () => {
     if (!del) return;
-    try { await api.del(`/api/pharmacy/${del.id}`); setDel(null); reload(); push(t('common.deleted', {}) || 'تم الحذف'); }
-    catch { push(t('common.error'), 'error'); }
+    try {
+      const qs = del.updated_at ? `?expected_updated_at=${encodeURIComponent(del.updated_at)}` : '';
+      const r = await runOrQueue({ method: 'DELETE', path: `/api/pharmacy/${del.id}${qs}`, label: `حذف: ${del.name}` });
+      setDel(null); reload();
+      push(r.queued ? 'لا يوجد اتصال — سيُحذف عند المزامنة' : (t('common.deleted', {}) || 'تم الحذف'), r.queued ? 'info' : undefined);
+    } catch { push(t('common.error'), 'error'); }
   };
 
   const exportCsv = () => {

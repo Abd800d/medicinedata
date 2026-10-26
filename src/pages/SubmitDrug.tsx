@@ -4,7 +4,7 @@ import { CheckCircle2, Clock, FilePlus2, Loader2, Lock, Search, Send, ShieldChec
 import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
 import { useApi } from '../lib/useApi';
-import { api } from '../lib/api';
+import { useSync } from '../lib/sync';
 import { Badge, Field, PageLoader, Select, TextArea, useToast } from '../components/ui';
 import { timeAgo } from '../lib/utils';
 
@@ -12,6 +12,7 @@ export default function SubmitDrug() {
   const { user } = useAuth();
   const { t, lang } = useI18n();
   const { push } = useToast();
+  const { runOrQueue } = useSync();
   const { data: systems } = useApi<any[]>('/api/catalog/systems');
   const { data: mine, loading, reload } = useApi<any[]>('/api/submissions/mine', undefined, { enabled: !!user });
   const [form, setForm] = useState({ name_en: '', name_ar: '', system_id: '', company: '', strength: '', form: '', country: '', notes: '' });
@@ -41,9 +42,10 @@ export default function SubmitDrug() {
     if (!form.name_en.trim()) { push(t('common.requiredField'), 'error'); return; }
     setBusy(true);
     try {
-      await api.post('/api/submissions', form);
+      const r = await runOrQueue({ method: 'POST', path: '/api/submissions', body: form, label: `طلب إضافة: ${form.name_en}` });
       setForm({ name_en: '', name_ar: '', system_id: '', company: '', strength: '', form: '', country: '', notes: '' });
-      setDone(true); reload(); push(t('submit.sent'));
+      setDone(true); reload();
+      push(r.queued ? 'لا يوجد اتصال — سيُرسل الطلب تلقائيًا عند عودة الاتصال' : t('submit.sent'), r.queued ? 'info' : undefined);
     } catch (err: any) { push(err.message || t('common.error'), 'error'); }
     finally { setBusy(false); }
   };
