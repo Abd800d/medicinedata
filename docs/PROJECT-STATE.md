@@ -1,22 +1,23 @@
 ## Current State — أين توقفنا الآن
 
-> آخر تحديث: 2026-10-26 · **v1.6.0** (مظهر ليلي/نهاري/تلقائي + قفل التطبيق + اختبار E2E).
+> آخر تحديث: 2026-10-27 · **v1.7.0** (Capacitor 7 / Android 15 SDK 35 + منع لقطات الشاشة).
 
-- **v1.3.0:** حساسيات مسجّلة وتنبيهات مفهومة لكل خطر + لوحة جودة التحليل.
 - **v1.4.0:** offline-first للكتابة (طابور، `X-Idempotency-Key`، `409 CONFLICT`، صفحة `/sync`).
 - **v1.5.0:** استيراد XML/SQLite، تصدير CSV/JSON/XLSX، نسخ احتياطية AES‑256‑GCM مع استعادة، ومعرض صور بقصّ وضغط.
-- **v1.6.0 (الجديد):**
-  - **المظهر:** `ink` و`white` أصبحا متغيّرات CSS في `tailwind.config.js`، فانقلب التطبيق كله من طبقة رموز واحدة.
-    `ConfigProvider` يدعم `light | dark | system` مع متابعة `prefers-color-scheme`، وحفظ في `mda.themeMode`،
-    وتطبيق قبل أول رسم من سكربت في `index.html` (لا وميض). مبدّل في الشريط العلوي + بطاقة في «المزيد».
-  - **قفل التطبيق:** `src/lib/lockCrypto.ts` (PBKDF2‑SHA256 150k + ملح، تأخير تصاعدي، دوال قابلة للاختبار)
-    و`src/lib/lock.tsx` (Provider، قفل تلقائي عند `visibilitychange`، WebAuthn للبصمة) و`LockScreen.tsx` (لوحة أرقام)
-    و`LockSettings.tsx` (تفعيل/تغيير/إيقاف + مدة القفل + تسجيل البصمة). التطبيق يبقى مركّبًا خلف القفل فلا يُفقد عمل جارٍ.
-  - **اختبارات:** `scripts/test-ui.mjs` (35) و`scripts/test-e2e.mjs` (39) — الأخير يمرّ بالمسار الكامل:
-    موافقة → حساسية → تحليل صورة → ربط بقاعدة الأدوية → تصحيح بشري → منع الاعتماد الذاتي → 409 للبنود المعلّقة →
-    اعتماد صريح → سلسلة تدقيق سليمة → محو بيانات → لا صور يتيمة على القرص.
-- **التحقق:** `test:ui` **35/35** · `test:e2e` **39/39** · `test:data` 51/51 · `test:rx` 52/52 · `test:sync` 22/22 · smoke (مع `/more`) بلا أخطاء · `tsc`/`build` ✅.
-- **التالي:** v1.7.0 — رفع `targetSdk` إلى 35 (يتطلب Capacitor 7 / AGP 8.7) لفتح الرفع إلى Google Play، ثم FLAG_SECURE اختياري للشاشات الحساسة.
+- **v1.6.0:** مظهر ليلي/نهاري/تلقائي عبر متغيّرات CSS + قفل التطبيق (PBKDF2 + بصمة) + اختبارات ui/e2e.
+- **v1.7.0 (الجديد):**
+  - **سلسلة أدوات Android حديثة:** Capacitor 7.6.9 (core/android/cli)، AGP 8.7.2، Gradle 8.11.1، JDK 21،
+    `compileSdk/targetSdk 35`، `minSdk 23`، وandroidx محدّثة. حُذف `bundledWebRuntime` وأُضيف `navigation`
+    إلى `configChanges` حسب دليل الترقية الرسمي.
+  - **CI:** الـ workflow صار يثبّت `platforms;android-35` و`build-tools;35.0.0` ويستخدم JDK 21،
+    ويشغّل بناءً تجريبيًا (artifact فقط) عند أي دفع إلى `arena/**` أو `feature/**` — لأن سلسلة أدوات
+    أندرويد لا يمكن اختبارها محليًا في هذه البيئة.
+  - **منع لقطات الشاشة:** `MainActivity.java` يقرأ `localStorage['mda.secureFlag']` ويطبّق `FLAG_SECURE`
+    عند كل عودة للتطبيق؛ المفتاح في «المزيد ← قفل التطبيق» مع توضيح أنه يعمل في تطبيق أندرويد فقط.
+- **التحقق:** `test:ui` 35 · `test:e2e` 39 · `test:data` 51 · `test:rx` 52 · `test:sync` 22 · `tsc`/`build` ✅
+  · بناء Android على Actions (انظر آخر تشغيل في PR الإصدار).
+- **التالي:** تحديث Play Console (بيانات التطبيق، سياسة الخصوصية، لقطات الشاشة)، وربط `FLAG_SECURE` بمبدّل
+  داخل شاشة الوصفة نفسها، ثم مراجعة أداء على أجهزة ضعيفة.
 - **تحذير بيئة:** `node_modules/` و`data/` و`dist/` و`.env` تُفقد عند استعادة مساحة العمل → `npm ci --ignore-scripts` ثم `npm run seed` ثم `npm run build`.
 
 ## Workspace — الملفات المهمة

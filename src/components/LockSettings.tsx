@@ -2,8 +2,8 @@
  * "قفل التطبيق" card: enable / change / disable the PIN, choose when it re-locks,
  * and register the phone's fingerprint/face when the WebView supports it.
  */
-import { useState } from 'react';
-import { Fingerprint, KeyRound, Loader2, Lock, LockOpen, ShieldCheck, TimerReset } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Fingerprint, KeyRound, Loader2, Lock, LockOpen, MonitorOff, ShieldCheck, TimerReset } from 'lucide-react';
 import { AUTO_OPTIONS, useAppLock } from '../lib/lock';
 import { useI18n } from '../lib/i18n';
 import { Badge, useToast } from './ui';
@@ -27,6 +27,23 @@ export default function LockSettings() {
   const [confirm, setConfirm] = useState('');
   const [oldPin, setOldPin] = useState('');
   const [busy, setBusy] = useState(false);
+  const [secure, setSecure] = useState(() => {
+    try { return localStorage.getItem('mda.secureFlag') === '1'; } catch { return false; }
+  });
+
+  /* Screenshot protection is applied by the Android shell (MainActivity) reading this
+     key; on the web it is a no-op, so the card says where it actually works. */
+  const toggleSecure = () => {
+    const next = !secure;
+    try { localStorage.setItem('mda.secureFlag', next ? '1' : '0'); } catch { /* private mode */ }
+    setSecure(next);
+    push(next ? (ar ? 'سيُمنع تصوير الشاشة في تطبيق أندرويد' : 'Screenshots will be blocked in the Android app')
+              : (ar ? 'أُلغي منع تصوير الشاشة' : 'Screenshot block disabled'), 'success');
+  };
+
+  useEffect(() => {
+    try { if (localStorage.getItem('mda.secureFlag') === null) localStorage.setItem('mda.secureFlag', '0'); } catch { /* ignore */ }
+  }, []);
 
   const reset = () => { setMode(null); setPin(''); setConfirm(''); setOldPin(''); };
 
@@ -123,6 +140,19 @@ export default function LockSettings() {
           </div>
         </>
       )}
+
+      <button onClick={toggleSecure} className="mt-3 flex w-full items-center gap-2 rounded-xl border border-white/[.08] p-2.5 text-start transition hover:bg-white/[.04]">
+        <MonitorOff className={cx('h-4 w-4 shrink-0', secure ? 'text-emerald-300' : 'text-ink-500')} />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[11px] font-bold text-white">{ar ? 'منع لقطات الشاشة' : 'Block screenshots'}</span>
+          <span className="block text-[9.5px] leading-4 text-ink-500">
+            {ar ? 'يُطبَّق في تطبيق أندرويد فقط (يمنع أيضًا تسجيل الشاشة ومشاركتها)' : 'Android app only — also blocks screen recording'}
+          </span>
+        </span>
+        <span className={cx('flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition', secure ? 'bg-emerald-500' : 'bg-white/15')}>
+          <span className={cx('h-4 w-4 rounded-full bg-white shadow transition', secure ? 'translate-x-4 rtl:-translate-x-4' : '')} />
+        </span>
+      </button>
 
       {mode && (
         <div className="fixed inset-0 z-[110] grid place-items-center bg-black/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
