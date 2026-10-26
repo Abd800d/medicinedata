@@ -194,6 +194,53 @@ ok('the response tells the owner where to paste the secrets', Array.isArray(ks.j
 const stored = fs.readdirSync(path.join(process.cwd(), 'data')).filter((f) => f.endsWith('.p12'));
 ok('the private key is never written to disk', stored.length === 0);
 
+console.log('10 · AI enabled from inside the app (v1.8.1)');
+
+const MOCK_AI = (process.env.MOCK_AI || 'http://127.0.0.1:4111/v1').replace(/\/$/, '');
+const aiAnon = await call('/api/admin/ai');
+ok('AI settings are admin-only', aiAnon.status === 401);
+const ai0 = await call('/api/admin/ai', { token: admin });
+ok('the admin panel receives the provider catalogue', ai0.status === 200 && Boolean(ai0.json?.presets?.groq));
+ok('no API key is ever sent to the client', !JSON.stringify(ai0.json).includes('sk-') && ai0.json?.has_key !== undefined);
+ok('the panel reports where the key came from', ['database', 'environment', 'none'].includes(ai0.json?.key_source));
+/* Never destroy a key the owner configured in the app: skip this block when one exists. */
+const hadDatabaseKey = ai0.json?.key_source === 'database';
+const hadEnvironmentKey = ai0.json?.key_source === 'environment';
+if (hadDatabaseKey) console.log('   (an AI key is already configured in the database — the write tests are skipped)');
+
+if (!hadDatabaseKey) {
+const badProvider = await call('/api/admin/ai', { method: 'PUT', token: admin, body: { provider: 'nope' } });
+ok('an unknown provider is rejected', badProvider.status === 400 && badProvider.json?.error === 'BAD_PROVIDER');
+const badBase = await call('/api/admin/ai', { method: 'PUT', token: admin, body: { base_url: 'ftp://x' } });
+ok('a non-http base URL is rejected', badBase.status === 400 && badBase.json?.error === 'BAD_BASE_URL');
+const shortKey = await call('/api/admin/ai', { method: 'PUT', token: admin, body: { api_key: 'short' } });
+ok('a too-short key is rejected', shortKey.status === 400 && shortKey.json?.error === 'BAD_KEY');
+
+const saved = await call('/api/admin/ai', {
+  method: 'PUT', token: admin,
+  body: { provider: 'custom', base_url: MOCK_AI, model: 'test-model', vision_model: 'test-vision', api_key: 'e2e-ai-key-1234567890' },
+});
+ok('the key is stored (masked) after saving', saved.status === 200 && saved.json?.has_key === true && /…/.test(saved.json?.key_hint || ''));
+ok('the stored key is attributed to the database, not env', saved.json?.key_source === 'database');
+ok('the raw key is not echoed back', !JSON.stringify(saved.json).includes('1234567890'));
+
+const st = (await call('/api/ai/status')).json || {};
+ok('the public status flips to enabled', st.enabled === true && st.model === 'test-model');
+const rxSt = (await call('/api/rx/status')).json || {};
+ok('prescription analysis reports the provider as configured', rxSt.configured === true);
+
+const probe = await call('/api/admin/ai/test', { method: 'POST', token: admin, body: { timeout_ms: 8000 } });
+ok('the self-test reaches the provider for real', probe.status === 200 && probe.json?.ok === true, JSON.stringify(probe.json).slice(0, 120));
+ok('the self-test reports latency and model', Number(probe.json?.latency_ms) >= 0 && probe.json?.model === 'test-model');
+
+const cleared = await call('/api/admin/ai', { method: 'PUT', token: admin, body: { clear_key: true } });
+ok('the database key can be removed again', cleared.status === 200 && cleared.json?.key_source !== 'database'
+  && cleared.json?.has_key === hadEnvironmentKey);
+const after = (await call('/api/ai/status')).json || {};
+ok('clearing the database key falls back to the server setting',
+  after.enabled === hadEnvironmentKey, `enabled=${after.enabled} env=${hadEnvironmentKey}`);
+}
+
 /* ------------------------------------------------------------------ cleanup */
 console.log('cleanup');
 const users = await call('/api/admin/users?q=e2e', { token: admin });

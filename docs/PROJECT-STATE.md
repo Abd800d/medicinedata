@@ -1,6 +1,6 @@
 ## Current State — أين توقفنا الآن
 
-> آخر تحديث: 2026-10-27 · **v1.8.0** (حزمة Google Play: AAB موقّع، صفحات قانونية من الخادم، مفتاح رفع من الهاتف، منع لقطات لكل وصفة).
+> آخر تحديث: 2026-10-27 · **v1.8.1** (تفعيل الذكاء الاصطناعي من الهاتف + حزمة Google Play: AAB موقّع، صفحات قانونية، مفتاح رفع، منع لقطات لكل وصفة).
 
 - **v1.4.0:** offline-first للكتابة (طابور، `X-Idempotency-Key`، `409 CONFLICT`، صفحة `/sync`).
 - **v1.5.0:** استيراد XML/SQLite، تصدير CSV/JSON/XLSX، نسخ احتياطية AES‑256‑GCM مع استعادة، ومعرض صور بقصّ وضغط.
@@ -14,7 +14,17 @@
     أندرويد لا يمكن اختبارها محليًا في هذه البيئة.
   - **منع لقطات الشاشة:** `MainActivity.java` يقرأ `localStorage['mda.secureFlag']` ويطبّق `FLAG_SECURE`
     عند كل عودة للتطبيق؛ المفتاح في «المزيد ← قفل التطبيق» مع توضيح أنه يعمل في تطبيق أندرويد فقط.
-- **v1.8.0 (الجديد):**
+- **v1.8.1 (الجديد):**
+  - **تفعيل الذكاء الاصطناعي من الهاتف:** `server/lib/ai-config.js` + `secrets.js` + `providers.js`،
+    واجهة `الإدارة ← الذكاء الاصطناعي`. المفتاح يُخزَّن مشفّرًا (AES‑256‑GCM) ويُقرأ عند كل طلب،
+    فلا حاجة لإعادة تشغيل الخادم. `POST /api/admin/ai/test` يجرّب المزوّد فعليًا ويصنّف السبب
+    (auth/model/quota/request/network/timeout).
+  - **بطاقة تشخيص موحّدة:** `AiSetupHint` في شاشة الوصفات والمساعد: تفرّق بين «لا خادم متصل»
+    و«الخادم متصل لكن المفتاح ناقص»، وتقود المدير بزر واحد إلى لوحة التفعيل.
+  - **اختصارات في «المزيد»:** الذكاء الاصطناعي (أو لوحة الإدارة)، سياسة الخصوصية، شروط الاستخدام.
+  - **أمان:** لا يُعاد المفتاح لأي عميل؛ `/api/ai/status` و`/api/rx/status` عامّان وبلا حقول حسّاسة؛
+    كل تغيير/اختبار مسجّل في سجل التدقيق.
+- **v1.8.0:**
   - **صفحتان قانونيتان من الخادم:** `GET /privacy` و`GET /terms` (HTML من `server/lib/legal.js`، بلا JavaScript
     وبلا تسجيل — شرط Play)، ويعرضهما التطبيق أيضًا في `/legal/privacy` و`/legal/terms` من نفس المصدر،
     ويُعلن رابطهما في `GET /api/config` (`privacy_url`, `terms_url`, `legal_version`).
@@ -29,7 +39,7 @@
   - **دليل الرفع:** `docs/PLAY.md` (بيانات التطبيق، تصنيف المحتوى، أمان البيانات، وصول المراجعين، المسارات).
 - **التحقق:** `test:ui` 35 · `test:e2e` 39 · `test:data` 51 · `test:rx` 52 · `test:sync` 22 · `tsc`/`build` ✅
   · بناء Android على Actions (انظر آخر تشغيل في PR الإصدار).
-- **التالي:** إضافة أسرار التوقيع الأربعة (مفتاح الرفع من صفحة الإدارة) → وسم `v1.8.1` ينتج `.aab` موقّعًا
+- **التالي:** إضافة أسرار التوقيع الأربعة (مفتاح الرفع من صفحة الإدارة) → وسم `v1.8.2` ينتج `.aab` موقّعًا
   → رفعه على Play (Internal أولًا)، ثم لقطات الشاشة الحقيقية عبر `store/screenshots-src/`.
 - **تحذير بيئة:** `node_modules/` و`data/` و`dist/` و`.env` تُفقد عند استعادة مساحة العمل → `npm ci --ignore-scripts` ثم `npm run seed` ثم `npm run build`.
 
@@ -38,6 +48,7 @@
 - `package.json` — v1.0.0، ESM، scripts: `dev`, `dev:api`, `dev:web`, `build`, `start`, `seed`, `seed:reset`, `cap:sync`, `cap:android`, **`smoke`**. devDeps تضمّ jsdom@25 و@capacitor/cli@6.
 - `.npmrc` (غير مُتجاهَل) — `ignore-scripts=true` (ضروري: better-sqlite3 13 يجلب prebuilds مدمجة).
 - `.env` (مُتجاهَل) — PORT 4000, HOST 0.0.0.0, JWT_SECRET عشوائي، OWNER_EMAIL `7a8b1d@gmail.com`, ADMIN_PASSWORD `MDAadmin@2026`.
+- `server/lib/ai-config.js` (v1.8.1) — الإعداد المتغيّر للذكاء الاصطناعي + الاختبار الذاتي؛ `secrets.js` تشفير AES‑256‑GCM؛ `ai/providers.js` قوالب المزوّدين.
 - `server/` — `index.js`, `db.js` (17 جدولًا + FTS5 trigram), `seed.js`, `auth.js`, `data/{systems,drugs,drugs-1..5,helpers,refs}.js`, `lib/{search,ai,importer,upload,packArt}.js`, `routes/{index,auth,catalog,community,prescriptions,ai,admin,pharmacy,submissions}.js`.
 - `src/` — `App.tsx` (lazy routes + `BrowserRouter future` flags), `pages/*` (19 صفحة) + `pages/admin/{Admin,Catalog,Media,People,Submissions,SettingsPanel}.tsx`, `lib/*`, `components/*`, `smoke-entry.tsx` (حزمة الاختبار).
 - `scripts/smoke.mjs` — يرندر التطبيق في jsdom مقابل API حي، يختار معرّفات حقيقية تلقائيًا، يطبع `{path,len,text,tail,errors}`.

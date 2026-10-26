@@ -10,49 +10,46 @@
  *   • Raw provider errors are logged server-side; clients receive a short, safe message.
  */
 import { randomUUID } from 'node:crypto';
+import { getAiConfig } from '../ai-config.js';
 
-const PRESETS = {
-  groq: { base: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile', vision: 'meta-llama/llama-4-scout-17b-16e-instruct' },
-  openai: { base: 'https://api.openai.com/v1', model: 'gpt-4o-mini', vision: 'gpt-4o-mini' },
-  gemini: { base: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-2.0-flash', vision: 'gemini-2.0-flash' },
-  openrouter: { base: 'https://openrouter.ai/api/v1', model: 'google/gemini-2.0-flash-001', vision: 'google/gemini-2.0-flash-001' },
-  together: { base: 'https://api.together.xyz/v1', model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', vision: 'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo' },
-  deepseek: { base: 'https://api.deepseek.com/v1', model: 'deepseek-chat', vision: 'deepseek-chat' },
-  ollama: { base: 'http://127.0.0.1:11434/v1', model: 'llama3.2', vision: 'llava' },
-};
+/*
+ * Configuration is resolved on every call (see server/lib/ai-config.js): an admin can
+ * switch provider or paste a key in the app and the next request uses it — no restart.
+ * `models` is kept as a live object because older modules read models.vision directly.
+ */
+export const models = { text: '', vision: '' };
 
-const env = (k, d = '') => String(process.env[k] ?? d).trim();
+export function refreshModels() {
+  const c = getAiConfig();
+  models.text = c.model;
+  models.vision = c.vision || c.model;
+  return models;
+}
+refreshModels();
 
-export const provider = (env('AI_PROVIDER') || (env('AI_BASE_URL') ? 'custom' : 'openai')).toLowerCase();
-const preset = PRESETS[provider] || { base: '', model: 'gpt-4o-mini', vision: 'gpt-4o-mini' };
-const BASE = (env('AI_BASE_URL') || preset.base).replace(/\/+$/, '');
-const KEY = env('AI_API_KEY') || env('OPENAI_API_KEY');
-const MODEL = env('AI_MODEL') || preset.model;
-const VISION_MODEL = env('AI_VISION_MODEL') || preset.vision;
-const TIMEOUT_MS = Number(env('AI_TIMEOUT_MS', '45000')) || 45000;
-const RETRIES = Math.max(0, Math.min(4, Number(env('AI_RETRIES', '2')) || 0));
-
-export const isConfigured = () => Boolean(KEY && BASE);
+export const isConfigured = () => getAiConfig().configured;
 
 /** Safe, client-facing capability report — never includes the key or a callable URL. */
 export function status() {
+  const c = getAiConfig();
+  const configured = c.configured;
   return {
-    configured: isConfigured(),
-    provider: isConfigured() ? provider : 'none',
-    model: isConfigured() ? MODEL : null,
-    vision_model: isConfigured() ? VISION_MODEL : null,
-    timeout_ms: TIMEOUT_MS,
-    retries: RETRIES,
+    configured,
+    provider: configured ? c.provider : 'none',
+    model: configured ? c.model : null,
+    vision_model: configured ? c.vision : null,
+    timeout_ms: c.timeout_ms,
+    retries: c.retries,
     features: {
-      prescription: isConfigured(),
-      pack_recognition: isConfigured(),
-      assistant: isConfigured(),
+      prescription: configured,
+      pack_recognition: configured,
+      assistant: configured,
       offline_catalogue: true,
     },
-    hint_ar: isConfigured() ? null
-      : 'التحليل الذكي غير مفعّل. أضف AI_API_KEY على الخادم (متغيرات البيئة) — مفتاح Groq مجاني. كل بقية ميزات التطبيق تعمل بدونه.',
-    hint_en: isConfigured() ? null
-      : 'AI analysis is not enabled. Set AI_API_KEY on the server (Groq keys are free). Everything else works without it.',
+    hint_ar: configured ? null
+      : 'التحليل الذكي غير مفعّل على الخادم. المدير يستطيع تفعيله من: الإدارة ← الذكاء الاصطناعي (مفتاح Groq مجاني). كل بقية ميزات التطبيق تعمل بدونه.',
+    hint_en: configured ? null
+      : 'AI is not enabled on the server. An admin can enable it in Admin → AI settings (a free Groq key works). Everything else works without it.',
   };
 }
 
@@ -106,12 +103,16 @@ export function extractJson(text) {
  */
 export async function complete({
   messages, model, vision = false, json = true, maxTokens = 1400, temperature = 0,
-  audit = null, timeoutMs = TIMEOUT_MS, retries = RETRIES,
+  audit = null, timeoutMs = null, retries = null,
 }) {
-  if (!isConfigured()) {
+  const cfg = getAiConfig();
+  if (!cfg.configured) {
     throw new AiError('AI key is not configured', { code: 'AI_NOT_CONFIGURED', safe: 'التحليل الذكي غير مفعّل على الخادم' });
   }
-  const chosen = model || (vision ? VISION_MODEL : MODEL);
+  refreshModels();
+  const chosen = model || (vision ? cfg.vision : cfg.model);
+  timeoutMs = timeoutMs ?? cfg.timeout_ms;
+  retries = retries ?? cfg.retries;
   const requestId = randomUUID();
   let lastError = null;
 
@@ -120,10 +121,10 @@ export async function complete({
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
     try {
-      const res = await fetch(`${BASE}/chat/completions`, {
+      const res = await fetch(`${cfg.base}/chat/completions`, {
         method: 'POST',
         signal: ctrl.signal,
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${KEY}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cfg.key}` },
         body: JSON.stringify({
           model: chosen,
           messages,
@@ -142,7 +143,7 @@ export async function complete({
             ? 'الخدمة مشغولة الآن — أعد المحاولة بعد لحظات'
             : 'تعذّر الوصول إلى خدمة التحليل',
         });
-        audit?.({ event: 'ai.call', ok: false, model: chosen, provider, latency_ms: latency, status: res.status, request_id: requestId, attempt });
+        audit?.({ event: 'ai.call', ok: false, model: chosen, provider: cfg.provider, latency_ms: latency, status: res.status, request_id: requestId, attempt });
         // 4xx (other than 429) will never succeed on retry
         if (res.status !== 429 && res.status < 500) throw lastError;
         throw lastError;
@@ -150,7 +151,7 @@ export async function complete({
       const data = await res.json();
       const text = data?.choices?.[0]?.message?.content || '';
       const meta = {
-        provider, model: chosen, latency_ms: latency, request_id: requestId, attempt,
+        provider: cfg.provider, model: chosen, latency_ms: latency, request_id: requestId, attempt,
         usage: data?.usage || null,
       };
       audit?.({ event: 'ai.call', ok: true, ...meta });
@@ -170,4 +171,4 @@ export async function complete({
   throw lastError || new AiError('AI failed', { code: 'AI_FAILED' });
 }
 
-export const models = { text: MODEL, vision: VISION_MODEL };
+/* `models` is refreshed by refreshModels() above. */

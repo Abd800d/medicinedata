@@ -6,6 +6,7 @@
  */
 import fs from 'node:fs';
 import { getSetting } from '../db.js';
+import { getAiConfig } from './ai-config.js';
 
 const mask = (v) => {
   const s = String(v || '');
@@ -14,11 +15,12 @@ const mask = (v) => {
 };
 
 export const integrations = () => {
-  const aiKey = process.env.AI_API_KEY || process.env.OPENAI_API_KEY || '';
+  const aiCfg = getAiConfig();
+  const aiKey = aiCfg.key;
   const cseKey = process.env.GOOGLE_CSE_KEY || '';
   const cseCx = process.env.GOOGLE_CSE_CX || '';
   const googleClient = process.env.GOOGLE_CLIENT_ID || getSetting('google_client_id', '') || '';
-  const aiBase = (process.env.AI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
+  const aiBase = aiCfg.base;
   return {
     google_signin: {
       configured: Boolean(googleClient),
@@ -41,11 +43,13 @@ export const integrations = () => {
       test: 'google',
     },
     ai: {
-      configured: Boolean(aiKey),
+      configured: Boolean(aiKey && aiCfg.base),
       key: mask(aiKey),
       base_url: aiBase,
-      model: process.env.AI_MODEL || 'gpt-4o-mini',
-      vision_model: process.env.AI_VISION_MODEL || process.env.AI_MODEL || 'gpt-4o-mini',
+      model: aiCfg.model,
+      vision_model: aiCfg.vision,
+      provider: aiCfg.provider,
+      source: aiCfg.key_source,
       env: ['AI_API_KEY', 'AI_BASE_URL', 'AI_MODEL', 'AI_VISION_MODEL'],
       purpose_ar: 'قراءة صور الوصفات والتعرّف على علب الأدوية من الصور، مع إجابات المعالج الذكي.',
       purpose_en: 'Read prescription photos, recognise medicine packs, and power the AI assistant.',

@@ -9,6 +9,7 @@ import { useI18n } from '../lib/i18n';
 import { useAuth } from '../lib/auth';
 import { api, assetUrl } from '../lib/api';
 import RxSecureToggle from '../components/RxSecureToggle';
+import AiSetupHint from '../components/AiSetupHint';
 import { useApi } from '../lib/useApi';
 import { Badge, EmptyState, PageLoader, TextArea, useToast } from '../components/ui';
 import { cx, dateFmt } from '../lib/utils';
@@ -296,16 +297,8 @@ export default function Prescriptions() {
         </div>
       )}
 
-      {/* AI service state */}
-      {user && aiStatus && !aiStatus.configured && (
-        <div className="flex items-start gap-2 rounded-2xl border border-amber-400/25 bg-amber-500/10 p-3 text-[11px] leading-5 text-amber-200">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          <div>
-            <b>التحليل الذكي غير مفعّل على الخادم.</b> {aiStatus.hint_ar || 'أضف AI_API_KEY في متغيرات بيئة الخادم.'}
-            <div className="mt-1 text-[10.5px] text-amber-200/80">يعمل التطبيق كالمعتاد للبحث وقاعدة الأدوية، ويمكنك حفظ الوصفة كصورة ومراجعتها يدويًا.</div>
-          </div>
-        </div>
-      )}
+      {/* AI service state — one shared card that explains *and* links to the fix */}
+      {user && <AiSetupHint />}
 
       {/* consent */}
       {user && consent && !consent.granted && (

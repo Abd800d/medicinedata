@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { answerQuestion, retrieve, aiEnabled, matchPrescriptionText, identifyMedicine } from '../lib/ai.js';
 import { optionalAuth } from '../auth.js';
+import { getAiConfig } from '../lib/ai-config.js';
 import { makeUploader } from '../lib/upload.js';
 import { db } from '../db.js';
 
@@ -21,15 +22,15 @@ function rateLimit(req, res, next) {
 
 router.get('/status', (_req, res) => {
   const enabled = aiEnabled();
+  const c = getAiConfig();
   res.json({
     enabled,
-    provider: enabled ? 'openai-compatible' : 'offline-database',
-    base_url: enabled ? (process.env.AI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '') : null,
-    model: enabled ? (process.env.AI_MODEL || 'gpt-4o-mini') : null,
-    vision_model: enabled ? (process.env.AI_VISION_MODEL || process.env.AI_MODEL || 'gpt-4o-mini') : null,
+    provider: enabled ? c.provider : 'offline-database',
+    model: enabled ? c.model : null,
+    vision_model: enabled ? c.vision : null,
     features: { assistant: true, prescription: enabled, pack_recognition: enabled, offline_retrieval: true },
-    hint_ar: enabled ? null : 'للتحليل التلقائي لصور الوصفات أضف AI_API_KEY إلى .env ثم أعد تشغيل الخادم. كل بقية الميزات تعمل دون مفتاح.',
-    hint_en: enabled ? null : 'Add AI_API_KEY to .env and restart to enable automatic prescription reading. Everything else works without a key.',
+    hint_ar: enabled ? null : 'التحليل الذكي غير مفعّل على الخادم. المدير يفعّله من: الإدارة ← الذكاء الاصطناعي (مفتاح Groq مجاني). بقية الميزات تعمل دون مفتاح.',
+    hint_en: enabled ? null : 'AI is not enabled on the server. An admin enables it in Admin → AI settings (free Groq key). Everything else works without a key.',
   });
 });
 

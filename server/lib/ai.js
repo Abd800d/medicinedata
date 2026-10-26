@@ -2,20 +2,19 @@
 import { db } from '../db.js';
 import { normalize, similarity, queryTokens } from './search.js';
 
-const BASE = process.env.AI_BASE_URL || 'https://api.openai.com/v1';
-const KEY = process.env.AI_API_KEY || process.env.OPENAI_API_KEY || '';
-const MODEL = process.env.AI_MODEL || 'gpt-4o-mini';
-const VISION_MODEL = process.env.AI_VISION_MODEL || MODEL;
+import { getAiConfig } from './ai-config.js';
 
-export const aiEnabled = () => !!KEY;
+/* Resolved per call so a key added from the admin screen works without a restart. */
+export const aiEnabled = () => getAiConfig().configured;
 
 async function chat(messages, { json = false, maxTokens = 900, temperature = 0.2 } = {}) {
-  if (!KEY) throw Object.assign(new Error('AI is not configured'), { status: 503, publicMessage: 'AI key not configured' });
-  const r = await fetch(`${BASE}/chat/completions`, {
+  const cfg = getAiConfig();
+  if (!cfg.key) throw Object.assign(new Error('AI is not configured'), { status: 503, publicMessage: 'AI key not configured' });
+  const r = await fetch(`${cfg.base}/chat/completions`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${KEY}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cfg.key}` },
     body: JSON.stringify({
-      model: messages.model || MODEL,
+      model: messages.model || cfg.model,
       messages: messages.map(({ model, ...m }) => m),
       max_tokens: maxTokens,
       temperature,
@@ -296,6 +295,6 @@ Return strict JSON: {"readable": true|false, "visible_text": "", "guesses": [{"n
       { type: 'text', text: `Identify this medicine. Reply in ${lang === 'ar' ? 'Arabic' : 'English'} where free text is needed.` },
       { type: 'image_url', image_url: { url: imageDataUrl } },
     ] },
-  ], { json: true, maxTokens: 700, temperature: 0, model: process.env.AI_VISION_MODEL || undefined });
+  ], { json: true, maxTokens: 700, temperature: 0, model: getAiConfig().vision || undefined });
   return safeJson(raw, null);
 }
