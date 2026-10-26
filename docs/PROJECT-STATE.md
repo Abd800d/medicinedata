@@ -1,20 +1,22 @@
 ## Current State — أين توقفنا الآن
 
-> آخر تحديث: 2026-10-26 · **v1.4.0** (offline-first للكتابة: طابور + مزامنة + منع تكرار + حل تعارض).
+> آخر تحديث: 2026-10-26 · **v1.5.0** (استيراد XML/SQLite + تصدير + نسخ احتياطية مشفّرة + معرض صور).
 
 - **v1.2.0:** مسار وصفات كامل، دور `pharmacist`، سجل تدقيق، موافقة وحذف بيانات المريض.
-- **v1.3.0:** حساسيات مسجّلة (69 عائلة ATC + مواد محددة)، تنبيه `allergy_conflict` و`duplicate_therapy_class`،
-  شرح مبسّط + سبب + مصدر لكل تنبيه، لوحة جودة التحليل.
-- **v1.4.0 (الجديد):**
-  - `server/lib/idempotency.js` + جدول `idempotency_keys`: إعادة نفس الرد لمفتاح `X-Idempotency-Key` (7 أيام، لكل مستخدم).
-  - `pharmacy_items`: `version` + `client_uuid`؛ `409 CONFLICT` عند `expected_updated_at` قديم، `?force=1` للتجاوز،
-    ومنع إنشاء صنف مكرر لنفس `client_uuid`.
-  - الواجهة: `src/lib/offlineQueue.ts` (طابور localStorage) + `src/lib/sync.tsx` (Provider، فحص `/api/health` كل 45ث،
-    مزامنة تلقائية كل 30ث) + شارة حالة في الشريط العلوي + صفحة `/sync` (حالات، إعادة محاولة، تجاهل، حل تعارض).
-  - الربط: صيدليتي (إضافة/تعديل/حذف) + طلبات إضافة دواء.
-- **التحقق:** `npm run test:rx` 52/52 · `npm run test:sync` 22/22 · smoke لـ `/sync /pharmacy /submit-drug /prescriptions /admin?tab=ai` نظيف · `tsc`/`build` ✅.
-- **التالي:** v1.5.0 (استيراد XML/SQLite، تصدير CSV/JSON/XLSX، نسخ احتياطية مشفّرة، تعدد صور الدواء + قص/تدوير،
-  نقل مرفقات الطابور إلى IndexedDB)، ثم v1.6.0 (PIN/بصمة، مراجعة أمنية، E2E، theme ليلي/نهاري).
+- **v1.3.0:** حساسيات مسجّلة (69 عائلة ATC)، تنبيهات `allergy_conflict`/`duplicate_therapy_class`، شرح مبسّط لكل تنبيه، لوحة جودة التحليل.
+- **v1.4.0:** offline-first للكتابة — طابور `localStorage`، `X-Idempotency-Key`، `client_uuid`، `409 CONFLICT` + `?force=1`، شارة حالة وصفحة `/sync`.
+- **v1.5.0 (الجديد):**
+  - `server/lib/importer.js`: `xmlRows()` (وراثة حقول الأب → الأبناء)، `sqliteRows()`/`inspectSqlite()` (قراءة فقط + اختيار الجدول تلقائيًا)،
+    `readRows()`/`inspectFile()` موحّدة، و`opts.mode = upsert|insert|update`. كل الأنواع تدعم المعاينة داخل `SAVEPOINT` مع `ROLLBACK`.
+  - `server/lib/exporter.js`: مجموعات بيضاء فقط (بلا SQL من المستخدم)، CSV مع BOM، JSON، XLSX متعدد الأوراق، وحد صفوف `EXPORT_ROW_LIMIT`.
+    لا يُصدَّر `password_hash` ولا نصوص الوصفات ولا مفاتيح idempotency.
+  - `server/lib/backup.js`: حاوية `MDA-BACKUP-1` = scrypt + AES‑256‑GCM + sha256، لقطة `VACUUM INTO`،
+    استعادة بمعاملة واحدة + نسخة أمان + `integrity_check` + إعادة بناء FTS5.
+  - `product_images`: `uploaded_by/bytes/width/height/edited/bytes_original/updated_at` + `PATCH` و`reorder` و`audit` لكل عملية.
+  - الواجهة: تبويب إدارة جديد «التصدير والنسخ» (`DataTools.tsx`)، تبويب «معرض المنتج» (`ProductGallery.tsx`)،
+    ومكوّن `ImageStudio.tsx` للقص/التدوير/الضغط على الجهاز قبل الرفع، ولوحة الاستيراد تدعم XML/SQLite والأوضاع الثلاثة.
+- **التحقق:** `test:data` **51/51** · `test:rx` **52/52** · `test:sync` **22/22** · smoke لصفحات `/admin?tab=data|media` و`/sync` بلا أخطاء · `tsc`/`build` ✅.
+- **التالي:** v1.6.0 — PIN/بصمة، مراجعة OWASP، E2E، وتحسينات الثيم الليلي/النهاري.
 - **تحذير بيئة:** `node_modules/` و`data/` و`dist/` و`.env` تُفقد عند استعادة مساحة العمل → `npm ci --ignore-scripts` ثم `npm run seed` ثم `npm run build`.
 
 ## Workspace — الملفات المهمة

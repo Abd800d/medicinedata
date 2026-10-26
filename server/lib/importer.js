@@ -2,6 +2,8 @@
 import fs from 'node:fs';
 import readline from 'node:readline';
 import XLSX from 'xlsx';
+import Database from 'better-sqlite3';
+import { XMLParser } from 'fast-xml-parser';
 import { db } from '../db.js';
 import { searchNorm, normalize } from './search.js';
 
@@ -254,6 +256,9 @@ export function createImporter() {
       search_norm: searchNorm(row.trade_name, row.trade_name_ar, row.strength, row.generic_name, row.generic_ar, row.barcode, row.manufacturer),
     };
     const existing = P.get(dId, row.trade_name, row.strength || null);
+    const mode = opts.mode || 'upsert';
+    if (existing && mode === 'insert') return { ok: true, skipped: true, reason: 'exists', product_id: existing.id };
+    if (!existing && mode === 'update') return { ok: true, skipped: true, reason: 'new', drug_id: dId };
     if (existing) {
       updP.run({ ...payload, id: existing.id });
       return { ok: true, updated: true, product_id: existing.id, drug_id: dId };
@@ -264,18 +269,171 @@ export function createImporter() {
   };
 }
 
+/* ------------------------------------------------------------------ *
+ * XML — legacy pharmacy systems export <drug><product>…</product></drug>
+ * ------------------------------------------------------------------ */
+const xmlParser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: '@',
+  trimValues: true,
+  parseTagValue: false,
+  parseAttributeValue: false,
+  allowBooleanAttributes: true,
+});
+
+/**
+ * Walk the parsed document and collect leaf records.
+ * Scalars on a parent (<drug>) are inherited by its children (<product>),
+ * which is exactly how legacy pharmacy exports are shaped.
+ */
+function walkRecords(node, inherited, out, depth = 0) {
+  if (depth > 12 || node === null || node === undefined || out.length > 500000) return;
+  if (Array.isArray(node)) { for (const el of node) walkRecords(el, inherited, out, depth + 1); return; }
+  if (typeof node !== 'object') return;
+  const scalars = { ...inherited };
+  const children = [];
+  for (const [rawKey, value] of Object.entries(node)) {
+    const key = rawKey.replace(/^@/, '');
+    if (key === '#text' || value === null || value === undefined) continue;
+    if (Array.isArray(value)) {
+      if (value.some((x) => x && typeof x === 'object')) children.push(value);
+      else if (value.length) scalars[key] = value.map((x) => String(x)).join(' | ');
+    } else if (typeof value === 'object') {
+      children.push([value]);
+    } else if (value !== '') {
+      scalars[key] = String(value);
+    }
+  }
+  const mapsField = Object.keys(scalars).some((k) => fieldOf(k));
+  if (!children.length) {
+    if (mapsField) out.push(scalars);
+    return;
+  }
+  for (const list of children) for (const el of list) walkRecords(el, scalars, out, depth + 1);
+}
+
+export function xmlRows(filePath, limit = 0) {
+  const text = fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, '');
+  const doc = xmlParser.parse(text, true);
+  const out = [];
+  walkRecords(doc, {}, out);
+  if (!out.length) throw new Error('ملف XML لا يحتوي سجلات دواء مفهومة (تحقق من وجود عناصر مثل <drug>/<product>)');
+  return limit ? out.slice(0, limit) : out;
+}
+
+/* ------------------------------------------------------------------ *
+ * SQLite — the uploaded file is opened read-only and never modified
+ * ------------------------------------------------------------------ */
+function openReadOnly(filePath) {
+  return new Database(filePath, { readonly: true, fileMustExist: true });
+}
+
+function sqliteTableNames(d) {
+  return d.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all().map((r) => r.name);
+}
+
+/** Score every table by how many of its column names map to catalogue fields. */
+export function inspectSqlite(filePath) {
+  const d = openReadOnly(filePath);
+  try {
+    const tables = [];
+    for (const name of sqliteTableNames(d)) {
+      let columns = [];
+      let count = 0;
+      try {
+        columns = d.prepare(`PRAGMA table_info("${name.replace(/"/g, '""')}")`).all().map((c) => c.name);
+        count = d.prepare(`SELECT COUNT(*) n FROM "${name.replace(/"/g, '""')}"`).get().n;
+      } catch { continue; }
+      const mapped = columns.filter((c) => fieldOf(c));
+      tables.push({
+        name, rows: count, columns,
+        mapped_fields: mapped.map((c) => fieldOf(c)),
+        score: mapped.length + (/drug|product|medicine|item|catalog/i.test(name) ? 3 : 0),
+      });
+    }
+    tables.sort((a, b) => b.score - a.score || b.rows - a.rows);
+    return tables;
+  } finally { d.close(); }
+}
+
+export function sqliteRows(filePath, table = null, limit = 0) {
+  const d = openReadOnly(filePath);
+  try {
+    const tables = inspectSqliteRows(d);
+    const chosen = (table && tables.find((t) => t.name === table)) || tables[0];
+    if (!chosen) throw new Error('قاعدة بيانات SQLite لا تحتوي جداول قابلة للقراءة');
+    const sql = `SELECT * FROM "${chosen.name.replace(/"/g, '""')}"${limit ? ` LIMIT ${Number(limit)}` : ''}`;
+    return d.prepare(sql).all().map((r) => ({ ...r }));
+  } finally { d.close(); }
+}
+
+/** Same ranking as inspectSqlite(), but on an already-open handle. */
+function inspectSqliteRows(d) {
+  return sqliteTableNames(d).map((name) => {
+    let columns = [];
+    let rows = 0;
+    try {
+      columns = d.prepare(`PRAGMA table_info("${name.replace(/"/g, '""')}")`).all().map((c) => c.name);
+      rows = d.prepare(`SELECT COUNT(*) n FROM "${name.replace(/"/g, '""')}"`).get().n;
+    } catch { return { name, columns, rows, score: -1 }; }
+    const mapped = columns.filter((c) => fieldOf(c));
+    return { name, columns, rows, score: mapped.length + (/drug|product|medicine|item|catalog/i.test(name) ? 3 : 0) };
+  }).sort((a, b) => b.score - a.score || b.rows - a.rows);
+}
+
+/* ------------------------------------------------------------------ *
+ * Unified readers used by both preview and the background import
+ * ------------------------------------------------------------------ */
+export const SUPPORTED_EXTENSIONS = 'CSV · TSV · XLSX · XLS · JSON · XML · SQLite (db/sqlite/sqlite3)';
+
 export function detectKind(filename) {
   const ext = (filename.split('.').pop() || '').toLowerCase();
   if (ext === 'csv' || ext === 'tsv' || ext === 'txt') return 'csv';
   if (ext === 'xlsx' || ext === 'xls') return 'xlsx';
   if (ext === 'json') return 'json';
+  if (ext === 'xml') return 'xml';
+  if (ext === 'db' || ext === 'sqlite' || ext === 'sqlite3') return 'sqlite';
   return null;
 }
 
-export async function countRows(filePath, kind) {
+export function readRows(filePath, kind, { table = null, limit = 0 } = {}) {
+  if (kind === 'xlsx') return xlsxRows(filePath).slice(0, limit || undefined);
+  if (kind === 'json') return jsonRows(filePath).slice(0, limit || undefined);
+  if (kind === 'xml') return xmlRows(filePath, limit);
+  if (kind === 'sqlite') return sqliteRows(filePath, table, limit);
+  throw new Error(`unsupported kind: ${kind}`);
+}
+
+export async function countRows(filePath, kind, table = null) {
   if (kind === 'json') return jsonRows(filePath).length;
   if (kind === 'xlsx') return xlsxRows(filePath).length;
+  if (kind === 'xml') return xmlRows(filePath).length;
+  if (kind === 'sqlite') {
+    const d = openReadOnly(filePath);
+    try {
+      const chosen = (table && sqliteTableNames(d).includes(table)) ? table : inspectSqliteRows(d)[0]?.name;
+      if (!chosen) return 0;
+      return d.prepare(`SELECT COUNT(*) n FROM "${chosen.replace(/"/g, '""')}"`).get().n;
+    } finally { d.close(); }
+  }
   let n = 0;
   for await (const _ of csvRows(filePath)) n++;
   return n;
+}
+
+/** Dry-run friendly description of what was detected inside an upload. */
+export function inspectFile(filePath, kind, table = null) {
+  if (kind === 'sqlite') {
+    const tables = inspectSqlite(filePath);
+    const chosen = (table && tables.find((t) => t.name === table)) || tables[0] || null;
+    return {
+      kind, tables: tables.slice(0, 12).map(({ name, rows, columns, score }) => ({ name, rows, columns, score })),
+      chosen_table: chosen?.name || null,
+      columns: chosen?.columns || [],
+      mapped_fields: chosen?.mapped_fields || [],
+    };
+  }
+  const sample = readRows(filePath, kind, { limit: 5 });
+  const columns = [...new Set(sample.flatMap((r) => Object.keys(r)))].slice(0, 60);
+  return { kind, columns, mapped_fields: columns.map((c) => fieldOf(c)).filter(Boolean) };
 }

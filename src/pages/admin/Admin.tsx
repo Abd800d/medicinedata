@@ -14,19 +14,21 @@ import { Badge, Field, PageLoader, Spinner, TextArea, useToast } from '../../com
 import { cx, num } from '../../lib/utils';
 import Catalog from './Catalog';
 import Media from './Media';
+import DataTools from './DataTools';
 import People from './People';
 import SettingsPanel from './SettingsPanel';
 import Integrations from './Integrations';
 import Submissions from './Submissions';
 import AIQuality from './AIQuality';
 
-type Tab = 'dashboard' | 'ai' | 'catalog' | 'media' | 'people' | 'submissions' | 'integrations' | 'settings';
+type Tab = 'dashboard' | 'ai' | 'catalog' | 'media' | 'data' | 'people' | 'submissions' | 'integrations' | 'settings';
 
 const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: 'dashboard', label: 'لوحة المعلومات', icon: LayoutDashboard },
   { id: 'ai', label: 'جودة التحليل', icon: Sparkles },
   { id: 'catalog', label: 'قاعدة الأدوية', icon: Boxes },
   { id: 'media', label: 'الاستيراد والصور', icon: Upload },
+  { id: 'data', label: 'التصدير والنسخ', icon: Database },
   { id: 'people', label: 'المستخدمون والرسائل', icon: Users },
   { id: 'submissions', label: 'طلبات الإضافة', icon: FileSpreadsheet },
   { id: 'integrations', label: 'التكاملات', icon: Plug },
@@ -88,6 +90,7 @@ export default function Admin() {
         {tab === 'ai' && <AIQuality />}
         {tab === 'catalog' && <Catalog />}
         {tab === 'media' && <Media />}
+          {tab === 'data' && <DataTools />}
         {tab === 'people' && <People />}
         {tab === 'submissions' && <Submissions />}
         {tab === 'integrations' && <Integrations />}

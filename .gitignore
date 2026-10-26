@@ -13,6 +13,9 @@ data/mda.db
 data/mda.db-shm
 data/mda.db-wal
 data/uploads/
+data/backups/
+# Encrypted backups must never be committed
+*.mdaenc
 # Android build output
 android/.gradle/
 android/app/build/
