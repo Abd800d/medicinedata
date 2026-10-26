@@ -337,6 +337,18 @@ CREATE TABLE IF NOT EXISTS audit_log (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+/* Declared allergies — entered by the user, never inferred.
+   code = documented family (penicillin, nsaid...) or mol:<generic_name> for one molecule. */
+CREATE TABLE IF NOT EXISTS user_allergies (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  code TEXT NOT NULL,
+  label TEXT,
+  note TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(user_id, code)
+);
+
 CREATE TABLE IF NOT EXISTS user_consents (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -357,12 +369,14 @@ function ensureColumn(table, column, ddl) {
 ensureColumn('products', 'barcode_source', 'barcode_source TEXT');          // internal-ean13 | manufacturer | import | admin
 ensureColumn('products', 'barcode_verified', 'barcode_verified INTEGER DEFAULT 0');
 ensureColumn('prescription_items', 'confidence', 'confidence REAL');   // model reading confidence (≠ match score)
+ensureColumn('prescriptions', 'patient_context_json', 'patient_context_json TEXT'); // allergies snapshot at analysis time
 ensureColumn('prescription_items', 'uncertain_fields_json', 'uncertain_fields_json TEXT');
 db.exec("CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode)");
 db.exec("CREATE INDEX IF NOT EXISTS idx_ai_runs_user ON ai_runs(user_id, created_at)");
 db.exec("CREATE INDEX IF NOT EXISTS idx_rx_items ON prescription_items(prescription_id)");
 db.exec("CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at)");
 db.exec("CREATE INDEX IF NOT EXISTS idx_consent_user ON user_consents(user_id, kind)");
+db.exec("CREATE INDEX IF NOT EXISTS idx_user_allergies ON user_allergies(user_id)");
 
 // Full text search indexes (trigram → typo tolerant substring search)
 db.exec(`

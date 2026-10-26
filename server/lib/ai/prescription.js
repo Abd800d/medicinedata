@@ -93,7 +93,7 @@ export function validateAnalysis(raw) {
 }
 
 /** Attach catalogue matches + dossiers + review flags to a validated analysis. */
-export function enrich(analysis, { lang = 'ar' } = {}) {
+export function enrich(analysis, { lang = 'ar', patientContext = null } = {}) {
   const items = analysis.items.map((item, idx) => {
     const hint = [item.fields.name || item.fields.name_ar, item.fields.strength].filter(Boolean).join(' ');
     const { best, alternatives } = matchName(hint || item.raw_text || '');
@@ -127,7 +127,7 @@ export function enrich(analysis, { lang = 'ar' } = {}) {
     };
   });
 
-  const flags = reviewFlags(items);
+  const flags = reviewFlags(items, { allergies: patientContext?.allergies || [] });
   const lowConfidence = items.filter((i) => i.needs_review).length;
   const matched = items.filter((i) => i.matched).length;
   const overall = items.length
@@ -146,6 +146,12 @@ export function enrich(analysis, { lang = 'ar' } = {}) {
       average_confidence: overall,
       auto_accepted: 0,                 // by design: nothing is auto-accepted
       requires_pharmacist: true,
+      flags: {
+        high: flags.filter((f) => f.severity === 'high').length,
+        medium: flags.filter((f) => f.severity === 'medium').length,
+        info: flags.filter((f) => f.severity === 'info').length,
+      },
+      allergies_checked: (patientContext?.allergies || []).length,
     },
     disclaimer_ar: REPORT_DISCLAIMER_AR,
     disclaimer_en: REPORT_DISCLAIMER_EN,
@@ -165,7 +171,7 @@ export function enrich(analysis, { lang = 'ar' } = {}) {
  * Full pipeline. Returns { analysis, ai } where analysis is safe to show
  * and `ai` carries audit metadata (model, latency, request id).
  */
-export async function analyzePrescription({ imageDataUrl = null, text = null, lang = 'ar' } = {}) {
+export async function analyzePrescription({ imageDataUrl = null, text = null, lang = 'ar', patientContext = null } = {}) {
   if (!isConfigured()) {
     throw new AiError('AI not configured', { code: 'AI_NOT_CONFIGURED', status: 503, safe: 'AI_NOT_CONFIGURED' });
   }
@@ -197,7 +203,7 @@ export async function analyzePrescription({ imageDataUrl = null, text = null, la
       safe: 'تعذّر فهم نتيجة التحليل — أعد المحاولة أو أدخل النص يدويًا',
     });
   }
-  const analysis = enrich(validated.analysis, { lang });
+  const analysis = enrich(validated.analysis, { lang, patientContext });
   return {
     analysis,
     ai: {

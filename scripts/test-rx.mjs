@@ -93,6 +93,77 @@ if (!aiOn) {
   }
 }
 
+/* ---------------- v1.3.0: allergies, class duplication, plain language ---------------- */
+if (aiOn) {
+  console.log('declared allergies');
+  const fam = await call('/api/rx/allergen-families');
+  ok('allergen families are public and sourced from ATC', Array.isArray(fam.json?.families) && fam.json.families.length > 10);
+  /* start from a clean list so counts are deterministic */
+  const pre = await call('/api/rx/allergies', { token });
+  for (const a of pre.json?.items || []) await call(`/api/rx/allergies/${a.id}`, { method: 'DELETE', token });
+  const addFam = await call('/api/rx/allergies', { method: 'POST', token, body: { code: 'penicillin' } });
+  ok('family allergy added', addFam.status === 201 && (addFam.json?.items || []).some((a) => a.code === 'penicillin'));
+  const badCode = await call('/api/rx/allergies', { method: 'POST', token, body: { code: 'made-up-family' } });
+  ok('unknown allergy code rejected (400)', badCode.status === 400, `got ${badCode.status}`);
+
+  const listBefore = await call('/api/rx/allergies', { token });
+  const allergyRun = await call('/api/rx/analyze', { method: 'POST', token, body: { text: 'Augmentin 1g tab 1x2 x7d' } });
+  const af = allergyRun.json?.analysis?.flags || [];
+  const allergyFlag = af.find((f) => f.type === 'allergy_conflict');
+  ok('allergy conflict raised for penicillin + amoxicillin', !!allergyFlag && allergyFlag.severity === 'high');
+  ok('allergy flag names the declared family', !!allergyFlag && /البنسلين/.test(allergyFlag.detail_ar));
+  ok('allergy flag explains itself in plain words', !!allergyFlag?.plain_ar && !!allergyFlag?.why_ar);
+  ok('allergy flag cites ATC code', !!allergyFlag && /ATC/.test(allergyFlag.why_ar));
+  ok('summary counts allergies checked', allergyRun.json?.analysis?.summary?.allergies_checked === (listBefore.json?.items || []).length,
+    `got ${allergyRun.json?.analysis?.summary?.allergies_checked} vs ${(listBefore.json?.items || []).length}`);
+  if (allergyRun.json?.id) await call(`/api/rx/${allergyRun.json.id}`, { method: 'DELETE', token });
+
+  /* molecule-level allergy must match only that molecule (family allergy cleared first) */
+  const clear1 = await call('/api/rx/allergies', { token });
+  for (const a of clear1.json?.items || []) await call(`/api/rx/allergies/${a.id}`, { method: 'DELETE', token });
+  await call('/api/rx/allergies', { method: 'POST', token, body: { code: 'mol:paracetamol', label: 'باراسيتامول' } });
+  const molRun = await call('/api/rx/analyze', { method: 'POST', token, body: { text: 'Augmentin 1g\nPanadol 500mg' } });
+  const molFlags = (molRun.json?.analysis?.flags || []).filter((f) => f.type === 'allergy_conflict');
+  ok('molecule allergy matches exactly one line', molFlags.length === 1, `got ${molFlags.length}`);
+  ok('molecule allergy is worded as same medicine', !!molFlags[0] && /نفس المادة الفعالة|نفس الدواء/.test(molFlags[0].detail_ar));
+  if (molRun.json?.id) await call(`/api/rx/${molRun.json.id}`, { method: 'DELETE', token });
+
+  const listAfter = await call('/api/rx/allergies', { token });
+  for (const a of listAfter.json?.items || []) await call(`/api/rx/allergies/${a.id}`, { method: 'DELETE', token });
+  const cleaned = await call('/api/rx/allergies', { token });
+  ok('allergies can be removed by the user', (cleaned.json?.items || []).length === 0);
+
+  console.log('duplicate therapy class');
+  const ppi = await call('/api/rx/analyze', { method: 'POST', token, body: { text: 'PPSAMPLE: Omeprazole 20mg + Pantoprazole 40mg' } });
+  const cls = (ppi.json?.analysis?.flags || []).find((f) => f.type === 'duplicate_therapy_class');
+  ok('two molecules from one class flagged', !!cls, JSON.stringify((ppi.json?.analysis?.flags || []).map((f) => f.type)));
+  ok('class flag quotes the shared class', !!cls && /Proton Pump/.test(cls.detail_ar));
+  if (ppi.json?.id) await call(`/api/rx/${ppi.json.id}`, { method: 'DELETE', token });
+
+  console.log('unreadable image path');
+  const bad = await call('/api/rx/analyze', { method: 'POST', token, body: { text: 'UNREADABLE photo' } });
+  ok('unreadable stays unreadable', bad.status === 201 && bad.json?.analysis?.readable === false);
+  ok('no invented lines when unreadable', (bad.json?.analysis?.items || []).length === 0);
+  ok('still requires a pharmacist', bad.json?.analysis?.summary?.requires_pharmacist === true);
+  if (bad.json?.id) await call(`/api/rx/${bad.json.id}`, { method: 'DELETE', token });
+
+  console.log('every flag is explained');
+  const explained = (allergyRun.json?.analysis?.flags || []).concat(cls ? [cls] : []);
+  ok('all flags carry plain_ar + why_ar + source', explained.every((f) => f.plain_ar && f.why_ar && f.source), JSON.stringify(explained.map((f) => f.type)));
+
+  console.log('admin AI quality');
+  const stats = await call('/api/admin/ai-stats?days=30', { token });
+  ok('ai-stats reachable for admin', stats.status === 200);
+  ok('runs counted', (stats.json?.runs?.total || 0) > 0);
+  ok('models reported with latency', Array.isArray(stats.json?.runs?.models) && stats.json.runs.models.length > 0);
+  ok('items correction rate is a number', typeof stats.json?.items?.correction_rate === 'number');
+  ok('flag histogram present', Array.isArray(stats.json?.flags) && stats.json.flags.length > 0);
+  ok('no patient text in stats payload', !/سالم|أمينة|Augmentin|Panadol/.test(JSON.stringify(stats.json)));
+
+  const notAdmin = await call('/api/admin/ai-stats', { token: '' });
+  ok('ai-stats needs auth', notAdmin.status === 401);
+}
+
 console.log('audit chain');
 const verify = await call('/api/admin/audit/verify', { token });
 ok('hash chain intact', verify.json?.ok === true, JSON.stringify(verify.json));

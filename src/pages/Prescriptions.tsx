@@ -25,6 +25,7 @@ type Dossier = {
     id: number; generic_name: string; generic_ar?: string | null; drug_class?: string | null; atc_code?: string | null;
     indications_ar?: string | null; dosage_adult?: string | null; contraindications?: string | null;
     warnings?: string | null; interactions?: string | null; pregnancy?: string | null; updated_at?: string | null; source?: string | null;
+    allergen_families?: Array<{ code: string; label_ar: string; label_en?: string; note_ar?: string }>;
   } | null;
   brands?: Array<{ id: number; trade_name: string; trade_name_ar?: string | null; strength?: string | null; dosage_form?: string | null; manufacturer_name?: string | null; country?: string | null; agent_name?: string | null; image_url?: string | null }>;
   selected_brand?: any;
@@ -35,7 +36,12 @@ type Dossier = {
 type Flag = {
   severity: 'high' | 'medium' | 'info'; type: string; title_ar: string; title_en?: string;
   detail_ar: string; detail_en?: string; action_ar?: string; action_en?: string; drug_id?: number; drug_ids?: number[];
+  plain_ar?: string; plain_en?: string; why_ar?: string; why_en?: string;
+  source?: { label?: string; updated_at?: string | null; declared_at?: string | null };
 };
+
+type Allergy = { id: number; code: string; label: string; note?: string | null; created_at?: string };
+type Family = { code: string; label_ar: string; label_en: string; note_ar?: string };
 
 type Item = {
   id?: number; line_no: number; raw_text?: string | null; name?: string | null; strength?: string | null;
@@ -320,6 +326,9 @@ export default function Prescriptions() {
         </div>
       )}
 
+      {/* declared allergies */}
+      {user && <AllergiesCard onSaved={() => { /* new allergies affect the next analysis */ }} />}
+
       {/* capture */}
       <div className={cx('card p-4', (!user || !consent?.granted) && 'pointer-events-none opacity-50')}>
         <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
@@ -382,11 +391,12 @@ export default function Prescriptions() {
 
           {/* summary strip: green confirmed / yellow review / red important */}
           {summary && (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               <Mini label="بنود مقروءة" value={String(summary.items ?? items.length)} />
               <Mini label="طابقت القاعدة" value={`${summary.matched ?? 0}`} tone="ok" />
               <Mini label="تحتاج مراجعة" value={`${summary.needs_review ?? 0}`} tone={(summary.needs_review ?? 0) > 0 ? 'warn' : 'ok'} />
               <Mini label="اعتماد تلقائي" value="0" tone="ok" hint="بالتصميم" />
+              <Mini label="حساسيات مفحوصة" value={String(summary.allergies_checked ?? 0)} tone={(summary.allergies_checked ?? 0) > 0 ? 'ok' : 'neutral'} />
             </div>
           )}
 
@@ -594,6 +604,102 @@ export default function Prescriptions() {
 
 const safeJson = (s: string) => { try { return JSON.parse(s); } catch { return null; } };
 
+function AllergiesCard({ onSaved }: { onSaved?: () => void }) {
+  const { push } = useToast();
+  const { data, reload } = useApi<{ items: Allergy[]; families: Family[]; note_ar: string }>('/api/rx/allergies');
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const [drugQ, setDrugQ] = useState('');
+  const [busy, setBusy] = useState(false);
+  const items = data?.items || [];
+  const families = (data?.families || []).filter((f) => {
+    const t = q.trim().toLowerCase();
+    if (!t) return true;
+    return f.label_ar.includes(t) || f.label_en.toLowerCase().includes(t) || f.code.includes(t);
+  });
+  const { data: drugHits } = useApi<{ data: any[] }>('/api/catalog/drugs', { q: drugQ, limit: 6 }, { enabled: drugQ.trim().length >= 2, ttl: 120_000 });
+
+  const add = async (code: string, label?: string) => {
+    setBusy(true);
+    try {
+      const res = await api.slow.post<{ items: Allergy[] }>('/api/rx/allergies', { code, label });
+      push('تمت إضافة الحساسية');
+      setQ(''); setDrugQ('');
+      await reload();
+      onSaved?.();
+      return res;
+    } catch (e: any) { push(e?.message || 'تعذّرت الإضافة', 'error'); }
+    finally { setBusy(false); }
+  };
+  const remove = async (id: number) => {
+    try { await api.del(`/api/rx/allergies/${id}`); await reload(); push('تم الحذف'); onSaved?.(); }
+    catch (e: any) { push(e?.message || 'تعذّر الحذف', 'error'); }
+  };
+
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <ShieldAlert className="h-4 w-4 text-violet-300" />
+          <h2 className="text-[12.5px] font-extrabold">حساسياتي المسجّلة</h2>
+          <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-[9.5px] font-bold text-violet-200">{items.length}</span>
+        </div>
+        <button onClick={() => setOpen((v) => !v)} className="text-[10.5px] font-bold text-brand-300 underline">
+          {open ? 'إغلاق' : items.length ? 'تعديل' : 'أضف حساسية'}
+        </button>
+      </div>
+
+      {items.length === 0 ? (
+        <p className="mt-1.5 text-[10.5px] leading-5 text-ink-500">
+          لم تُسجّل أي حساسية. التسجيل اختياري، ويُستخدم فقط لتنبيهك وتنبيه الصيدلي عند وجود دواء من نفس العائلة.
+          <b className="text-ink-300"> لا نستنتج الحساسية تلقائيًا من أي مصدر.</b>
+        </p>
+      ) : (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {items.map((a) => (
+            <span key={a.id} className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-500/10 px-2 py-1 text-[10.5px] font-bold text-violet-100">
+              {a.label}
+              {String(a.code).startsWith('mol:') ? <span className="text-[8.5px] font-normal opacity-70">مادة محددة</span> : <span className="text-[8.5px] font-normal opacity-70">عائلة</span>}
+              <button onClick={() => remove(a.id)} className="rounded-full p-0.5 text-violet-200/70 hover:text-white"><X className="h-2.5 w-2.5" /></button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {open && (
+        <div className="mt-3 space-y-2.5 rounded-xl border border-white/[.08] bg-white/[.02] p-2.5">
+          <div>
+            <div className="mb-1 text-[10px] font-bold text-ink-300">عائلة دوائية موثّقة (تصنيف ATC)</div>
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث: بنسلين، NSAID، سلفا…" className="mini-input" />
+            <div className="mt-1.5 flex max-h-40 flex-wrap gap-1 overflow-y-auto">
+              {families.slice(0, 80).map((f) => (
+                <button key={f.code} disabled={busy} onClick={() => add(f.code, f.label_ar)} title={f.note_ar || ''}
+                  className="rounded-lg border border-white/[.09] bg-ink-900 px-2 py-1 text-[10px] font-bold text-ink-200 hover:border-violet-400/50">
+                  {f.label_ar}
+                </button>
+              ))}
+              {families.length === 0 && <div className="text-[10px] text-ink-500">لا نتائج</div>}
+            </div>
+          </div>
+          <div>
+            <div className="mb-1 text-[10px] font-bold text-ink-300">أو مادة فعالة محددة</div>
+            <input value={drugQ} onChange={(e) => setDrugQ(e.target.value)} placeholder="اسم الدواء العلمي…" className="mini-input" />
+            <div className="mt-1 flex flex-wrap gap-1">
+              {(drugHits?.data || []).slice(0, 6).map((d) => (
+                <button key={d.id} disabled={busy} onClick={() => add(`mol:${d.generic_name}`, `${d.generic_ar || d.generic_name} (${d.generic_name})`)}
+                  className="rounded-lg border border-white/[.09] bg-ink-900 px-2 py-1 text-[10px] font-bold text-ink-200 hover:border-violet-400/50">
+                  {d.generic_ar || d.generic_name}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="text-[9px] leading-4 text-ink-500">{data?.note_ar}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { tone: any; label: string }> = {
     pending_review: { tone: 'amber', label: 'بانتظار الصيدلي' },
@@ -629,16 +735,45 @@ function InfoField({ label, value, confidence }: { label: string; value?: string
 }
 
 function FlagCard({ flag, lang }: { flag: Flag; lang: string }) {
+  const [open, setOpen] = useState(false);
   const sev = flag.severity === 'high' ? 'rose' : flag.severity === 'medium' ? 'amber' : 'sky';
   const border = sev === 'rose' ? 'border-rose-400/30 bg-rose-500/10 text-rose-100' : sev === 'amber' ? 'border-amber-400/25 bg-amber-500/10 text-amber-100' : 'border-sky-400/25 bg-sky-500/10 text-sky-100';
   const Icon = sev === 'rose' ? ShieldAlert : sev === 'amber' ? AlertTriangle : Info;
+  const plain = lang === 'en' ? flag.plain_en || flag.plain_ar : flag.plain_ar;
+  const why = lang === 'en' ? flag.why_en || flag.why_ar : flag.why_ar;
+  const detail = lang === 'en' ? flag.detail_en || flag.detail_ar : flag.detail_ar;
   return (
-    <div className={cx('flex items-start gap-2 rounded-2xl border p-3 text-[11px] leading-5', border)}>
-      <Icon className="mt-0.5 h-4 w-4 shrink-0" />
-      <div>
-        <div className="font-extrabold">{lang === 'en' ? flag.title_en || flag.title_ar : flag.title_ar}</div>
-        <div className="mt-0.5 opacity-90">{lang === 'en' ? flag.detail_en || flag.detail_ar : flag.detail_ar}</div>
-        {flag.action_ar && <div className="mt-1 text-[10px] font-bold opacity-80">→ {lang === 'en' ? flag.action_en || flag.action_ar : flag.action_ar}</div>}
+    <div className={cx('rounded-2xl border p-3 text-[11px] leading-5', border)}>
+      <div className="flex items-start gap-2">
+        <Icon className="mt-0.5 h-4 w-4 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="font-extrabold">{lang === 'en' ? flag.title_en || flag.title_ar : flag.title_ar}</span>
+            <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-bold opacity-80">
+              {flag.severity === 'high' ? 'مهم' : flag.severity === 'medium' ? 'يحتاج مراجعة' : 'معلومة'}
+            </span>
+          </div>
+          {plain && <p className="mt-1 text-[11.5px] font-semibold opacity-95">{plain}</p>}
+          {detail && <p className="mt-0.5 text-[10px] opacity-70">{detail}</p>}
+          {flag.action_ar && (
+            <div className="mt-1 inline-flex rounded-lg bg-black/20 px-2 py-0.5 text-[10px] font-bold">
+              → {lang === 'en' ? flag.action_en || flag.action_ar : flag.action_ar}
+            </div>
+          )}
+          <button onClick={() => setOpen((v) => !v)} className="mt-1.5 flex items-center gap-1 text-[9.5px] font-bold opacity-70 underline">
+            <Info className="h-2.5 w-2.5" />{open ? 'إخفاء سبب التنبيه' : 'لماذا ظهر هذا التنبيه؟'}
+          </button>
+          {open && (
+            <div className="mt-1 space-y-1 rounded-lg bg-black/20 p-2 text-[9.5px] leading-4">
+              {why && <div><b>السبب:</b> {why}</div>}
+              <div>
+                <b>المصدر:</b> {flag.source?.label || 'قاعدة MDA'}
+                {flag.source?.updated_at ? ` — آخر تحديث: ${dateFmt(flag.source.updated_at)}` : ' — تاريخ التحديث غير مسجّل'}
+              </div>
+              <div className="opacity-70">هذا التنبيه لا يشخّص ولا يغيّر الوصفة؛ القرار للصيدلي/الطبيب.</div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -776,6 +911,16 @@ function ItemCard({
           <Row label="تحذيرات" value={val.dossier.drug.warnings} tone="amber" />
           <Row label="تداخلات مسجّلة" value={val.dossier.drug.interactions} tone="amber" />
           <Row label="الحمل" value={val.dossier.drug.pregnancy} />
+          {val.dossier.drug.allergen_families && val.dossier.drug.allergen_families.length > 0 && (
+            <div className="rounded-lg bg-white/[.03] px-2 py-1">
+              <span className="me-1 font-bold opacity-70">العائلات التحسّسية:</span>
+              {val.dossier.drug.allergen_families.map((f) => (
+                <span key={f.code} className="me-1 inline-block rounded bg-violet-500/15 px-1.5 py-0.5 text-[9.5px] font-bold text-violet-200" title={f.note_ar || ''}>
+                  {f.label_ar}
+                </span>
+              ))}
+            </div>
+          )}
           {val.dose_calc?.daily_mg !== undefined && (
             <div className="mt-1 rounded-lg bg-white/[.04] px-2 py-1 text-[10px] text-ink-300">
               الجرعة اليومية المحسوبة: <b>{val.dose_calc.daily_mg} مغم</b>
