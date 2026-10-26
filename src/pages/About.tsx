@@ -42,7 +42,7 @@ export default function About() {
       <div className="card p-4">
         <div className="mb-3 flex items-center gap-2 text-brand-300"><HeartHandshake className="h-[18px] w-[18px]" /><h2 className="text-[13px] font-extrabold text-white">{ar ? 'المالك والحقوق' : 'Ownership & rights'}</h2></div>
         <div className="flex items-center gap-3 rounded-2xl border border-white/[.06] bg-white/[.03] p-3">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-grad text-[15px] font-black text-white shadow-float ring-1 ring-white/20">ع.م</span>
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-grad text-[15px] font-black on-color shadow-float ring-1 ring-white/20">ع.م</span>
           <div className="min-w-0">
             <div className="truncate text-[13px] font-extrabold text-white">{config.owner_name}</div>
             <div className="text-[11px] text-brand-300">{config.owner_title}</div>

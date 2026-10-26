@@ -63,7 +63,7 @@ export default function Admin() {
         <div className="mx-auto flex max-w-6xl items-center gap-2 px-3 py-2.5">
           <Link to="/" className="icon-btn h-9 w-9"><ArrowLeft className="h-4 w-4 rtl:-scale-x-100" /></Link>
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-tile ring-1 ring-white/20"><LayoutDashboard className="h-4.5 w-4.5" /></span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 on-color shadow-tile ring-1 ring-white/20"><LayoutDashboard className="h-4.5 w-4.5" /></span>
             <div className="min-w-0">
               <div className="truncate text-[13.5px] font-extrabold text-white">لوحة تحكم MDA</div>
               <div className="truncate text-[10px] text-ink-400">{user.email}</div>

@@ -18,8 +18,8 @@
     <meta name="apple-mobile-web-app-title" content="MDA" />
     <title>MDA — MedicineData | ميديسين داتا</title>
     <style>
-      :root { color-scheme: dark; }
-      html { background: #050c1a; }
+      :root { color-scheme: dark; background: #050c1a; }
+      :root[data-theme='light'] { color-scheme: light; background: #f4f8fd; }
       /* ---- Launch splash (mirrors the app's first screen) ---- */
       #boot {
         position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center;
@@ -48,12 +48,37 @@
         animation: slide 1.15s cubic-bezier(.4,0,.6,1) infinite;
       }
       #boot .foot { position: absolute; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); font: 600 9.5px/1 'Inter', system-ui, sans-serif; letter-spacing: .22em; color: rgba(148,183,235,.55); }
+      /* daylight launch screen — same mark, light field */
+      html[data-theme='light'] #boot {
+        background:
+          radial-gradient(120% 80% at 90% 0%, rgba(34,211,238,.22) 0%, transparent 55%),
+          radial-gradient(90% 70% at 0% 100%, rgba(27,109,255,.16) 0%, transparent 60%),
+          linear-gradient(160deg, #ffffff 0%, #f2f7fd 60%, #eaf2fb 100%);
+      }
+      html[data-theme='light'] #boot .brand { color: #0b1a33; }
+      html[data-theme='light'] #boot .brand span { background: linear-gradient(135deg,#0a53c4,#0891b2); -webkit-background-clip: text; background-clip: text; }
+      html[data-theme='light'] #boot .sub { color: #0a53c4; }
+      html[data-theme='light'] #boot .tag { color: #4a648c; }
+      html[data-theme='light'] #boot .bar { background: rgba(15,23,42,.10); }
+      html[data-theme='light'] #boot .foot { color: rgba(15,23,42,.45); }
       @keyframes slide { 0% { transform: translateX(-130%); } 100% { transform: translateX(320%); } }
       @keyframes pulse { 0%,100% { opacity: .75; transform: scale(1); } 50% { opacity: 1; transform: scale(1.06); } }
     </style>
     <script>
-      /* MDA is a single-theme (midnight navy) product — pin it before first paint. */
-      document.documentElement.classList.add('dark');
+      /* Resolve the saved appearance before the first paint, so a light-mode user
+         never sees a dark flash (and vice versa). Default stays midnight navy. */
+      (function () {
+        var dark = true;
+        try {
+          var mode = localStorage.getItem('mda.themeMode') || 'dark';
+          var sysDark = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)').matches : true;
+          dark = mode === 'dark' || (mode === 'system' && sysDark);
+        } catch (e) { /* private mode: keep the branded default */ }
+        var root = document.documentElement;
+        root.setAttribute('data-theme', dark ? 'dark' : 'light');
+        root.classList.toggle('dark', dark);
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#050c1a' : '#f4f8fd');
+      })();
     </script>
   </head>
   <body class="font-ar antialiased">

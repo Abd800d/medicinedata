@@ -66,7 +66,7 @@ export default function AiAssistant() {
       <div className="card min-h-[320px] p-3.5">
         {!messages.length && (
           <div className="py-6 text-center">
-            <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-tile"><Sparkles className="h-6 w-6" /></span>
+            <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 on-color shadow-tile"><Sparkles className="h-6 w-6" /></span>
             <div className="text-[13px] font-bold text-ink-100">{lang === 'ar' ? 'اسألني عن أي دواء' : 'Ask me about any medicine'}</div>
             <p className="mx-auto mt-1 max-w-sm text-[11px] leading-5 text-ink-500">{lang === 'ar' ? 'الجرعات، البدائل التجارية في اليمن، التفاعلات، الحمل، التحذيرات…' : 'Dosing, Yemeni brand alternatives, interactions, pregnancy, warnings…'}</p>
             <div className="mt-4 grid gap-1.5 sm:grid-cols-2">
@@ -108,7 +108,7 @@ export default function AiAssistant() {
           ))}
           {busy && (
             <div className="flex items-center gap-2 text-[11px] text-ink-400">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white"><Bot className="h-3.5 w-3.5" /></span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 on-color"><Bot className="h-3.5 w-3.5" /></span>
               <Spinner className="h-3.5 w-3.5" />{t('ai.thinking')}
             </div>
           )}
@@ -126,7 +126,7 @@ export default function AiAssistant() {
             placeholder={t('ai.placeholder')}
             className="max-h-28 min-h-[38px] flex-1 resize-none bg-transparent px-2 py-2 text-[12.5px] outline-none placeholder:text-ink-400"
           />
-          <button type="submit" disabled={!input.trim() || busy} className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-tile transition active:scale-95 disabled:opacity-40"><Send className="h-4 w-4 rtl:-scale-x-100" /></button>
+          <button type="submit" disabled={!input.trim() || busy} className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 on-color shadow-tile transition active:scale-95 disabled:opacity-40"><Send className="h-4 w-4 rtl:-scale-x-100" /></button>
         </form>
         <div className="mt-1.5 flex items-center justify-between gap-2 px-1">
           <span className="inline-flex items-center gap-1 text-[9.5px] text-ink-400"><ShieldCheck className="h-2.5 w-2.5" />{t('ai.disclaimer')}</span>

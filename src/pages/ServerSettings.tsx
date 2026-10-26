@@ -94,7 +94,7 @@ export default function ServerSettings() {
       <div className="card relative overflow-hidden p-4">
         <span className="pointer-events-none absolute -end-10 -top-12 h-32 w-32 rounded-full bg-emerald-500/15 blur-2xl" />
         <div className="relative flex items-start gap-2.5">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-tile ring-1 ring-white/20">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 on-color shadow-tile ring-1 ring-white/20">
             <CheckCircle2 className="h-4 w-4" />
           </span>
           <div className="min-w-0">

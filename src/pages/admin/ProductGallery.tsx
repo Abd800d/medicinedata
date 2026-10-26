@@ -153,7 +153,7 @@ export default function ProductGallery() {
             {images.map((row, i) => (
               <div key={row.id} className="group relative overflow-hidden rounded-xl border border-white/[.09] bg-black/20">
                 <img src={row.url} alt="" className="aspect-square w-full object-cover" loading="lazy" />
-                {product.image_url === row.url && <span className="absolute start-1 top-1 rounded-md bg-emerald-500/90 px-1 py-0.5 text-[8.5px] font-bold text-white">رئيسية</span>}
+                {product.image_url === row.url && <span className="absolute start-1 top-1 rounded-md bg-emerald-500/90 px-1 py-0.5 text-[8.5px] font-bold on-color">رئيسية</span>}
                 <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-0.5 bg-black/65 px-1 py-0.5 opacity-0 transition group-hover:opacity-100 sm:opacity-100">
                   <span className="text-[8.5px] text-white/70">#{i + 1}</span>
                   <div className="flex gap-0.5">
@@ -178,7 +178,7 @@ export default function ProductGallery() {
                 {ready.map((r, i) => (
                   <div key={i} className="relative">
                     <img src={r.preview} alt="" className="h-12 w-12 rounded-lg object-cover" />
-                    <button onClick={() => setReady((prev) => prev.filter((_, j) => j !== i))} className="absolute -end-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-rose-500 text-white"><X className="h-2.5 w-2.5" /></button>
+                    <button onClick={() => setReady((prev) => prev.filter((_, j) => j !== i))} className="absolute -end-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-rose-500 on-color"><X className="h-2.5 w-2.5" /></button>
                   </div>
                 ))}
               </div>

@@ -5,15 +5,29 @@ export default {
   theme: {
     extend: {
       colors: {
+        /* Theme-aware tokens. Every `ink-*` and `white/xx` utility resolves through a
+           CSS variable, so switching :root[data-theme] flips the whole app without
+           touching a single component. */
+        ink: {
+          50: 'rgb(var(--ink-50) / <alpha-value>)',
+          100: 'rgb(var(--ink-100) / <alpha-value>)',
+          200: 'rgb(var(--ink-200) / <alpha-value>)',
+          300: 'rgb(var(--ink-300) / <alpha-value>)',
+          400: 'rgb(var(--ink-400) / <alpha-value>)',
+          500: 'rgb(var(--ink-500) / <alpha-value>)',
+          600: 'rgb(var(--ink-600) / <alpha-value>)',
+          700: 'rgb(var(--ink-700) / <alpha-value>)',
+          800: 'rgb(var(--ink-800) / <alpha-value>)',
+          900: 'rgb(var(--ink-900) / <alpha-value>)',
+          950: 'rgb(var(--ink-950) / <alpha-value>)',
+        },
+        /* `white/5`, `border-white/10`, `text-white` are the app's glass + hairline
+           language; in light mode they become a dark tint instead of a white one. */
+        white: 'rgb(var(--white) / <alpha-value>)',
         /* Primary — electric blue → cyan, as in the MDA identity */
         brand: {
           50: '#eef7ff', 100: '#d9ecff', 200: '#b6dbff', 300: '#79c2ff', 400: '#38a4ff',
           500: '#1185ff', 600: '#0068f0', 700: '#0a53c4', 800: '#0f459e', 900: '#123b7d', 950: '#0a1f45',
-        },
-        /* Surfaces — deep navy instead of neutral slate */
-        ink: {
-          50: '#f2f6fd', 100: '#e4ecf9', 200: '#cbdaf1', 300: '#a2b9dd', 400: '#7f9dc9',
-          500: '#5f7fae', 600: '#35527c', 700: '#233c5f', 800: '#132844', 900: '#0a1930', 950: '#050c1a',
         },
         aqua: { 300: '#67e8f9', 400: '#22d3ee', 500: '#06b6d4', 600: '#0891b2' },
       },

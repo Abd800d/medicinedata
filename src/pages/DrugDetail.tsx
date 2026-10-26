@@ -229,7 +229,7 @@ export default function DrugDetail() {
       )}
 
       <Link to="/ai" className="flex items-center gap-3 rounded-2xl border p-3.5 border-violet-900/40 bg-violet-950/20">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 text-white"><Bot className="h-5 w-5" /></span>
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 on-color"><Bot className="h-5 w-5" /></span>
         <div className="min-w-0 flex-1">
           <div className="text-[12.5px] font-bold text-violet-200">{t('ai.title')}</div>
           <div className="text-[11px] text-violet-300/70">{arabic ? `اسأل عن ${drug.generic_name}: الجرعات، البدائل، التفاعلات` : `Ask about ${drug.generic_name}: dosing, alternatives, interactions`}</div>

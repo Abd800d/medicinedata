@@ -52,7 +52,7 @@ export default function Community() {
 
       <div className="grid gap-2 sm:grid-cols-2">
         <button onClick={() => user ? setOpen(true) : push(t('common.loginRequired'), 'info')} className="group flex items-center gap-3 rounded-2xl border border-brand-400/30 bg-brand-500/10 p-3.5 text-start transition hover:border-brand-400/60 hover:bg-brand-500/15">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-grad text-white shadow-glow"><Plus className="h-5 w-5" /></span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-grad on-color shadow-glow"><Plus className="h-5 w-5" /></span>
           <div><div className="text-[12.5px] font-bold text-white">{t('community.newThread')}</div><div className="text-[10.5px] text-brand-200/70">{t('community.board')}</div></div>
         </button>
         <Link to="/jobs" className="group flex items-center gap-3 rounded-2xl border border-amber-400/30 bg-amber-500/10 p-3.5 text-start transition hover:border-amber-400/60 hover:bg-amber-500/15">

@@ -7,6 +7,8 @@ import { ConfigProvider } from './lib/config';
 import { AuthProvider } from './lib/auth';
 import { PageLoader, ToastProvider } from './components/ui';
 import { SyncProvider } from './lib/sync';
+import { LockProvider, useAppLock } from './lib/lock';
+import LockScreen from './components/LockScreen';
 import Layout from './components/Layout';
 
 const Home = lazy(() => import('./pages/Home'));
@@ -75,13 +77,26 @@ function NotFound() {
   );
 }
 
+/* The lock overlay lives above the router; the app keeps running behind it. */
+function LockGate({ children }: { children: React.ReactNode }) {
+  const { locked } = useAppLock();
+  return (
+    <>
+      {children}
+      {locked && <LockScreen />}
+    </>
+  );
+}
+
 export default function App() {
   return (
     <I18nProvider>
       <ConfigProvider>
         <AuthProvider>
+          <LockProvider>
           <ToastProvider>
             <SyncProvider>
+            <LockGate>
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <Welcome />
               <Suspense fallback={<PageLoader />}>
@@ -115,8 +130,10 @@ export default function App() {
                 </Routes>
               </Suspense>
             </BrowserRouter>
+            </LockGate>
             </SyncProvider>
           </ToastProvider>
+          </LockProvider>
         </AuthProvider>
       </ConfigProvider>
     </I18nProvider>

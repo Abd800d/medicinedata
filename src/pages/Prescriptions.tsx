@@ -335,7 +335,7 @@ export default function Prescriptions() {
         <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
         {!preview ? (
           <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-rose-400/30 bg-rose-500/[.05] px-4 py-8 text-center">
-            <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-pink-500 text-white shadow-tile"><UploadCloud className="h-6 w-6" /></span>
+            <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-pink-500 on-color shadow-tile"><UploadCloud className="h-6 w-6" /></span>
             <div className="text-[13px] font-bold text-ink-100">صوّر الوصفة أو اختر صورة</div>
             <p className="mt-1 max-w-xs text-[11px] leading-5 text-ink-500">إضاءة جيدة، الوصفة كاملة داخل الإطار، بدون انعكاس أو ميل. الصور المقروءة تُحلَّل بدقة أعلى.</p>
             <div className="mt-3 flex gap-2">
@@ -797,7 +797,7 @@ function ItemCard({
     <div className={cx('card overflow-hidden border p-3.5', ring)}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-start gap-2.5">
-          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-grad text-[12px] font-extrabold text-white">{item.line_no}</span>
+          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-grad text-[12px] font-extrabold on-color">{item.line_no}</span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-[13.5px] font-extrabold text-white">{val.name || '—'}</span>

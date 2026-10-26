@@ -64,7 +64,7 @@ export default function SettingsPanel() {
       <div className="card relative overflow-hidden p-4">
         <span className="pointer-events-none absolute -end-8 -top-10 h-28 w-28 rounded-full bg-brand-500/15 blur-2xl" />
         <div className="relative flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-grad text-white shadow-glow"><Smartphone className="h-4 w-4" /></span>
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-grad on-color shadow-glow"><Smartphone className="h-4 w-4" /></span>
           <div>
             <h2 className="text-[12.5px] font-extrabold text-white">تطبيق الأندرويد (APK)</h2>
             <p className="text-[10px] text-ink-400">آخر نسخة تُبنى تلقائيًا من المستودع وتُنشر في Releases.</p>

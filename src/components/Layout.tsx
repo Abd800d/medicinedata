@@ -4,6 +4,7 @@ import {
   Briefcase, ChevronLeft, CircleUserRound, CloudDownload, Home, LayoutGrid, Mail, Menu, MessageCircle,
   MoreHorizontal, ScanLine, Search, ShieldCheck, WifiOff, X, Pill, Sparkles,
   Stethoscope, Boxes, Database,
+  MonitorSmartphone, Moon, Sun,
 } from 'lucide-react';
 import { Logo, Avatar, MDAIcon } from './ui';
 import SyncBadge from './SyncBadge';
@@ -46,6 +47,7 @@ function CreditBadge() {
 export function TopBar() {
   const { t, lang, toggleLang } = useI18n();
   const { user } = useAuth();
+  const { dark, mode, setMode } = useConfig();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -86,6 +88,14 @@ export function TopBar() {
           <div className="flex items-center gap-1.5">
             <span className="hidden md:inline-flex"><CreditBadge /></span>
             <SyncBadge />
+            <button
+              onClick={() => setMode(mode === 'dark' ? 'light' : mode === 'light' ? 'system' : 'dark')}
+              className="icon-btn h-9 w-9"
+              title={lang === 'ar' ? (mode === 'system' ? 'المظهر: تلقائي (اضغط للتغيير)' : mode === 'dark' ? 'المظهر: ليلي' : 'المظهر: نهاري') : 'Theme'}
+              aria-label="theme"
+            >
+              {mode === 'system' ? <MonitorSmartphone className="h-[17px] w-[17px]" /> : dark ? <Moon className="h-[17px] w-[17px]" /> : <Sun className="h-[17px] w-[17px]" />}
+            </button>
             <button onClick={toggleLang} className="icon-btn h-9 w-9" title={t('common.language')} aria-label={t('common.language')}>
               <span className="text-[10.5px] font-black tracking-wide">{lang === 'ar' ? 'EN' : 'ع'}</span>
             </button>
