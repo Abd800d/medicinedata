@@ -1,17 +1,19 @@
 import { Link } from 'react-router-dom';
-import { RefreshCw, Bot, Briefcase, ChevronLeft, ChevronRight, CloudDownload, Database, Download, ExternalLink, FilePlus2, FileText, Globe2, Info, Languages, LayoutDashboard, LogIn, LogOut, Mail, MessageCircle, Phone, ScanLine, ScrollText, Server, Settings2, ShieldCheck, ShoppingCart, Smartphone, UserRound, Users } from 'lucide-react';
+import { Moon, RefreshCw, Sun, MonitorSmartphone, Bot, Briefcase, ChevronLeft, ChevronRight, CloudDownload, Database, Download, ExternalLink, FilePlus2, FileText, Globe2, Info, Languages, LayoutDashboard, LogIn, LogOut, Mail, MessageCircle, Phone, ScanLine, ScrollText, Server, Settings2, ShieldCheck, ShoppingCart, Smartphone, UserRound, Users } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
 import { useConfig } from '../lib/config';
 import { useAuth } from '../lib/auth';
 import { Avatar, Badge, useToast } from '../components/ui';
+import { cx } from '../lib/utils';
 import { requestInstall } from '../components/install';
+import LockSettings from '../components/LockSettings';
 import { useOnline } from '../lib/offline';
 import { downloadPack } from '../lib/offline';
 import { useState } from 'react';
 
 export default function More() {
   const { t, lang, toggleLang } = useI18n();
-  const { config } = useConfig();
+  const { config, mode, setMode, dark } = useConfig();
   const { user, logout } = useAuth();
   const { push } = useToast();
   const [busy, setBusy] = useState(false);
@@ -59,7 +61,7 @@ export default function More() {
           </Link>
         ) : (
           <div className="p-4">
-            <div className="mb-2 flex items-center gap-2"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-grad text-white shadow-glow"><UserRound className="h-5 w-5" /></span><div><div className="text-[13px] font-extrabold">{t('common.guest')}</div><div className="text-[11px] text-ink-500">{t('more.loginDesc')}</div></div></div>
+            <div className="mb-2 flex items-center gap-2"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-grad on-color shadow-glow"><UserRound className="h-5 w-5" /></span><div><div className="text-[13px] font-extrabold">{t('common.guest')}</div><div className="text-[11px] text-ink-500">{t('more.loginDesc')}</div></div></div>
             <div className="flex gap-2">
               <Link to="/auth" className="btn-primary flex-1"><LogIn className="h-4 w-4" />{t('common.login')}</Link>
             </div>
@@ -69,7 +71,7 @@ export default function More() {
 
       {user?.role === 'admin' && (
         <Link to="/admin" className="flex items-center gap-3 rounded-3xl border border-amber-400/25 bg-amber-500/10 p-3.5 backdrop-blur">
-          <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-tile ring-1 ring-white/20"><LayoutDashboard className="h-5 w-5" /></span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-amber-500 to-orange-500 on-color shadow-tile ring-1 ring-white/20"><LayoutDashboard className="h-5 w-5" /></span>
           <div className="min-w-0 flex-1"><div className="text-[12.5px] font-extrabold text-amber-200">{t('admin.title')}</div><div className="text-[10.5px] text-amber-200/70">{t('more.adminDesc')}</div></div>
           <ChevronLeft className="h-4 w-4 text-amber-300 rtl:block ltr:hidden" /><ChevronRight className="hidden h-4 w-4 text-amber-300 ltr:block" />
         </Link>
@@ -86,18 +88,43 @@ export default function More() {
       </div>
 
       <div className="card divide-soft overflow-hidden px-1">
+        <div className="px-1"><LockSettings /></div>
+        <div className="rounded-xl px-3 py-2.5">
+          <div className="mb-2 flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#1b6dff] to-[#22d3ee] on-color shadow-tile ring-1 ring-white/20">
+              {dark ? <Moon className="h-[18px] w-[18px]" /> : <Sun className="h-[18px] w-[18px]" />}
+            </span>
+            <div className="flex-1">
+              <div className="text-[12.5px] font-bold text-white">{lang === 'ar' ? 'المظهر' : 'Appearance'}</div>
+              <div className="text-[10.5px] text-ink-400">{lang === 'ar' ? (mode === 'system' ? 'يتبع إعداد الهاتف تلقائيًا' : mode === 'dark' ? 'الوضع الليلي' : 'الوضع النهاري') : mode}</div>
+            </div>
+            <Badge tone="brand">{mode === 'system' ? (lang === 'ar' ? 'تلقائي' : 'auto') : mode}</Badge>
+          </div>
+          <div className="grid grid-cols-3 gap-1 rounded-xl p-1 bg-white/[.05]">
+            {([
+              ['dark', lang === 'ar' ? 'ليلي' : 'Night', Moon],
+              ['light', lang === 'ar' ? 'نهاري' : 'Day', Sun],
+              ['system', lang === 'ar' ? 'تلقائي' : 'Auto', MonitorSmartphone],
+            ] as const).map(([key, label, Icon]) => (
+              <button key={key} onClick={() => setMode(key)} aria-pressed={mode === key}
+                className={cx('flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-[11px] font-bold transition', mode === key ? 'bg-brand-grad on-color shadow-glow' : 'text-ink-400 hover:bg-white/[.06]')}>
+                <Icon className="h-3.5 w-3.5" />{label}
+              </button>
+            ))}
+          </div>
+        </div>
         <button onClick={toggleLang} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start transition hover:bg-white/[.04]">
-          <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#0ea5e9] to-[#22d3ee] text-white shadow-tile ring-1 ring-white/20"><Languages className="h-[18px] w-[18px]" /></span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#0ea5e9] to-[#22d3ee] on-color shadow-tile ring-1 ring-white/20"><Languages className="h-[18px] w-[18px]" /></span>
           <div className="flex-1"><div className="text-[12.5px] font-bold text-white">{t('more.language')}</div><div className="text-[10.5px] text-ink-400">{lang === 'ar' ? 'العربية' : 'English'}</div></div>
           <span className="rounded-lg bg-brand-500/15 px-2 py-1 text-[11px] font-bold text-brand-200">{lang === 'ar' ? 'English' : 'العربية'}</span>
         </button>
         <button onClick={() => requestInstall()} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start transition hover:bg-white/[.04]">
-          <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#1b6dff] to-[#22d3ee] text-white shadow-tile ring-1 ring-white/20"><Smartphone className="h-[18px] w-[18px]" /></span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#1b6dff] to-[#22d3ee] on-color shadow-tile ring-1 ring-white/20"><Smartphone className="h-[18px] w-[18px]" /></span>
           <div className="flex-1"><div className="text-[12.5px] font-bold text-white">{lang === 'ar' ? 'تثبيت التطبيق' : 'Install the app'}</div><div className="text-[10.5px] text-ink-400">{lang === 'ar' ? 'أضف MDA إلى الشاشة الرئيسية' : 'Add MDA to your home screen'}</div></div>
           <Download className="h-3.5 w-3.5 text-ink-500" />
         </button>
         <a href="https://github.com/Abd800d/medicinedata/releases/latest" target="_blank" rel="noreferrer" className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start transition hover:bg-white/[.04]">
-          <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#3ddc84] to-[#12a150] text-white shadow-tile ring-1 ring-white/20"><Smartphone className="h-4 w-4" /></span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#3ddc84] to-[#12a150] on-color shadow-tile ring-1 ring-white/20"><Smartphone className="h-4 w-4" /></span>
           <div className="flex-1"><div className="text-[12.5px] font-bold text-white">{lang === 'ar' ? 'تحميل نسخة الأندرويد (APK)' : 'Download Android APK'}</div><div className="text-[10.5px] text-ink-400">{lang === 'ar' ? 'أحدث إصدار من GitHub Releases' : 'Latest build from GitHub Releases'}</div></div>
           <ExternalLink className="h-3.5 w-3.5 text-ink-500" />
         </a>

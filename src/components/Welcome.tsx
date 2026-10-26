@@ -65,7 +65,7 @@ export default function Welcome() {
           <button
             onClick={close}
             aria-label={ar ? 'إغلاق' : 'Close'}
-            className="absolute end-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-black/25 text-white/80 backdrop-blur transition hover:bg-black/40"
+            className="absolute end-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-black/25 on-color/80 backdrop-blur transition hover:bg-black/40"
           >
             <X className="h-4 w-4" />
           </button>

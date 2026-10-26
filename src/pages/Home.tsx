@@ -117,7 +117,7 @@ export default function Home() {
             {t('home.headline')}
           </p>
 
-          <form onSubmit={submit} className="mt-4 flex items-center gap-2 rounded-2xl border border-white/25 bg-white/95 p-1.5 shadow-[0_18px_40px_-20px_rgba(2,12,40,.9)] backdrop-blur">
+          <form onSubmit={submit} className="mt-4 flex items-center gap-2 rounded-2xl border border-white/25 bg-paper p-1.5 shadow-[0_18px_40px_-20px_rgba(2,12,40,.9)] backdrop-blur">
             <Search className="ms-2 h-[18px] w-[18px] shrink-0 text-[#0a53c4]" />
             <input
               value={q}
@@ -126,7 +126,7 @@ export default function Home() {
               className="min-w-0 flex-1 bg-transparent px-1 py-2 text-[13px] font-semibold text-[#0a1930] outline-none placeholder:font-medium placeholder:text-[#5f7fae]"
               aria-label={t('nav.search')}
             />
-            <button type="submit" className="rounded-xl bg-brand-grad px-3.5 py-2 text-[11.5px] font-bold text-white shadow-float transition hover:brightness-110">
+            <button type="submit" className="rounded-xl bg-brand-grad px-3.5 py-2 text-[11.5px] font-bold on-color shadow-float transition hover:brightness-110">
               {t('common.search')}
             </button>
           </form>
@@ -280,7 +280,7 @@ export default function Home() {
       {/* ── Offline pack ────────────────────────────────────── */}
       {!meta && (
         <Link to="/more" className="group flex items-center gap-3 rounded-3xl border border-brand-400/20 bg-brand-500/10 p-3.5 backdrop-blur transition hover:border-brand-400/40">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-grad text-white shadow-float"><CloudDownload className="h-5 w-5" /></span>
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-grad on-color shadow-float"><CloudDownload className="h-5 w-5" /></span>
           <div className="min-w-0 flex-1">
             <div className="text-[12.5px] font-bold text-white">{t('more.offlineTitle')}</div>
             <div className="text-[11px] text-ink-400">{t('more.offlineDesc')}</div>
@@ -293,7 +293,7 @@ export default function Home() {
       {/* ── Trust ───────────────────────────────────────────── */}
       <section className="card p-4 sm:p-5">
         <div className="mb-4 flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-grad text-white shadow-float"><ShieldCheck className="h-4.5 w-4.5" /></span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-grad on-color shadow-float"><ShieldCheck className="h-4.5 w-4.5" /></span>
           <div>
             <h2 className="text-[14.5px] font-extrabold text-white">{t('home.trustTitle')}</h2>
             <p className="text-[10.5px] text-ink-400">{ar ? 'مصادر علمية وتحديث مستمر' : 'Evidence-based, always current'}</p>

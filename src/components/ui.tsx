@@ -98,7 +98,7 @@ export function EmptyState({ icon, title, text, action }: { icon?: React.ReactNo
   return (
     <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-3xl border border-dashed border-white/10 bg-white/[.025] px-6 py-12 text-center">
       <span className="pointer-events-none absolute -top-10 start-1/2 h-24 w-24 -translate-x-1/2 rounded-full bg-brand-500/15 blur-2xl" />
-      <div className="relative mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-grad text-white shadow-glow ring-1 ring-white/20">
+      <div className="relative mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-grad on-color shadow-glow ring-1 ring-white/20">
         {icon || <SearchX className="h-6 w-6" />}
       </div>
       <div className="text-[15px] font-bold text-white">{title}</div>
@@ -316,7 +316,7 @@ export function Avatar({ name, src, size = 36 }: { name?: string; src?: string |
   const text = (name || '?').split(' ').filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
   if (src) return <img src={src} alt={name || ''} className="rounded-full object-cover" style={{ width: size, height: size }} />;
   return (
-    <div className="flex items-center justify-center rounded-full bg-brand-grad font-bold text-white ring-2 ring-white/10" style={{ width: size, height: size, fontSize: size * 0.36 }}>
+    <div className="flex items-center justify-center rounded-full bg-brand-grad font-bold on-color ring-2 ring-white/10" style={{ width: size, height: size, fontSize: size * 0.36 }}>
       {text}
     </div>
   );

@@ -46,7 +46,7 @@ export default function Directories() {
             <span className="pointer-events-none absolute -end-6 -top-6 h-20 w-20 rounded-full bg-brand-500/10 blur-2xl" />
             <div className="relative flex items-start justify-between gap-2">
               <div className="flex min-w-0 items-start gap-2.5">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-grad text-[11px] font-extrabold text-white shadow-glow">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-grad text-[11px] font-extrabold on-color shadow-glow">
                   {(o.name || 'MDA').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('') || 'MDA'}
                 </span>
                 <div className="min-w-0">

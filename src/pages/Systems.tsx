@@ -22,7 +22,7 @@ export default function Systems() {
       <div className="rounded-3xl page-hero p-5 text-white">
         <h1 className="text-[22px] font-extrabold">{t('home.systemsTitle')}</h1>
         <p className="mt-1 text-[11.5px] text-white/75">{t('home.systemsSub')}</p>
-        <div className="mt-3 flex items-center gap-2 rounded-2xl border border-white/25 bg-white/95 p-1.5 shadow-[0_16px_36px_-20px_rgba(2,12,40,.9)]">
+        <div className="mt-3 flex items-center gap-2 rounded-2xl border border-white/25 bg-paper p-1.5 shadow-[0_16px_36px_-20px_rgba(2,12,40,.9)]">
           <Search className="ms-1.5 h-4 w-4 text-[#0a53c4]" />
           <input
             value={q}

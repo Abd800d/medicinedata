@@ -382,7 +382,7 @@ function ImagesModal({ product, onClose }: { product: any; onClose: () => void }
           </label>
           <div className="flex flex-1 items-center gap-1.5 rounded-xl border px-2 py-1.5 border-white/[.08]">
             <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="رابط صورة…" className="min-w-0 flex-1 bg-transparent text-[11px] outline-none" dir="ltr" />
-            <button onClick={() => url && download(url)} disabled={!url || busy} className="rounded-lg bg-brand-grad px-2 py-1 text-[10.5px] font-bold text-white shadow-glow">تنزيل</button>
+            <button onClick={() => url && download(url)} disabled={!url || busy} className="rounded-lg bg-brand-grad px-2 py-1 text-[10.5px] font-bold on-color shadow-glow">تنزيل</button>
           </div>
         </div>
 

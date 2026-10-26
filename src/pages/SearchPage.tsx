@@ -95,7 +95,7 @@ export default function SearchPage() {
               inputMode="search"
             />
             {term && <button onClick={() => setTerm('')} className="flex h-8 w-8 items-center justify-center rounded-xl text-ink-400 hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>}
-            <button onClick={onBarcode} className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-grad text-white shadow-float" title={t('product.barcode')}><Barcode className="h-4 w-4" /></button>
+            <button onClick={onBarcode} className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-grad on-color shadow-float" title={t('product.barcode')}><Barcode className="h-4 w-4" /></button>
           </div>
         </div>
         {!online && <div className="flex items-center gap-1.5 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-200"><WifiOff className="h-3.5 w-3.5" />{t('offline.banner')}</div>}

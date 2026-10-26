@@ -1,6 +1,6 @@
 {
   "name": "medicinedata",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
   "description": "MDA — MedicineData: pharmaceutical reference, Yemen/Arab market products, prescriptions and pharmacy management.",
   "type": "module",
@@ -18,7 +18,7 @@
     "bundle:data": "node scripts/build-offline-bundle.mjs",
     "cap:sync": "npm run build && npx cap sync android",
     "cap:android": "npm run build && npx cap sync android && npx cap open android",
-    "smoke": "esbuild src/smoke-entry.tsx --bundle --format=esm --platform=browser --jsx=automatic --outfile=.smoke/app.mjs --log-level=error && node scripts/smoke.mjs",
+    "smoke": "esbuild src/smoke-entry.tsx --bundle --format=esm --platform=browser --jsx=automatic --outfile=.smoke/app.mjs --define:__APP_VERSION__='\"dev\"' --log-level=error && node scripts/smoke.mjs",
     "images:apply": "node scripts/apply-images.mjs",
     "images:check": "node scripts/apply-images.mjs --check",
     "images:fetch": "node scripts/fetch-images.mjs",
@@ -26,7 +26,9 @@
     "bundle:data:check": "node scripts/build-offline-bundle.mjs --out /tmp/catalog.check.json",
     "test:rx": "node scripts/test-rx.mjs",
     "test:sync": "node scripts/test-sync.mjs",
-    "test:data": "node scripts/test-data.mjs"
+    "test:data": "node scripts/test-data.mjs",
+    "test:ui": "node scripts/test-ui.mjs",
+    "test:e2e": "node scripts/test-e2e.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.2",

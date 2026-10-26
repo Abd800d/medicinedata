@@ -1,22 +1,22 @@
 ## Current State — أين توقفنا الآن
 
-> آخر تحديث: 2026-10-26 · **v1.5.0** (استيراد XML/SQLite + تصدير + نسخ احتياطية مشفّرة + معرض صور).
+> آخر تحديث: 2026-10-26 · **v1.6.0** (مظهر ليلي/نهاري/تلقائي + قفل التطبيق + اختبار E2E).
 
-- **v1.2.0:** مسار وصفات كامل، دور `pharmacist`، سجل تدقيق، موافقة وحذف بيانات المريض.
-- **v1.3.0:** حساسيات مسجّلة (69 عائلة ATC)، تنبيهات `allergy_conflict`/`duplicate_therapy_class`، شرح مبسّط لكل تنبيه، لوحة جودة التحليل.
-- **v1.4.0:** offline-first للكتابة — طابور `localStorage`، `X-Idempotency-Key`، `client_uuid`، `409 CONFLICT` + `?force=1`، شارة حالة وصفحة `/sync`.
-- **v1.5.0 (الجديد):**
-  - `server/lib/importer.js`: `xmlRows()` (وراثة حقول الأب → الأبناء)، `sqliteRows()`/`inspectSqlite()` (قراءة فقط + اختيار الجدول تلقائيًا)،
-    `readRows()`/`inspectFile()` موحّدة، و`opts.mode = upsert|insert|update`. كل الأنواع تدعم المعاينة داخل `SAVEPOINT` مع `ROLLBACK`.
-  - `server/lib/exporter.js`: مجموعات بيضاء فقط (بلا SQL من المستخدم)، CSV مع BOM، JSON، XLSX متعدد الأوراق، وحد صفوف `EXPORT_ROW_LIMIT`.
-    لا يُصدَّر `password_hash` ولا نصوص الوصفات ولا مفاتيح idempotency.
-  - `server/lib/backup.js`: حاوية `MDA-BACKUP-1` = scrypt + AES‑256‑GCM + sha256، لقطة `VACUUM INTO`،
-    استعادة بمعاملة واحدة + نسخة أمان + `integrity_check` + إعادة بناء FTS5.
-  - `product_images`: `uploaded_by/bytes/width/height/edited/bytes_original/updated_at` + `PATCH` و`reorder` و`audit` لكل عملية.
-  - الواجهة: تبويب إدارة جديد «التصدير والنسخ» (`DataTools.tsx`)، تبويب «معرض المنتج» (`ProductGallery.tsx`)،
-    ومكوّن `ImageStudio.tsx` للقص/التدوير/الضغط على الجهاز قبل الرفع، ولوحة الاستيراد تدعم XML/SQLite والأوضاع الثلاثة.
-- **التحقق:** `test:data` **51/51** · `test:rx` **52/52** · `test:sync` **22/22** · smoke لصفحات `/admin?tab=data|media` و`/sync` بلا أخطاء · `tsc`/`build` ✅.
-- **التالي:** v1.6.0 — PIN/بصمة، مراجعة OWASP، E2E، وتحسينات الثيم الليلي/النهاري.
+- **v1.3.0:** حساسيات مسجّلة وتنبيهات مفهومة لكل خطر + لوحة جودة التحليل.
+- **v1.4.0:** offline-first للكتابة (طابور، `X-Idempotency-Key`، `409 CONFLICT`، صفحة `/sync`).
+- **v1.5.0:** استيراد XML/SQLite، تصدير CSV/JSON/XLSX، نسخ احتياطية AES‑256‑GCM مع استعادة، ومعرض صور بقصّ وضغط.
+- **v1.6.0 (الجديد):**
+  - **المظهر:** `ink` و`white` أصبحا متغيّرات CSS في `tailwind.config.js`، فانقلب التطبيق كله من طبقة رموز واحدة.
+    `ConfigProvider` يدعم `light | dark | system` مع متابعة `prefers-color-scheme`، وحفظ في `mda.themeMode`،
+    وتطبيق قبل أول رسم من سكربت في `index.html` (لا وميض). مبدّل في الشريط العلوي + بطاقة في «المزيد».
+  - **قفل التطبيق:** `src/lib/lockCrypto.ts` (PBKDF2‑SHA256 150k + ملح، تأخير تصاعدي، دوال قابلة للاختبار)
+    و`src/lib/lock.tsx` (Provider، قفل تلقائي عند `visibilitychange`، WebAuthn للبصمة) و`LockScreen.tsx` (لوحة أرقام)
+    و`LockSettings.tsx` (تفعيل/تغيير/إيقاف + مدة القفل + تسجيل البصمة). التطبيق يبقى مركّبًا خلف القفل فلا يُفقد عمل جارٍ.
+  - **اختبارات:** `scripts/test-ui.mjs` (35) و`scripts/test-e2e.mjs` (39) — الأخير يمرّ بالمسار الكامل:
+    موافقة → حساسية → تحليل صورة → ربط بقاعدة الأدوية → تصحيح بشري → منع الاعتماد الذاتي → 409 للبنود المعلّقة →
+    اعتماد صريح → سلسلة تدقيق سليمة → محو بيانات → لا صور يتيمة على القرص.
+- **التحقق:** `test:ui` **35/35** · `test:e2e` **39/39** · `test:data` 51/51 · `test:rx` 52/52 · `test:sync` 22/22 · smoke (مع `/more`) بلا أخطاء · `tsc`/`build` ✅.
+- **التالي:** v1.7.0 — رفع `targetSdk` إلى 35 (يتطلب Capacitor 7 / AGP 8.7) لفتح الرفع إلى Google Play، ثم FLAG_SECURE اختياري للشاشات الحساسة.
 - **تحذير بيئة:** `node_modules/` و`data/` و`dist/` و`.env` تُفقد عند استعادة مساحة العمل → `npm ci --ignore-scripts` ثم `npm run seed` ثم `npm run build`.
 
 ## Workspace — الملفات المهمة

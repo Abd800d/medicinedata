@@ -101,7 +101,7 @@ export default function ScanPage() {
           <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-sky-400/30 bg-sky-500/[.06] px-4 py-9 text-center">
             <div className="relative mb-3 flex h-20 w-20 items-center justify-center">
               <span className="absolute inset-0 animate-pulse-soft rounded-full bg-sky-400/20" />
-              <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-grad text-white shadow-glow"><Camera className="h-7 w-7" /></span>
+              <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-grad on-color shadow-glow"><Camera className="h-7 w-7" /></span>
             </div>
             <div className="text-[13px] font-bold text-ink-100">{lang === 'ar' ? 'صوّر علبة الدواء' : 'Photograph the medicine pack'}</div>
             <p className="mt-1 max-w-xs text-[11px] leading-5 text-ink-500">{lang === 'ar' ? 'ضع الاسم التجاري في منتصف الإطار مع إضاءة جيدة.' : 'Centre the brand name with good lighting.'}</p>
@@ -116,7 +116,7 @@ export default function ScanPage() {
               <img src={preview} alt="medicine" className="max-h-[340px] w-full object-contain" />
               <div className="pointer-events-none absolute inset-6 rounded-2xl border-2 border-sky-400/70" />
               <div className="pointer-events-none absolute inset-x-6 top-1/2 h-0.5 animate-pulse bg-sky-400/70" />
-              <button onClick={() => { setPreview(null); setFile(null); setResult(null); }} className="absolute end-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white"><X className="h-4 w-4" /></button>
+              <button onClick={() => { setPreview(null); setFile(null); setResult(null); }} className="absolute end-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 on-color"><X className="h-4 w-4" /></button>
             </div>
             <div className="flex gap-2">
               <button onClick={identify} disabled={busy} className="btn-primary flex-1">

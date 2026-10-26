@@ -88,7 +88,7 @@ export default function ThreadDetail() {
       <div className="sticky bottom-[76px] z-20 pt-2">
         <div className="flex items-end gap-2 rounded-2xl border border-white/[.10] bg-ink-900/90 p-1.5 shadow-float backdrop-blur focus-within:border-brand-400/50">
           <textarea value={body} onChange={(e) => setBody(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} rows={1} placeholder={t('community.reply')} className="max-h-28 min-h-[38px] flex-1 resize-none bg-transparent px-2 py-2 text-[12.5px] outline-none" />
-          <button onClick={send} disabled={busy || !body.trim()} className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-grad text-white shadow-tile transition active:scale-95 disabled:opacity-40"><Send className="h-4 w-4 rtl:-scale-x-100" /></button>
+          <button onClick={send} disabled={busy || !body.trim()} className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-grad on-color shadow-tile transition active:scale-95 disabled:opacity-40"><Send className="h-4 w-4 rtl:-scale-x-100" /></button>
         </div>
       </div>
     </div>
