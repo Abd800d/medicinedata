@@ -2,10 +2,34 @@
 
 التطبيق يُغلَّف بـ **Capacitor 6**، ومجلد `android/` جاهز في المستودع.
 
+## سلسلة الأدوات (v1.7.0) — Capacitor 7 / SDK 35
+
+| المكوّن | الإصدار | الملف |
+| --- | --- | --- |
+| Capacitor (core / android / cli) | 7.6.9 | `package.json` |
+| Android Gradle Plugin | 8.7.2 | `android/build.gradle` |
+| Gradle wrapper | 8.11.1 | `android/gradle/wrapper/gradle-wrapper.properties` |
+| JDK | **21** | `.github/workflows/android.yml` + Android Studio Ladybug |
+| compileSdk / targetSdk | **35** | `android/variables.gradle` |
+| minSdk | 23 | نفس الملف |
+| Android SDK (CI) | `platforms;android-35` + `build-tools;35.0.0` | workflow |
+
+**لماذا الترقية؟** Google Play لا يقبل أي نسخة بـ `targetSdk` أقل من 35. Capacitor 6 لا يدعم 35،
+لذلك الترقية إلى Capacitor 7 إجبارية قبل النشر في المتجر.
+
+**ما تغيّر في الشيفرة؟**
+- `bundledWebRuntime` حُذف من `capacitor.config.ts` (محذوف في v7).
+- `android:configChanges` صار يحتوي `navigation` (توصية Capacitor 7 لمنع إعادة تشغيل التطبيق مع لوحات المفاتيح).
+- `MainActivity.java` صار يقرأ `localStorage['mda.secureFlag']` ويطبّق `FLAG_SECURE` عند الطلب
+  (المزيد ← قفل التطبيق ← منع لقطات الشاشة) — يُعيد القراءة عند كل عودة للتطبيق.
+
+**التحقق من الترقية:** أي دفع إلى فرع `arena/**` أو `feature/**` يشغّل بناءً تجريبيًا (APK artifact فقط،
+بلا إصدار) — لذلك تُختبر سلسلة الأدوات الجديدة قبل الدمج لا بعده.
+
 ## المتطلبات
 
 - Node.js ≥ 20
-- [Android Studio](https://developer.android.com/studio) (Ladybug أو أحدث) + Android SDK 34
+- [Android Studio](https://developer.android.com/studio) (Ladybug أو أحدث) + Android SDK 35 + JDK 21
 - JDK 21 (يأتي مع Android Studio)
 - جهاز أندرويد حقيقي أو محاكي (API 24+)
 

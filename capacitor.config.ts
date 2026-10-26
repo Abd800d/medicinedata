@@ -12,7 +12,6 @@ const config: CapacitorConfig = {
   appId: 'com.mda.medicinedata',
   appName: 'MDA — MedicineData',
   webDir: 'dist',
-  bundledWebRuntime: false,
   android: {
     allowMixedContent: false,
     backgroundColor: '#050c1a',

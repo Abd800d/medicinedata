@@ -10,6 +10,7 @@ name: Android APK
 # Signed release builds (see docs/SIGNING.md):
 #   secrets: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
 #   push a tag  ->  automatic signed release (.apk + .aab) attached to the GitHub Release
+#   push a branch named arena/** or feature/**  ->  debug APK artifact only (toolchain checks)
 #   optional variable MDA_KEYSTORE_TYPE (default PKCS12; use JKS for keytool keystores)
 
 on:
@@ -34,6 +35,11 @@ on:
   push:
     tags:
       - 'v*'
+    # Validation builds for in-progress branches: an Android toolchain upgrade must be
+    # proven on CI before it reaches main, since no local Android SDK exists.
+    branches:
+      - 'arena/**'
+      - 'feature/**'
 
 permissions:
   contents: write
@@ -108,11 +114,11 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: JDK 17
+      - name: JDK 21 (required by Capacitor 7 / AGP 8.7)
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
       - name: Locate the preinstalled Android SDK
         run: |
@@ -140,7 +146,7 @@ jobs:
         run: |
           sdkmanager --version || true
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
       - name: Restore release keystore
@@ -220,7 +226,7 @@ jobs:
       - name: Verify signature
         if: env.BUILD_TYPE == 'release'
         run: |
-          APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
+          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
           test -x "$APKSIGNER" || APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           : > signature.txt
           for f in out/*.apk; do
