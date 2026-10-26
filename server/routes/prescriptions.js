@@ -114,7 +114,21 @@ router.get('/', authRequired, (req, res) => {
     ? db.prepare(`SELECT p.*, u.name AS author_name, u.email AS author_email FROM prescriptions p
         LEFT JOIN users u ON u.id=p.user_id ORDER BY p.id DESC LIMIT 300`).all()
     : db.prepare('SELECT * FROM prescriptions WHERE user_id=? ORDER BY id DESC LIMIT 200').all(req.user.id);
-  res.json(rows.map((r) => ({ ...r, analysis: r.analysis_json ? JSON.parse(r.analysis_json) : null })));
+  /* List responses stay light on purpose: no patient/doctor identifiers,
+     only what the history row needs. Full detail lives in GET /api/rx/:id (audited). */
+  res.json(rows.map((r) => {
+    let a = null;
+    try { a = r.analysis_json ? JSON.parse(r.analysis_json) : null; } catch { a = null; }
+    return {
+      ...r,
+      analysis_json: null,
+      analysis: a ? {
+        readable: a.readable,
+        summary: a.summary || null,
+        items: (a.items || []).map((i) => ({ name: i.name, raw_text: i.raw_text, line_no: i.line_no })),
+      } : null,
+    };
+  }));
 });
 
 router.get('/:id', authRequired, (req, res) => {

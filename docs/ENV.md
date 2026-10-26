@@ -58,10 +58,13 @@
 
 | المتغير | الافتراضي | الوصف |
 | --- | --- | --- |
+| `AI_PROVIDER` | `openai` (أو `custom` عند ضبط `AI_BASE_URL`) | `groq` \| `openai` \| `gemini` \| `openrouter` \| `together` \| `deepseek` \| `ollama` |
 | `AI_API_KEY` | فارغ | المفتاح. `OPENAI_API_KEY` مقبول كبديل |
-| `AI_BASE_URL` | `https://api.openai.com/v1` | عنوان الـ API |
-| `AI_MODEL` | `gpt-4o-mini` | نموذج المحادثة |
-| `AI_VISION_MODEL` | = `AI_MODEL` | نموذج قراءة الصور (يجب أن يدعم الصور) |
+| `AI_BASE_URL` | حسب المزوّد | عنوان الـ API (يلغي عنوان المزوّد الجاهز) |
+| `AI_MODEL` | حسب المزوّد | نموذج المحادثة (Groq: `llama-3.3-70b-versatile`) |
+| `AI_VISION_MODEL` | حسب المزوّد | نموذج قراءة الصور (Groq: `meta-llama/llama-4-scout-17b-16e-instruct`) |
+| `AI_TIMEOUT_MS` | `45000` | مهلة كل محاولة قبل الإلغاء |
+| `AI_RETRIES` | `2` | عدد إعادات المحاولة (0–4) بمهلة أسّية + jitter |
 
 > بدون مفتاح: مساعد الدواء ومحلّل الوصفات وماسح الصور يعملون **محليًا** من قاعدة البيانات (مطابقة نصية ذكية بدون توليد)، وتظهر رسالة واضحة بأن قراءة الصور تحتاج مفتاحًا.
 

@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { api, getToken, setToken } from './api';
 
 export type User = {
-  id: number; name: string; email: string; role: 'user' | 'editor' | 'admin';
+  id: number; name: string; email: string; role: 'user' | 'pharmacist' | 'editor' | 'admin';
   provider: string; avatar?: string | null; phone?: string | null; city?: string | null;
   country?: string | null; created_at?: string;
 };
@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AuthCtx>(() => ({
     user, loading, login, register, loginWithGoogle, logout, patchUser, refresh, isAdmin: user?.role === 'admin',
+    isPharmacist: user?.role === 'pharmacist' || user?.role === 'admin',
   }), [user, loading]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

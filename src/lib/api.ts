@@ -44,9 +44,9 @@ function localAnswer<T>(path: string, params?: Record<string, unknown>): T | und
   } catch { return undefined; }
 }
 
-async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+async function fetchWithTimeout(url: string, init: RequestInit, timeout = NET_TIMEOUT): Promise<Response> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), NET_TIMEOUT);
+  const timer = setTimeout(() => ctrl.abort(), timeout);
   try {
     return await fetch(url, { ...init, signal: ctrl.signal });
   } finally {
@@ -54,8 +54,11 @@ async function fetchWithTimeout(url: string, init: RequestInit): Promise<Respons
   }
 }
 
-async function request<T>(path: string, options: RequestInit & { params?: Record<string, unknown> } = {}): Promise<T> {
-  const { params, ...init } = options;
+async function request<T>(path: string, options: RequestInit & { params?: Record<string, unknown>; timeoutMs?: number } = {}): Promise<T> {
+  const { params, timeoutMs, ...init } = options;
+  /* Long-running calls (AI analysis) get their own budget and must not mark the
+     whole backend as down just because one slow request was aborted. */
+  const slowCall = (timeoutMs || 0) > NET_TIMEOUT;
   const method = (init.method || 'GET').toUpperCase();
   const canBeLocal = method === 'GET' && isLocalPath(path);
   const headers = new Headers(init.headers || {});
@@ -74,12 +77,11 @@ async function request<T>(path: string, options: RequestInit & { params?: Record
 
   let res: Response;
   try {
-    res = await fetchWithTimeout(buildUrl(path, params), { ...init, headers });
+    res = await fetchWithTimeout(buildUrl(path, params), { ...init, headers }, timeoutMs);
     setServerReachable(true);
-    backendDownUntil = 0;
+    if (!slowCall) backendDownUntil = 0;
   } catch {
-    setServerReachable(false);
-    backendDownUntil = Date.now() + RETRY_AFTER;
+    if (!slowCall) { setServerReachable(false); backendDownUntil = Date.now() + RETRY_AFTER; }
     if (canBeLocal) {
       await loadLocal();
       const fallback = localAnswer<T>(path, params);
@@ -124,6 +126,19 @@ export const api = {
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(body ?? {}) }),
   del: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+  /** For AI routes: analysis can legitimately take 30–60 s on a phone connection. */
+  slow: {
+    post: <T>(path: string, body?: unknown) =>
+      request<T>(path, {
+        method: 'POST',
+        body: body instanceof FormData ? body : JSON.stringify(body ?? {}),
+        timeoutMs: 120_000,
+      }),
+    get: <T>(path: string, params?: Record<string, unknown>) =>
+      request<T>(path, { params, timeoutMs: 20_000 }),
+    patch: <T>(path: string, body?: unknown) =>
+      request<T>(path, { method: 'PATCH', body: JSON.stringify(body ?? {}), timeoutMs: 30_000 }),
+  },
 };
 
 export const imgUrl = (p?: { image_url?: string | null } | string | null, fallbackId?: number) => {
