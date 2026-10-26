@@ -21,25 +21,43 @@ import { analyzePrescription, PROMPT_VERSION, FIELD_THRESHOLD, ITEM_THRESHOLD } 
 import { status as aiStatus, AiError } from '../lib/ai/service.js';
 import { matchName, drugDossier, dailyDoseMg, documentedMaxDailyMg, reviewFlags } from '../lib/ai/match.js';
 import { audit, recordConsent, latestConsent } from '../lib/audit.js';
+import { publicFamilies, familyLabel, ALLERGEN_CODES, describeFamilies } from '../data/allergens.js';
 
 const router = Router();
 const uploader = makeUploader('prescriptions');
 const CONSENT_VERSION = 'rx-consent-2026-10';
 
-const hits = new Map();
-function rateLimit(max = 12, windowMs = 60_000) {
+const buckets = new Map();
+function rateLimit(max = 12, windowMs = 60_000, bucket = 'default') {
   return (req, res, next) => {
-    const key = `${req.user?.id || req.ip}`;
+    const key = `${bucket}:${req.user?.id || req.ip}`;
     const now = Date.now();
-    const arr = (hits.get(key) || []).filter((t) => now - t < windowMs);
-    if (arr.length >= max) return res.status(429).json({ error: 'محاولات كثيرة — انتظر دقيقة / Too many requests', code: 'RATE_LIMIT' });
+    const arr = (buckets.get(key) || []).filter((t) => now - t < windowMs);
+    if (arr.length >= max) return res.status(429).json({ error: 'محاولات كثيرة — انتظر قليلًا / Too many requests', code: 'RATE_LIMIT' });
     arr.push(now);
-    hits.set(key, arr);
+    buckets.set(key, arr);
     next();
   };
 }
 
 const safeMsg = (e) => (e instanceof AiError ? e.safe : 'تعذّر إكمال التحليل، حاول لاحقًا');
+
+/** Declared allergies for a user — the only source of allergy alerts. */
+export function allergiesOf(userId) {
+  return db.prepare('SELECT id, code, label, note, created_at FROM user_allergies WHERE user_id=? ORDER BY id').all(userId)
+    .map((a) => ({ ...a, label: a.label || familyLabel(a.code) }));
+}
+
+/** Snapshot stored with the prescription so a later review uses the same facts. */
+function patientContextFor(userId) {
+  return { allergies: allergiesOf(userId), captured_at: new Date().toISOString() };
+}
+
+const normaliseAllergyLabel = (code, label) => {
+  if (label && String(label).trim()) return String(label).trim().slice(0, 120);
+  if (ALLERGEN_CODES.has(code)) return familyLabel(code);
+  return code;
+};
 
 function loadOwned(req, res) {
   const row = db.prepare('SELECT * FROM prescriptions WHERE id=?').get(req.params.id);
@@ -135,6 +153,48 @@ function logRun({ kind = 'prescription', user, prescriptionId, ai, ok = true, er
   return Number(info.lastInsertRowid);
 }
 
+/* ---------------- declared allergies ---------------- */
+
+router.get('/allergies', authRequired, (req, res) => {
+  res.json({
+    items: allergiesOf(req.user.id),
+    families: publicFamilies(),
+    note_ar: 'هذه قائمة أدخلتها أنت بنفسك. لا يستنتجها التطبيق من أي مصدر، وتُستخدم فقط لتنبيهك وتنبيه الصيدلي. الحساسية المشتبه بها تحتاج تشخيص طبيب.',
+    consent_note_ar: 'تُحفظ هذه البيانات في حسابك على الخادم، ويمكنك حذفها في أي وقت.',
+  });
+});
+
+router.post('/allergies', authRequired, rateLimit(30, 60_000, 'allergies'), (req, res) => {
+  const rawCode = String(req.body?.code || '').trim();
+  if (!rawCode || rawCode.length > 120) return res.status(400).json({ error: 'كود الحساسية مطلوب', code: 'BAD_CODE' });
+  const isFamily = ALLERGEN_CODES.has(rawCode);
+  const isMolecule = /^mol:[a-z0-9-]{2,80}$/.test(rawCode);
+  if (!isFamily && !isMolecule) {
+    return res.status(400).json({ error: 'الحساسية يجب أن تكون عائلة دوائية موثّقة أو مادة فعالة محددة', code: 'UNKNOWN_ALLERGY_CODE' });
+  }
+  const label = normaliseAllergyLabel(rawCode, req.body?.label);
+  const note = req.body?.note ? String(req.body.note).slice(0, 240) : null;
+  try {
+    db.prepare('INSERT INTO user_allergies(user_id,code,label,note) VALUES(?,?,?,?) ON CONFLICT(user_id,code) DO UPDATE SET label=excluded.label, note=excluded.note')
+      .run(req.user.id, rawCode, label, note);
+  } catch (e) { return res.status(500).json({ error: 'تعذّر الحفظ' }); }
+  audit('user.allergy.added', {
+    actor: req.user, targetType: 'user', targetId: req.user.id,
+    meta: { code: rawCode, kind: isFamily ? 'family' : 'molecule' }, ip: req.ip,
+  });
+  res.status(201).json({ ok: true, items: allergiesOf(req.user.id) });
+});
+
+router.delete('/allergies/:id', authRequired, (req, res) => {
+  const row = db.prepare('SELECT * FROM user_allergies WHERE id=? AND user_id=?').get(req.params.id, req.user.id);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  db.prepare('DELETE FROM user_allergies WHERE id=?').run(row.id);
+  audit('user.allergy.removed', { actor: req.user, targetType: 'user', targetId: req.user.id, meta: { code: row.code }, ip: req.ip });
+  res.json({ ok: true, items: allergiesOf(req.user.id) });
+});
+
+router.get('/allergen-families', (_req, res) => res.json({ families: publicFamilies(), source: 'ATC/WHO classification' }));
+
 /* ---------------- consent ---------------- */
 
 router.get('/consent', authRequired, (req, res) => {
@@ -176,7 +236,7 @@ router.get('/queue', authRequired, roleRequired('admin', 'pharmacist'), (req, re
   res.json({ status, count: rows.length, rows });
 });
 
-router.post('/analyze', authRequired, rateLimit(12), uploader.single('image'), async (req, res, next) => {
+router.post('/analyze', authRequired, rateLimit(12, 60_000, 'analyze'), uploader.single('image'), async (req, res, next) => {
   const started = Date.now();
   try {
     const consent = latestConsent(req.user.id, 'prescription_image');
@@ -199,7 +259,11 @@ router.post('/analyze', authRequired, rateLimit(12), uploader.single('image'), a
       dataUrl = `data:${req.file.mimetype};base64,${buf.toString('base64')}`;
     }
 
-    const { analysis, ai } = await analyzePrescription({ imageDataUrl: dataUrl, text: text || null, lang: req.body?.lang === 'en' ? 'en' : 'ar' });
+    const patientContext = patientContextFor(req.user.id);
+    const { analysis, ai } = await analyzePrescription({
+      imageDataUrl: dataUrl, text: text || null,
+      lang: req.body?.lang === 'en' ? 'en' : 'ar', patientContext,
+    });
     const runId = logRun({ user: req.user, ai });
 
     /* Image retention is opt-in. Default: the file never survives the request. */
@@ -210,9 +274,9 @@ router.post('/analyze', authRequired, rateLimit(12), uploader.single('image'), a
       else { try { fs.unlinkSync(req.file.path); } catch { /* ignore */ } }
     }
 
-    const info = db.prepare(`INSERT INTO prescriptions(user_id,image_url,extracted_text,analysis_json,status) VALUES(?,?,?,?,?)`)
+    const info = db.prepare(`INSERT INTO prescriptions(user_id,image_url,extracted_text,analysis_json,status,patient_context_json) VALUES(?,?,?,?,?,?)`)
       .run(req.user.id, rel, analysis.items.map((i) => i.raw_text || i.name).filter(Boolean).join('\n'),
-        JSON.stringify(analysis), 'pending_review');
+        JSON.stringify(analysis), 'pending_review', JSON.stringify(patientContext));
     const id = Number(info.lastInsertRowid);
     saveItems(id, analysis);
     /* link the audit row to the record it produced */
@@ -241,7 +305,7 @@ router.post('/analyze', authRequired, rateLimit(12), uploader.single('image'), a
   }
 });
 
-router.post('/:id/reanalyze', authRequired, rateLimit(8), async (req, res, next) => {
+router.post('/:id/reanalyze', authRequired, rateLimit(8, 60_000, 'reanalyze'), async (req, res, next) => {
   try {
     const row = loadOwned(req, res); if (!row) return;
     if (!aiStatus().configured) return res.status(503).json({ error: aiStatus().hint_ar, code: 'AI_NOT_CONFIGURED' });
@@ -254,7 +318,11 @@ router.post('/:id/reanalyze', authRequired, rateLimit(8), async (req, res, next)
     }
     if (!dataUrl && !text) return res.status(400).json({ error: 'لا توجد صورة محفوظة أو نص لإعادة التحليل', code: 'NO_INPUT' });
 
-    const { analysis, ai } = await analyzePrescription({ imageDataUrl: dataUrl, text: dataUrl ? null : text, lang: req.body?.lang === 'en' ? 'en' : 'ar' });
+    const patientContext = row.patient_context_json ? JSON.parse(row.patient_context_json) : patientContextFor(row.user_id);
+    const { analysis, ai } = await analyzePrescription({
+      imageDataUrl: dataUrl, text: dataUrl ? null : text,
+      lang: req.body?.lang === 'en' ? 'en' : 'ar', patientContext,
+    });
     logRun({ user: req.user, prescriptionId: row.id, ai });
     db.prepare("UPDATE prescriptions SET analysis_json=?, extracted_text=?, status='pending_review' WHERE id=?")
       .run(JSON.stringify(analysis), analysis.items.map((i) => i.raw_text || i.name).filter(Boolean).join('\n'), row.id);
@@ -280,6 +348,7 @@ router.get('/:id', authRequired, (req, res) => {
   res.json({
     ...row,
     analysis: row.analysis_json ? JSON.parse(row.analysis_json) : null,
+    patient_context: row.patient_context_json ? JSON.parse(row.patient_context_json) : null,
     items, reviews, runs,
   });
 });
@@ -335,11 +404,13 @@ router.post('/:id/confirm', authRequired, roleRequired('admin', 'pharmacist'), (
   }
   const notes = String(req.body?.notes || '').slice(0, 1000) || null;
   const analysis = row.analysis_json ? JSON.parse(row.analysis_json) : {};
+  const storedContext = row.patient_context_json ? JSON.parse(row.patient_context_json) : { allergies: [] };
   const flags = reviewFlags(
     items.map((i) => {
       const dossier = i.matched_drug_id ? drugDossier(i.matched_drug_id, i.matched_product_id) : null;
       return { dose: i.dose, frequency: i.frequency, strength: i.strength, dossier };
     }),
+    { allergies: storedContext.allergies || [] },
   );
   db.prepare("UPDATE prescriptions SET status='reviewed' WHERE id=?").run(row.id);
   db.prepare(`INSERT INTO prescription_reviews(prescription_id,user_id,action,notes,flags_json) VALUES(?,?,?,?,?)`)

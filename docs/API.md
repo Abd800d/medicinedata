@@ -159,6 +159,10 @@
 | POST | `/rx/:id/reject` | رفض مع `notes` |
 | DELETE | `/rx/:id` | محو صورة/بيانات المريض نهائيًا مع إبقاء أثر التدقيق |
 | GET | `/rx/queue?status=` | طابور الصيدلي (بلا بيانات مريض في القائمة) |
+| GET | `/rx/allergies` | حساسيات المستخدم + كتالوج العائلات (69 عائلة موثّقة) |
+| POST | `/rx/allergies` | `{ code, label? }` — `code` عائلة (`penicillin`) أو مادة (`mol:paracetamol`) · 400 لكود مجهول |
+| DELETE | `/rx/allergies/:id` | حذف حساسية |
+| GET | `/rx/allergen-families` | كتالوج العائلات فقط (بدون مصادقة) |
 
 **الاستجابة المختصرة للتحليل:**
 
@@ -171,7 +175,12 @@
                 "uncertain_fields": [], "matched": { "drug_id": 143, "product_id": 311, "score": 0.95 },
                 "alternatives": [ … ], "dossier": { "drug": { … }, "brands": [ … ] },
                 "needs_review": false }],
-    "flags": [{ "severity": "high", "type": "duplicate_ingredient", "action_ar": "يحتاج إلى مراجعة الصيدلي" }],
+    "flags": [{ "severity": "high", "type": "allergy_conflict",
+                "detail_ar": "سجّلت حساسية من «البنسلينات»…",
+                "plain_ar": "أنت سجّلت حساسية من عائلة دوائية…",
+                "why_ar": "لأن كود ATC للدواء (J01CR02) يضعه ضمن البنسلينات…",
+                "source": { "label": "MDA database", "updated_at": "2026-10-26 19:28:04" },
+                "action_ar": "يحتاج إلى مراجعة الصيدلي/الطبيب قبل الصرف" }],
     "disclaimer_ar": "…", "source": { "model": "…", "prompt_version": "rx-1.0.0", "analysed_at": "…" } } }
 ```
 
@@ -181,6 +190,17 @@
 | --- | --- | --- |
 | GET | `/admin/audit?limit=&action=&target=` | آخر الأحداث مع `meta` (قبل/بعد التصحيح مثلًا) |
 | GET | `/admin/audit/verify` | فحص سلسلة التجزئة؛ `{ ok, entries, broken_at? }` |
+| GET | `/admin/ai-stats?days=30` | جودة التحليل: نداءات/فشل/متوسط زمن لكل نموذج، حالة الوصفات، معدل التصحيح اليدوي، توزيع التنبيهات — **بلا أي نص مريض** |
+
+### مثال: تسجيل حساسية ثم تحليل
+
+```bash
+curl -X POST $API/rx/allergies -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"code":"penicillin"}'
+curl -X POST $API/rx/analyze -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"text":"Augmentin 1g BID"}'
+# → flags[] تحتوي allergy_conflict، وsummary.allergies_checked = 1
+```
 
 ## أمثلة
 

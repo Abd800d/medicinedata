@@ -7,6 +7,7 @@
  */
 import { db } from '../../db.js';
 import { normalize, similarity } from '../search.js';
+import { allergyKeysForDrug, familiesForDrug, familyLabel, describeFamilies } from '../../data/allergens.js';
 
 const norm = (s) => normalize(s || '');
 
@@ -101,6 +102,7 @@ export function drugDossier(drugId, productId = null) {
       warnings: d.warnings, interactions: d.interactions, pregnancy: d.pregnancy,
       system_ar: d.system_ar, system_en: d.system_en,
       updated_at: d.updated_at, source: d.source || 'MDA database',
+      allergen_families: describeFamilies(familiesForDrug(d)),
     },
     selected_brand: selected,
     brands,
@@ -160,13 +162,51 @@ export function documentedMaxDailyMg(monograph) {
   return candidates.length ? Math.max(...candidates) : null;
 }
 
-/**
- * Clinical review flags built ONLY from database fields.
- * Every flag is advisory: phrased as "needs pharmacist review", never as a decision.
+/* ---------------- Clinical review flags ---------------- */
+/*
+ * Every flag is built from a stored field (drug_class, interactions, dosage_adult,
+ * ATC code, declared allergies). Nothing here invents a molecule, a dose or a
+ * diagnosis. Each flag carries:
+ *   detail_*  – what the database says
+ *   plain_*   – the same thing in everyday Arabic/English
+ *   why_*     – the exact reason it appeared (so it can be checked)
+ *   source    – where it came from + when that row was last updated
  */
-export function reviewFlags(items) {
+
+const ALLERGY_SOURCE = 'قائمة حساسيات المستخدم (أُدخلت يدويًا)';
+
+function sourceOf(drug) {
+  return { label: drug?.source || 'MDA database', updated_at: drug?.updated_at || null };
+}
+
+function flag({ severity, type, drugId = null, drugIds = null, titleAr, titleEn, detailAr, detailEn, plainAr, plainEn, whyAr, whyEn, actionAr = 'يحتاج إلى مراجعة الصيدلي', actionEn = 'Needs pharmacist review', source = null }) {
+  return {
+    severity,
+    type,
+    ...(drugId != null ? { drug_id: drugId } : {}),
+    ...(drugIds ? { drug_ids: drugIds } : {}),
+    title_ar: titleAr,
+    title_en: titleEn,
+    detail_ar: detailAr,
+    detail_en: detailEn,
+    plain_ar: plainAr,
+    plain_en: plainEn,
+    why_ar: whyAr,
+    why_en: whyEn,
+    action_ar: actionAr,
+    action_en: actionEn,
+    source,
+  };
+}
+
+/**
+ * @param items    enriched prescription lines (need dossier.drug)
+ * @param context  { allergies: [{ code, label, note }] }  — declared by the patient
+ */
+export function reviewFlags(items, { allergies = [] } = {}) {
   const flags = [];
   const byDrug = new Map();
+  const declared = (allergies || []).filter((a) => a && a.code);
 
   for (const item of items) {
     const drug = item.dossier?.drug;
@@ -175,94 +215,196 @@ export function reviewFlags(items) {
     byDrug.get(drug.id).push(item);
   }
 
-  /* 1) Same active ingredient written twice (very common handwriting error) */
+  /* 1) Same active ingredient written twice (common handwriting error) */
   for (const [drugId, group] of byDrug) {
-    if (group.length > 1) {
-      flags.push({
-        severity: 'high', type: 'duplicate_ingredient', drug_id: drugId,
-        title_ar: 'تكرار المادة الفعالة',
-        title_en: 'Duplicate active ingredient',
-        detail_ar: `المادة الفعالة «${group[0].dossier.drug.generic_ar || group[0].dossier.drug.generic_name}» مكرّرة في ${group.length} بنود — قد يعني جرعة مضاعفة.`,
-        detail_en: `The same active ingredient appears in ${group.length} lines.`,
-        action_ar: 'يحتاج إلى مراجعة الصيدلي', action_en: 'Needs pharmacist review',
-      });
-    }
+    if (group.length < 2) continue;
+    const drug = group[0].dossier.drug;
+    const name = drug.generic_ar || drug.generic_name;
+    flags.push(flag({
+      severity: 'high',
+      type: 'duplicate_ingredient',
+      drugId,
+      titleAr: 'تكرار المادة الفعالة',
+      titleEn: 'Duplicate active ingredient',
+      detailAr: `المادة الفعالة «${name}» مكرّرة في ${group.length} بنود — قد يعني جرعة مضاعفة.`,
+      detailEn: `The same active ingredient appears in ${group.length} prescription lines.`,
+      plainAr: 'الوصفة فيها نفس الدواء مكتوبًا مرتين (بأسماء تجارية مختلفة). لو أخذ المريض الاثنين معًا فكأنه أخذ جرعة مضاعفة.',
+      plainEn: 'The same medicine is written twice under different brand names. Taking both means a double dose.',
+      whyAr: `لأن ${group.length} أسماء في الوصفة طابقت نفس المادة الفعالة في قاعدة MDA: ${name}.`,
+      whyEn: `All ${group.length} names matched the same generic molecule in the MDA database.`,
+      source: sourceOf(drug),
+    }));
   }
 
-  /* 2) Daily dose above the documented maximum (only when both numbers are readable) */
+  /* 2) Daily dose above the documented maximum */
   for (const item of items) {
     const drug = item.dossier?.drug;
     if (!drug) continue;
     const calc = dailyDoseMg(item.dose, item.frequency, item.strength);
     const max = documentedMaxDailyMg(`${drug.dosage_adult || ''} ${drug.dosage_child || ''}`);
-    if (calc?.daily_mg && max && calc.daily_mg > max * 1.05) {
-      flags.push({
-        severity: 'high', type: 'dose_above_max', drug_id: drug.id,
-        title_ar: 'جرعة أعلى من المعتاد',
-        title_en: 'Dose above documented maximum',
-        detail_ar: `المحسوب من الوصفة ${calc.daily_mg} مغم/يوم، والحد الأقصى في المرجع ${max} مغم/يوم.`,
-        detail_en: `Prescription implies ${calc.daily_mg} mg/day; reference maximum is ${max} mg/day.`,
-        action_ar: 'يحتاج إلى مراجعة الصيدلي/الطبيب', action_en: 'Needs pharmacist/doctor review',
-      });
-    }
+    if (!(calc?.daily_mg && max && calc.daily_mg > max * 1.05)) continue;
+    flags.push(flag({
+      severity: 'high',
+      type: 'dose_above_max',
+      drugId: drug.id,
+      titleAr: 'جرعة أعلى من المعتاد',
+      titleEn: 'Dose above documented maximum',
+      detailAr: `المحسوب من الوصفة ${calc.daily_mg} مغم/يوم، والحد الأقصى في المرجع ${max} مغم/يوم.`,
+      detailEn: `The prescription implies ${calc.daily_mg} mg/day; the reference maximum is ${max} mg/day.`,
+      plainAr: 'الجرعة اليومية المكتوبة أكبر من الجرعة القصوى المعتادة. لا تُغيَّر الجرعة من تلقاء نفسك — الصيدلي يراجعها مع الطبيب.',
+      plainEn: 'The written daily dose is above the usual maximum. Do not change it yourself — the pharmacist will check with the doctor.',
+      whyAr: 'لأن حاسبة الجرعة ضربت عدد الأقراص × التركيز × عدد المرات اليومية، وقارنتها بالجرعة القصوى المحفوظة في مونوغراف الدواء.',
+      whyEn: 'The dose calculator multiplied units × strength × times per day and compared it with the maximum stored in the drug monograph.',
+      actionAr: 'يحتاج إلى مراجعة الصيدلي/الطبيب',
+      actionEn: 'Needs pharmacist/doctor review',
+      source: sourceOf(drug),
+    }));
   }
 
   /* 3) Recorded interactions between the prescribed molecules */
   const present = [...byDrug.keys()];
-  if (present.length > 1) {
-    for (let i = 0; i < present.length; i++) {
-      for (let j = i + 1; j < present.length; j++) {
-        const a = byDrug.get(present[i])[0].dossier.drug;
-        const b = byDrug.get(present[j])[0].dossier.drug;
-        const mentionIn = (text, other) => {
-          const t = norm(text);
-          if (!t) return false;
-          const names = [other.generic_name, other.generic_ar, ...(other.synonyms || '').split(/[,،;]/)]
-            .map(norm).filter((n) => n.length >= 4);
-          return names.some((n) => t.includes(n));
-        };
-        const hitA = mentionIn(a.interactions, b);
-        const hitB = mentionIn(b.interactions, a);
-        if (hitA || hitB) {
-          const sourceDrug = hitA ? a : b;
-          flags.push({
-            severity: 'medium', type: 'possible_interaction',
-            drug_ids: [a.id, b.id],
-            title_ar: 'احتمال تداخل دوائي',
-            title_en: 'Possible drug interaction',
-            detail_ar: `سُجّل في مرجع «${sourceDrug.generic_ar || sourceDrug.generic_name}»: ${(hitA ? a.interactions : b.interactions).slice(0, 260)}`,
-            detail_en: `Recorded in the ${sourceDrug.generic_name} monograph.`,
-            action_ar: 'يحتاج إلى مراجعة الصيدلي',
-            action_en: 'Needs pharmacist review',
-          });
-        }
-      }
+  for (let i = 0; i < present.length; i++) {
+    for (let j = i + 1; j < present.length; j++) {
+      const a = byDrug.get(present[i])[0].dossier.drug;
+      const b = byDrug.get(present[j])[0].dossier.drug;
+      const mentionIn = (text, other) => {
+        const t = norm(text);
+        if (!t) return false;
+        const names = [other.generic_name, other.generic_ar, ...(other.synonyms || '').split(/[,،;]/)]
+          .map(norm).filter((n) => n.length >= 4);
+        return names.some((n) => t.includes(n));
+      };
+      const hitA = mentionIn(a.interactions, b);
+      const hitB = mentionIn(b.interactions, a);
+      if (!hitA && !hitB) continue;
+      const sourceDrug = hitA ? a : b;
+      const other = hitA ? b : a;
+      flags.push(flag({
+        severity: 'medium',
+        type: 'possible_interaction',
+        drugIds: [a.id, b.id],
+        titleAr: 'احتمال تداخل دوائي',
+        titleEn: 'Possible drug interaction',
+        detailAr: `سُجّل في مرجع «${sourceDrug.generic_ar || sourceDrug.generic_name}»: ${(hitA ? a.interactions : b.interactions).slice(0, 260)}`,
+        detailEn: `Recorded in the ${sourceDrug.generic_name} monograph.`,
+        plainAr: `الدواءان «${a.generic_ar || a.generic_name}» و«${b.generic_ar || b.generic_name}» قد يتفاعلان معًا. لا يعني هذا أنهما ممنوعان، لكنه يحتاج مراجعة صيدلي قبل الاستخدام.`,
+        plainEn: `These two medicines may interact. That does not automatically forbid them, but a pharmacist should review before use.`,
+        whyAr: `لأن حقل التداخلات في مونوغراف «${sourceDrug.generic_ar || sourceDrug.generic_name}» يذكر «${other.generic_ar || other.generic_name}» بالاسم.`,
+        whyEn: `The interaction field of the ${sourceDrug.generic_name} monograph names ${other.generic_name}.`,
+        source: sourceOf(sourceDrug),
+      }));
     }
   }
 
-  /* 4) Missing data → we say so instead of assuming it is safe */
-  const withoutMonograph = items.filter((i) => i.dossier?.drug && !i.dossier.drug.interactions && !i.dossier.drug.warnings);
-  if (withoutMonograph.length) {
-    flags.push({
-      severity: 'info', type: 'data_missing',
-      title_ar: 'بيانات غير مكتملة',
-      title_en: 'Incomplete source data',
-      detail_ar: `لا توجد بيانات تداخلات/تحذيرات محفوظة لـ ${withoutMonograph.length} دواءً — غياب التحذير لا يعني السلامة.`,
-      detail_en: `No interaction/warning data stored for ${withoutMonograph.length} medicine(s).`,
-      action_ar: 'راجع المرجع الرسمي', action_en: 'Check an authoritative reference',
-    });
+  /* 4) Two different molecules from the same therapeutic class */
+  const byClass = new Map();
+  for (const [drugId, group] of byDrug) {
+    const drug = group[0].dossier.drug;
+    const cls = String(drug.drug_class || '').trim();
+    if (!cls) continue;
+    if (!byClass.has(cls)) byClass.set(cls, []);
+    if (!byClass.get(cls).some((d) => d.id === drugId)) byClass.get(cls).push(drug);
+  }
+  for (const [cls, drugs] of byClass) {
+    if (drugs.length < 2) continue;
+    const names = drugs.map((d) => d.generic_ar || d.generic_name).join('، ');
+    flags.push(flag({
+      severity: 'medium',
+      type: 'duplicate_therapy_class',
+      drugIds: drugs.map((d) => d.id),
+      titleAr: 'دواءان من نفس المجموعة العلاجية',
+      titleEn: 'Two drugs from the same class',
+      detailAr: `الأدوية: ${names} — التصنيف المشترك: ${cls}.`,
+      detailEn: `Shared class: ${cls}.`,
+      plainAr: 'الوصفة فيها دواءان من نفس العائلة العلاجية. أحيانًا يكون هذا مقصودًا، وأحيانًا يعني تكرارًا علاجيًا — الصيدلي يحدد.',
+      plainEn: 'Two prescribed medicines belong to the same therapeutic class. Sometimes intended, sometimes duplication — the pharmacist decides.',
+      whyAr: `لأن حقل «التصنيف الدوائي» في قاعدة MDA متطابق (${cls}) لاسمين مختلفين.`,
+      whyEn: `The drug_class field is identical (${cls}) for two different molecules.`,
+      actionAr: 'يحتاج إلى مراجعة الصيدلي',
+      actionEn: 'Needs pharmacist review',
+      source: sourceOf(drugs[0]),
+    }));
   }
 
+  /* 5) Declared allergy vs this prescription (molecule or documented family) */
+  if (declared.length) {
+    for (const item of items) {
+      const drug = item.dossier?.drug;
+      if (!drug) continue;
+      const keys = allergyKeysForDrug(drug);
+      const moleculeHit = declared.find((a) => keys.includes(a.code) && String(a.code).startsWith('mol:'));
+      const familyHit = declared.find((a) => keys.includes(a.code) && !String(a.code).startsWith('mol:'));
+      const hit = moleculeHit || familyHit;
+      if (!hit) continue;
+      const label = hit.label || familyLabel(hit.code);
+      const drugName = drug.generic_ar || drug.generic_name;
+      flags.push(flag({
+        severity: 'high',
+        type: 'allergy_conflict',
+        drugId: drug.id,
+        titleAr: moleculeHit ? 'حساسية مسجّلة لنفس الدواء' : 'حساسية مسجّلة من نفس العائلة الدوائية',
+        titleEn: moleculeHit ? 'Recorded allergy to this medicine' : 'Recorded allergy to the same drug family',
+        detailAr: moleculeHit
+          ? `سجّلت حساسية من «${label}»، وهذا الدواء هو نفس المادة الفعالة (${drugName}).`
+          : `سجّلت حساسية من «${label}»، وهذا الدواء (${drugName}) ينتمي لنفس العائلة (${familyLabel(hit.code)}). قد يحدث تفاعل متصالب.`,
+        detailEn: moleculeHit
+          ? `Recorded allergy: ${label}. This prescription contains the same molecule.`
+          : `Recorded allergy: ${label}. This drug belongs to the same family (${familyLabel(hit.code)}).`,
+        plainAr: moleculeHit
+          ? 'أنت سجّلت أن عندك حساسية من هذا الدواء نفسه. لا يُصرف قبل أن يراجعه الصيدلي ويستبدله إن لزم.'
+          : 'أنت سجّلت حساسية من عائلة دوائية، والدواء في الوصفة من نفس العائلة. الحساسية المتصالبة ممكنة — الصيدلي يقرر.',
+        plainEn: moleculeHit
+          ? 'You recorded an allergy to this exact medicine. It must be reviewed and likely replaced.'
+          : 'You recorded an allergy to a drug family, and this prescription contains one of that family. Cross-reactivity is possible.',
+        whyAr: moleculeHit
+          ? `لأن قائمة حساسياتك تحتوي المادة الفعالة نفسها (${drug.generic_name}).`
+          : `لأن كود ATC للدواء (${drug.atc_code || 'غير مسجّل'}) يضعه ضمن «${familyLabel(hit.code)}» المسجّلة في حساسياتك.`,
+        whyEn: moleculeHit
+          ? 'Your allergy list contains the same active ingredient.'
+          : 'The drug ATC code places it in the family you recorded.',
+        actionAr: 'يحتاج إلى مراجعة الصيدلي/الطبيب قبل الصرف',
+        actionEn: 'Needs pharmacist/doctor review before dispensing',
+        source: { ...sourceOf(drug), declared_at: hit.created_at || null, label: `${sourceOf(drug).label} + ${ALLERGY_SOURCE}` },
+      }));
+    }
+  }
+
+  /* 6) Names that could not be confirmed in the catalogue */
   const unmatched = items.filter((i) => !i.dossier);
   if (unmatched.length) {
-    flags.push({
-      severity: 'medium', type: 'unmatched_items',
-      title_ar: 'أسماء غير مؤكدة في القاعدة',
-      title_en: 'Names not confirmed in the database',
-      detail_ar: `${unmatched.length} بند لم يُطابق أي دواء — تحتاج تصحيحًا يدويًا.`,
-      detail_en: `${unmatched.length} line(s) could not be matched.`,
-      action_ar: 'يحتاج إلى مراجعة الصيدلي', action_en: 'Needs pharmacist review',
-    });
+    flags.push(flag({
+      severity: 'medium',
+      type: 'unmatched_items',
+      titleAr: 'أسماء غير مؤكدة في القاعدة',
+      titleEn: 'Names not confirmed in the database',
+      detailAr: `${unmatched.length} بند لم يُطابق أي دواء — تحتاج تصحيحًا يدويًا.`,
+      detailEn: `${unmatched.length} line(s) could not be matched.`,
+      plainAr: 'اسم دواء واحد أو أكثر غير موجود في قاعدة البيانات، فقد يكون مكتوبًا بخط غير واضح أو اسمًا تجاريًا غير مُسجّل. صحّحه يدويًا.',
+      plainEn: 'One or more names are not in the database — possibly unclear handwriting or an unlisted brand.',
+      whyAr: 'لأن درجة التشابه مع كل أسماء القاعدة (تجارية وعلمية) كانت أقل من حد المطابقة.',
+      whyEn: 'Similarity against every brand and generic name stayed below the match threshold.',
+      source: { label: 'MDA database', updated_at: null },
+    }));
+  }
+
+  /* 7) Missing monograph data → we say so instead of implying safety */
+  const withoutMonograph = items.filter((i) => i.dossier?.drug && !i.dossier.drug.interactions && !i.dossier.drug.warnings);
+  if (withoutMonograph.length) {
+    flags.push(flag({
+      severity: 'info',
+      type: 'data_missing',
+      titleAr: 'بيانات غير مكتملة',
+      titleEn: 'Incomplete source data',
+      detailAr: `لا توجد بيانات تداخلات/تحذيرات محفوظة لـ ${withoutMonograph.length} دواءً — غياب التحذير لا يعني السلامة.`,
+      detailEn: `No interaction/warning data stored for ${withoutMonograph.length} medicine(s).`,
+      plainAr: 'لا توجد لدينا معلومات كافية عن تداخلات أو تحذيرات هذا الدواء. عدم ظهور تحذير لا يعني أن الدواء آمن — راجع مرجعًا رسميًا.',
+      plainEn: 'We do not hold enough interaction/warning data for this medicine. No warning does not mean safe.',
+      whyAr: 'لأن حقلي «التداخلات» و«التحذيرات» فارغان في مونوغراف الدواء.',
+      whyEn: 'The interactions and warnings fields are empty in the monograph.',
+      actionAr: 'راجع المرجع الرسمي',
+      actionEn: 'Check an authoritative reference',
+      source: { label: 'MDA database', updated_at: withoutMonograph[0]?.dossier?.drug?.updated_at || null },
+    }));
   }
 
   return flags;

@@ -1,25 +1,19 @@
-# MDA — MedicineData · حالة العمل وقرارات الجلسة (ذاكرة داخلية)
-
-> الملف داخلي لتسليم السياق بين الأدوار، وليس من تسليمات المستخدم. يُحدَّث يدويًا مع كل دور.
-> آخر تحديث: 2026-10-26 (v1.2.0).
-
 ## Current State — أين توقفنا الآن
 
-> آخر تحديث: 2026-10-26 · **v1.2.0** (PR #16 + #17 مدموجان، وسم `v1.2.0`).
+> آخر تحديث: 2026-10-26 · **v1.3.0** (تحليل صيدلاني موسّع: حساسيات + شرح مبسّط + لوحة جودة).
 
-- **المنجَز في v1.2.0:** مسار تحليل وصفات كامل (صورة/نص/إعادة تحليل) بثقة لكل حقل، مطابقة مع قاعدة MDA،
-  مرشّحون بدلاء، تصحيح يدوي، دور `pharmacist` وطابور مراجعة، تأكيد محجوب حتى مراجعة كل بند،
-  سجل تدقيق بسلسلة SHA-256، موافقة صريحة وحذف نهائي لبيانات المريض، وثائق AI/PRIVACY/TERMS/SECURITY.
-- **إعداد التشغيل المحلي للتحليل:** `node scripts/mock-ai.mjs 4111` ثم
-  `AI_PROVIDER=openai AI_API_KEY=test AI_BASE_URL=http://127.0.0.1:4111/v1 node server/index.js` ثم `npm run test:rx` (28/28).
-  على الإنتاج: `AI_PROVIDER=groq` + `AI_API_KEY` (مجاني) + `JWT_SECRET`.
-- **التحقق:** `npm run test:rx` 28/28 · `npm run smoke -- /prescriptions` بلا أخطاء · `npx tsc --noEmit` نظيف · `npm run build` ✅.
-- **خطوات تالية (بالترتيب):** v1.3.0 تحليل صيدلاني موسّع (تنبيهات الحساسية/التداخل من بيانات موثّقة + شرح مبسّط لكل تنبيه)،
-  ثم v1.4.0 offline-first كتابة/طابور/مزامنة، ثم v1.5.0 استيراد XML/SQLite + تصدير + نسخ مشفّرة + تعدد صور الدواء،
-  ثم v1.6.0 PIN/biometric + مراجعة أمنية نهائية + اختبارات E2E.
-- **حدود معلنة باقية:** لا SQLCipher، لا FLAG_SECURE (منع لقطات)، لا WAF، لا اختبار اختراق معتمد، لا OCR على الجهاز.
-- **تحذير بيئة:** `node_modules/` و`data/` و`dist/` و`.env` تُفقد عند استعادة مساحة العمل →
-  `npm ci --ignore-scripts` ثم `npm run seed` ثم `npm run build`.
+- **v1.2.0:** مسار وصفات كامل (صورة/نص/إعادة تحليل)، ثقة لكل حقل، مطابقة MDA، دور `pharmacist` وطابور مراجعة،
+  سجل تدقيق SHA-256، موافقة صريحة وحذف بيانات المريض، وثائق AI/PRIVACY/TERMS/SECURITY.
+- **v1.3.0 (الجديد):**
+  - `server/data/allergens.js`: 69 عائلة تحسّسية من تصنيف **ATC** + مفاتيح مواد (`mol:<generic_name>`).
+  - جدول `user_allergies` + `/api/rx/allergies` (إضافة/حذف/كتالوج) — إدخال يدوي فقط، بلا استنتاج.
+  - تنبيهان جديدان: `allergy_conflict` و`duplicate_therapy_class`، وكل تنبيه صار يحمل `plain_ar` + `why_ar` + `source` (مصدر وتاريخ).
+  - لقطة حساسيات مع الوصفة (`prescriptions.patient_context_json`) لثبات المراجعة.
+  - لوحة **جودة التحليل** في الإدارة (`/admin?tab=ai` + `GET /api/admin/ai-stats`): نجاح النداءات، الزمن، معدل التصحيح، توزيع التنبيهات — بلا نصوص مرضى.
+- **التحقق:** `npm run test:rx` **52/52** · smoke لـ `/prescriptions` و`/admin?tab=ai` نظيف · `tsc`/`build` ✅.
+- **تشغيل محلي للتحليل:** `node scripts/mock-ai.mjs 4111` + `AI_PROVIDER=openai AI_API_KEY=test AI_BASE_URL=http://127.0.0.1:4111/v1 node server/index.js`.
+- **التالي:** v1.4.0 offline-first (طابور كتابة + مزامنة + حل تعارض)، ثم v1.5.0 (XML/SQLite، تصدير، نسخ مشفّرة، تعدد صور)، ثم v1.6.0 (PIN/بصمة، مراجعة أمنية، E2E).
+- **تحذير بيئة:** `node_modules/` و`data/` و`dist/` و`.env` تُفقد عند استعادة مساحة العمل → `npm ci --ignore-scripts` ثم `npm run seed` ثم `npm run build`.
 
 ## Workspace — الملفات المهمة
 

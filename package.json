@@ -1,6 +1,6 @@
 {
   "name": "medicinedata",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "description": "MDA — MedicineData: pharmaceutical reference, Yemen/Arab market products, prescriptions and pharmacy management.",
   "type": "module",

@@ -50,6 +50,32 @@ const SAMPLE = {
   warnings: [],
 };
 
+/* Alternative samples so tests can exercise specific clinical paths. */
+const PPI_SAMPLE = {
+  readable: true, image_quality: 'good', language: 'ar',
+  patient: { name: 'أمينة صالح', confidence: 0.8 }, doctor: { name: null, confidence: 0 }, clinic: { name: null, confidence: 0 },
+  date: { value: null, confidence: 0 },
+  items: [
+    { raw_text: 'Omeprazole 20mg 1x1', name: 'Omeprazole', name_ar: 'أوميبرازول', strength: '20mg', form: 'capsule', dose: '1 capsule', frequency: 'once daily', duration: '14 days', route: 'oral', instructions: null, confidence: 0.93, uncertain_fields: [], field_confidence: { name: 0.95, strength: 0.95, dose: 0.9, frequency: 0.9, duration: 0.85 } },
+    { raw_text: 'Pantoprazole 40mg 1x1', name: 'Pantoprazole', name_ar: 'بانتوبرازول', strength: '40mg', form: 'tablet', dose: '1 tablet', frequency: 'once daily', duration: '14 days', route: 'oral', instructions: null, confidence: 0.91, uncertain_fields: [], field_confidence: { name: 0.93, strength: 0.9, dose: 0.9, frequency: 0.9, duration: 0.85 } },
+  ],
+  notes: null, warnings: [],
+};
+
+const UNREADABLE_SAMPLE = {
+  readable: false, image_quality: 'poor', language: 'ar',
+  patient: { name: null, confidence: 0 }, doctor: { name: null, confidence: 0 }, clinic: { name: null, confidence: 0 },
+  date: { value: null, confidence: 0 }, items: [], notes: 'الصورة غير واضحة ولا يمكن قراءتها بأمان.',
+  warnings: ['image_unreadable'],
+};
+
+const pickSample = (body) => {
+  const raw = String(body || '');
+  if (raw.includes('UNREADABLE')) return UNREADABLE_SAMPLE;
+  if (raw.includes('PPSAMPLE')) return PPI_SAMPLE;
+  return SAMPLE;
+};
+
 const server = http.createServer((req, res) => {
   let body = '';
   req.on('data', (c) => { body += c; });
@@ -61,7 +87,7 @@ const server = http.createServer((req, res) => {
     }
     const delay = Number(process.env.MOCK_DELAY_MS || 120);
     setTimeout(() => {
-      const content = JSON.stringify(SAMPLE);
+      const content = JSON.stringify(pickSample(body));
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({
         id: 'mock-1',

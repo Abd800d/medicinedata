@@ -42,6 +42,64 @@ router.get('/audit/verify', (_req, res) => {
   const result = verifyChain(20000);
   res.json(result);
 });
+/* AI quality dashboard: what the model did, how often humans had to fix it,
+   and which alerts actually fired. No patient text is returned here. */
+router.get('/ai-stats', (req, res) => {
+  const days = Math.min(365, Math.max(1, Number(req.query.days) || 30));
+  const since = `-${days} days`;
+
+  const runs = db.prepare(`SELECT provider, model, ok, latency_ms, created_at FROM ai_runs
+    WHERE created_at >= datetime('now', ?)`).all(since);
+  const byModel = {};
+  for (const r of runs) {
+    const key = `${r.provider}/${r.model}`;
+    const m = byModel[key] || (byModel[key] = { provider: r.provider, model: r.model, calls: 0, failed: 0, latency_sum: 0 });
+    m.calls++;
+    if (!r.ok) m.failed++;
+    if (r.latency_ms) m.latency_sum += r.latency_ms;
+  }
+  const models = Object.values(byModel).map((m) => ({
+    provider: m.provider, model: m.model, calls: m.calls, failed: m.failed,
+    success_rate: m.calls ? Number((((m.calls - m.failed) / m.calls) * 100).toFixed(1)) : 0,
+    avg_latency_ms: m.calls ? Math.round(m.latency_sum / m.calls) : 0,
+  })).sort((a, b) => b.calls - a.calls);
+
+  const rx = db.prepare(`SELECT id, status, analysis_json FROM prescriptions
+    WHERE created_at >= datetime('now', ?) ORDER BY id DESC LIMIT 1000`).all(since);
+  const items = db.prepare(`SELECT i.status, COUNT(*) n FROM prescription_items i
+    JOIN prescriptions p ON p.id = i.prescription_id
+    WHERE p.created_at >= datetime('now', ?) GROUP BY i.status`).all(since);
+  const itemTotals = items.reduce((s2, r) => s2 + r.n, 0);
+  const corrected = items.find((r) => r.status === 'corrected')?.n || 0;
+
+  const flagCounts = {};
+  let withFlags = 0;
+  for (const row of rx) {
+    let a = null;
+    try { a = row.analysis_json ? JSON.parse(row.analysis_json) : null; } catch { a = null; }
+    const flags = a?.flags || [];
+    if (flags.length) withFlags++;
+    for (const f of flags) {
+      const k = f.type;
+      flagCounts[k] = (flagCounts[k] || 0) + 1;
+    }
+  }
+  const statusCounts = rx.reduce((acc, r) => { acc[r.status] = (acc[r.status] || 0) + 1; return acc; }, {});
+
+  const reviews = db.prepare(`SELECT action, COUNT(*) n FROM prescription_reviews
+    WHERE created_at >= datetime('now', ?) GROUP BY action`).all(since);
+
+  res.json({
+    days,
+    runs: { total: runs.length, failed: runs.filter((r) => !r.ok).length, models },
+    prescriptions: { total: rx.length, by_status: statusCounts, with_flags: withFlags },
+    items: { total: itemTotals, by_status: items.reduce((a2, r) => { a2[r.status] = r.n; return a2; }, {}), correction_rate: itemTotals ? Number(((corrected / itemTotals) * 100).toFixed(1)) : 0 },
+    flags: Object.entries(flagCounts).sort((a2, b) => b[1] - a2[1]).map(([type, count]) => ({ type, count })),
+    reviews: reviews.reduce((a2, r) => { a2[r.action] = r.n; return a2; }, {}),
+    generated_at: new Date().toISOString(),
+  });
+});
+
 router.get('/prescriptions', (req, res) => {
   const status = String(req.query.status || 'pending_review');
   const rows = db.prepare(`SELECT p.id, p.status, p.created_at, u.name AS owner_name,

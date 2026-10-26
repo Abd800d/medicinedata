@@ -18,11 +18,13 @@ import People from './People';
 import SettingsPanel from './SettingsPanel';
 import Integrations from './Integrations';
 import Submissions from './Submissions';
+import AIQuality from './AIQuality';
 
-type Tab = 'dashboard' | 'catalog' | 'media' | 'people' | 'submissions' | 'integrations' | 'settings';
+type Tab = 'dashboard' | 'ai' | 'catalog' | 'media' | 'people' | 'submissions' | 'integrations' | 'settings';
 
 const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: 'dashboard', label: 'لوحة المعلومات', icon: LayoutDashboard },
+  { id: 'ai', label: 'جودة التحليل', icon: Sparkles },
   { id: 'catalog', label: 'قاعدة الأدوية', icon: Boxes },
   { id: 'media', label: 'الاستيراد والصور', icon: Upload },
   { id: 'people', label: 'المستخدمون والرسائل', icon: Users },
@@ -83,6 +85,7 @@ export default function Admin() {
 
       <main className="mx-auto max-w-6xl px-3 py-4">
         {tab === 'dashboard' && <Dashboard />}
+        {tab === 'ai' && <AIQuality />}
         {tab === 'catalog' && <Catalog />}
         {tab === 'media' && <Media />}
         {tab === 'people' && <People />}
