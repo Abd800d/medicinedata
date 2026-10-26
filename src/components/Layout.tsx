@@ -6,6 +6,7 @@ import {
   Stethoscope, Boxes, Database,
 } from 'lucide-react';
 import { Logo, Avatar, MDAIcon } from './ui';
+import SyncBadge from './SyncBadge';
 import InstallPrompt from './install';
 import { useI18n } from '../lib/i18n';
 import { useConfig } from '../lib/config';
@@ -84,6 +85,7 @@ export function TopBar() {
 
           <div className="flex items-center gap-1.5">
             <span className="hidden md:inline-flex"><CreditBadge /></span>
+            <SyncBadge />
             <button onClick={toggleLang} className="icon-btn h-9 w-9" title={t('common.language')} aria-label={t('common.language')}>
               <span className="text-[10.5px] font-black tracking-wide">{lang === 'ar' ? 'EN' : 'ع'}</span>
             </button>

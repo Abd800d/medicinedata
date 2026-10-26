@@ -1,18 +1,20 @@
 ## Current State — أين توقفنا الآن
 
-> آخر تحديث: 2026-10-26 · **v1.3.0** (تحليل صيدلاني موسّع: حساسيات + شرح مبسّط + لوحة جودة).
+> آخر تحديث: 2026-10-26 · **v1.4.0** (offline-first للكتابة: طابور + مزامنة + منع تكرار + حل تعارض).
 
-- **v1.2.0:** مسار وصفات كامل (صورة/نص/إعادة تحليل)، ثقة لكل حقل، مطابقة MDA، دور `pharmacist` وطابور مراجعة،
-  سجل تدقيق SHA-256، موافقة صريحة وحذف بيانات المريض، وثائق AI/PRIVACY/TERMS/SECURITY.
-- **v1.3.0 (الجديد):**
-  - `server/data/allergens.js`: 69 عائلة تحسّسية من تصنيف **ATC** + مفاتيح مواد (`mol:<generic_name>`).
-  - جدول `user_allergies` + `/api/rx/allergies` (إضافة/حذف/كتالوج) — إدخال يدوي فقط، بلا استنتاج.
-  - تنبيهان جديدان: `allergy_conflict` و`duplicate_therapy_class`، وكل تنبيه صار يحمل `plain_ar` + `why_ar` + `source` (مصدر وتاريخ).
-  - لقطة حساسيات مع الوصفة (`prescriptions.patient_context_json`) لثبات المراجعة.
-  - لوحة **جودة التحليل** في الإدارة (`/admin?tab=ai` + `GET /api/admin/ai-stats`): نجاح النداءات، الزمن، معدل التصحيح، توزيع التنبيهات — بلا نصوص مرضى.
-- **التحقق:** `npm run test:rx` **52/52** · smoke لـ `/prescriptions` و`/admin?tab=ai` نظيف · `tsc`/`build` ✅.
-- **تشغيل محلي للتحليل:** `node scripts/mock-ai.mjs 4111` + `AI_PROVIDER=openai AI_API_KEY=test AI_BASE_URL=http://127.0.0.1:4111/v1 node server/index.js`.
-- **التالي:** v1.4.0 offline-first (طابور كتابة + مزامنة + حل تعارض)، ثم v1.5.0 (XML/SQLite، تصدير، نسخ مشفّرة، تعدد صور)، ثم v1.6.0 (PIN/بصمة، مراجعة أمنية، E2E).
+- **v1.2.0:** مسار وصفات كامل، دور `pharmacist`، سجل تدقيق، موافقة وحذف بيانات المريض.
+- **v1.3.0:** حساسيات مسجّلة (69 عائلة ATC + مواد محددة)، تنبيه `allergy_conflict` و`duplicate_therapy_class`،
+  شرح مبسّط + سبب + مصدر لكل تنبيه، لوحة جودة التحليل.
+- **v1.4.0 (الجديد):**
+  - `server/lib/idempotency.js` + جدول `idempotency_keys`: إعادة نفس الرد لمفتاح `X-Idempotency-Key` (7 أيام، لكل مستخدم).
+  - `pharmacy_items`: `version` + `client_uuid`؛ `409 CONFLICT` عند `expected_updated_at` قديم، `?force=1` للتجاوز،
+    ومنع إنشاء صنف مكرر لنفس `client_uuid`.
+  - الواجهة: `src/lib/offlineQueue.ts` (طابور localStorage) + `src/lib/sync.tsx` (Provider، فحص `/api/health` كل 45ث،
+    مزامنة تلقائية كل 30ث) + شارة حالة في الشريط العلوي + صفحة `/sync` (حالات، إعادة محاولة، تجاهل، حل تعارض).
+  - الربط: صيدليتي (إضافة/تعديل/حذف) + طلبات إضافة دواء.
+- **التحقق:** `npm run test:rx` 52/52 · `npm run test:sync` 22/22 · smoke لـ `/sync /pharmacy /submit-drug /prescriptions /admin?tab=ai` نظيف · `tsc`/`build` ✅.
+- **التالي:** v1.5.0 (استيراد XML/SQLite، تصدير CSV/JSON/XLSX، نسخ احتياطية مشفّرة، تعدد صور الدواء + قص/تدوير،
+  نقل مرفقات الطابور إلى IndexedDB)، ثم v1.6.0 (PIN/بصمة، مراجعة أمنية، E2E، theme ليلي/نهاري).
 - **تحذير بيئة:** `node_modules/` و`data/` و`dist/` و`.env` تُفقد عند استعادة مساحة العمل → `npm ci --ignore-scripts` ثم `npm run seed` ثم `npm run build`.
 
 ## Workspace — الملفات المهمة

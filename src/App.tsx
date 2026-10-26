@@ -6,6 +6,7 @@ import { I18nProvider, useI18n } from './lib/i18n';
 import { ConfigProvider } from './lib/config';
 import { AuthProvider } from './lib/auth';
 import { PageLoader, ToastProvider } from './components/ui';
+import { SyncProvider } from './lib/sync';
 import Layout from './components/Layout';
 
 const Home = lazy(() => import('./pages/Home'));
@@ -15,6 +16,7 @@ const SearchPage = lazy(() => import('./pages/SearchPage'));
 const DrugDetail = lazy(() => import('./pages/DrugDetail'));
 const ProductDetail = lazy(() => import('./pages/ProductDetail'));
 const Prescriptions = lazy(() => import('./pages/Prescriptions'));
+const SyncCenter = lazy(() => import('./pages/SyncCenter'));
 const ScanPage = lazy(() => import('./pages/ScanPage'));
 const AiAssistant = lazy(() => import('./pages/AiAssistant'));
 const Community = lazy(() => import('./pages/Community'));
@@ -79,6 +81,7 @@ export default function App() {
       <ConfigProvider>
         <AuthProvider>
           <ToastProvider>
+            <SyncProvider>
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <Welcome />
               <Suspense fallback={<PageLoader />}>
@@ -102,6 +105,7 @@ export default function App() {
                     <Route path="more" element={<More />} />
                     <Route path="offline" element={<Offline />} />
                     <Route path="server" element={<ServerSettings />} />
+                    <Route path="sync" element={<SyncCenter />} />
                     <Route path="about" element={<About />} />
                     <Route path="auth" element={<Auth />} />
                     <Route path="profile" element={<Profile />} />
@@ -111,6 +115,7 @@ export default function App() {
                 </Routes>
               </Suspense>
             </BrowserRouter>
+            </SyncProvider>
           </ToastProvider>
         </AuthProvider>
       </ConfigProvider>

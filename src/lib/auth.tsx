@@ -50,7 +50,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const res = await api.post<{ token: string; user: User }>('/api/auth/google', { credential });
     setToken(res.token); setUser(res.user); return res.user;
   };
-  const logout = () => { setToken(null); setUser(null); };
+  const logout = () => {
+    setToken(null); setUser(null);
+    /* the offline queue belongs to the account that is leaving */
+    try { window.dispatchEvent(new Event('mda:logout')); } catch { /* ignore */ }
+  };
   const patchUser = (u: Partial<User>) => setUser((prev) => (prev ? { ...prev, ...u } : prev));
 
   const value = useMemo<AuthCtx>(() => ({

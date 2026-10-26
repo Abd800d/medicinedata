@@ -5,6 +5,8 @@
 - المصادقة: `Authorization: Bearer <JWT>` (يُرجَّع من `/auth/login` أو `/auth/register`)
 - الأخطاء: `{ "error": "رسالة" }` مع رمز HTTP مناسب (`400`, `401`, `403`, `404`, `413`, `429`, `5xx`)
 - الصفحات: `{ data: [], total, page, pages }`
+- **كتابة آمنة التكرار:** أضف `X-Idempotency-Key: <uuid>` لأي `POST/PUT/PATCH/DELETE` ليُعاد نفس الرد عند تكرار الطلب (7 أيام) مع ترويسة `X-Idempotent-Replay: 1`.
+- **تعارض التعديل:** `PUT/DELETE /api/pharmacy/:id` يقبل `expected_updated_at`؛ عند اختلافه يُعاد **409** `{ code: 'CONFLICT', server: {...} }`. تجاوز صريح: `?force=1`.
 
 الأعمدة: 🔓 عام · 👤 يتطلب دخول · 🛡️ مدير فقط
 
