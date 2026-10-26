@@ -1,21 +1,25 @@
 # MDA — MedicineData · حالة العمل وقرارات الجلسة (ذاكرة داخلية)
 
 > الملف داخلي لتسليم السياق بين الأدوار، وليس من تسليمات المستخدم. يُحدَّث يدويًا مع كل دور.
-> آخر تحديث: 2026-10-24 (الفرع `arena/357baf95-medicinedata`).
+> آخر تحديث: 2026-10-26 (v1.2.0).
 
 ## Current State — أين توقفنا الآن
 
-- **الخادم يعمل**: `mda-api-server-a95bfbe5` (pid 2715) على `0.0.0.0:4000`، يقدّم API + `dist/` الجاهز. للتحقق: `curl -s localhost:4000/api/health`. للاستئناف عند الشك: `pkill -f "node server/index.js"` ثم `start_process node server/index.js`.
-- **الكود والبيانات متطابقان**: أُعيد بناء `dist/` بعد آخر تعديلات `src/`، وأُعيد بناء الفهرس بعد `seed:reset`.
-- **Git نظيف ومرفوع**: `f65b35b` (آخر) → `7e2f71c` → `9529c5e` على `arena/357baf95-medicinedata`.
-- **الاختبارات**: `npm run smoke` → 19/19 مسارًا بدون أخطاء كونسول. اختبار مسجّل الدخول (`TOKEN=<jwt> node scripts/smoke.mjs …`) نظيف لـ `/pharmacy /submit-drug /profile /prescriptions` وتبويبات `/admin?tab=…` الخمسة.
-- **البيانات**: 18 جهازًا، 137 تصنيفًا، **225 دواءً**، **493 منتجًا**، 105 شركة، 24 وكيلًا، مستخدم واحد (المدير). `prescriptions/submissions/pharmacy_items/imports/search_terms` فارغة.
-- **غير مكتمل / الخطوة التالية المحتملة**:
-  1. **صور المنتجات الحقيقية** غير موجودة (بديلها SVG مولّد)؛ تحتاج `GOOGLE_CSE_KEY/CX` أو رفعًا يدويًا من الإدارة.
-  2. **الباركود**: 0 منتجًا له باركود (البحث بالباركود يعمل عند إدخاله/استيراده فقط).
-  3. تسجيل الدخول بجوجل يحتاج `GOOGLE_CLIENT_ID`؛ ميزات AI تحتاج `AI_API_KEY` (كل ما عدا قراءة الصور يعمل محليًا).
-  4. بناء APK يحتاج Android SDK محليًا (المشروع جاهز عبر Capacitor).
-- **تحذير بيئة**: `node_modules/` و`data/` و`.env` و`dist/` **تُفقد** عند استعادة مساحة العمل. الاستعادة: `npm ci --ignore-scripts --no-audit --no-fund` ثم إعادة إنشاء `.env` ثم `npm run seed` ثم `npm run build`.
+> آخر تحديث: 2026-10-26 · **v1.2.0** (PR #16 + #17 مدموجان، وسم `v1.2.0`).
+
+- **المنجَز في v1.2.0:** مسار تحليل وصفات كامل (صورة/نص/إعادة تحليل) بثقة لكل حقل، مطابقة مع قاعدة MDA،
+  مرشّحون بدلاء، تصحيح يدوي، دور `pharmacist` وطابور مراجعة، تأكيد محجوب حتى مراجعة كل بند،
+  سجل تدقيق بسلسلة SHA-256، موافقة صريحة وحذف نهائي لبيانات المريض، وثائق AI/PRIVACY/TERMS/SECURITY.
+- **إعداد التشغيل المحلي للتحليل:** `node scripts/mock-ai.mjs 4111` ثم
+  `AI_PROVIDER=openai AI_API_KEY=test AI_BASE_URL=http://127.0.0.1:4111/v1 node server/index.js` ثم `npm run test:rx` (28/28).
+  على الإنتاج: `AI_PROVIDER=groq` + `AI_API_KEY` (مجاني) + `JWT_SECRET`.
+- **التحقق:** `npm run test:rx` 28/28 · `npm run smoke -- /prescriptions` بلا أخطاء · `npx tsc --noEmit` نظيف · `npm run build` ✅.
+- **خطوات تالية (بالترتيب):** v1.3.0 تحليل صيدلاني موسّع (تنبيهات الحساسية/التداخل من بيانات موثّقة + شرح مبسّط لكل تنبيه)،
+  ثم v1.4.0 offline-first كتابة/طابور/مزامنة، ثم v1.5.0 استيراد XML/SQLite + تصدير + نسخ مشفّرة + تعدد صور الدواء،
+  ثم v1.6.0 PIN/biometric + مراجعة أمنية نهائية + اختبارات E2E.
+- **حدود معلنة باقية:** لا SQLCipher، لا FLAG_SECURE (منع لقطات)، لا WAF، لا اختبار اختراق معتمد، لا OCR على الجهاز.
+- **تحذير بيئة:** `node_modules/` و`data/` و`dist/` و`.env` تُفقد عند استعادة مساحة العمل →
+  `npm ci --ignore-scripts` ثم `npm run seed` ثم `npm run build`.
 
 ## Workspace — الملفات المهمة
 
