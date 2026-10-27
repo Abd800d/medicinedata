@@ -44,6 +44,34 @@ ok('webDir still points at the built SPA', /webDir:\s*'dist'/.test(capConfig));
 ok('cleartext HTTP stays disabled', /allowMixedContent:\s*false/.test(capConfig));
 
 /* ------------------------------------------------------------------ *
+ * 1b · the release pipeline must keep ONE signature (upgradeable APK)
+ * ------------------------------------------------------------------ */
+console.log('\nrelease · stable signing & self-contained APK');
+const gradle = fs.readFileSync(path.join(ROOT, 'android/app/build.gradle'), 'utf8');
+const workflow = fs.readFileSync(path.join(ROOT, '.github/workflows/android.yml'), 'utf8');
+const ignore = fs.readFileSync(path.join(ROOT, '.gitignore'), 'utf8');
+const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+
+const keystorePath = path.join(ROOT, 'android/mda-distribution.keystore');
+const keystore = fs.existsSync(keystorePath) ? fs.readFileSync(keystorePath) : null;
+ok('a stable distribution keystore ships with the repo', Boolean(keystore && keystore.length > 1000), String(keystore?.length));
+ok('the keystore really is PKCS#12 (ASN.1 SEQUENCE)', Boolean(keystore && keystore[0] === 0x30));
+ok('.gitignore lets that one key through', /!android\/mda-distribution\.keystore/.test(ignore));
+ok('gradle falls back to the bundled key', /mda-distribution\.keystore/.test(gradle) && /signingConfig signingConfigs\.release/.test(gradle));
+ok('the Play upload key still overrides it', /MDA_KEYSTORE_PATH/.test(gradle) && /externalKeystore/.test(gradle));
+ok('the bundled key is PKCS#12 with the documented alias', /storeType System\.getenv\("MDA_KEYSTORE_TYPE"\) \?: "PKCS12"/.test(gradle) && /keyAlias System\.getenv\("MDA_KEY_ALIAS"\) \?: \(useBundledCreds \? "mda"/.test(gradle));
+ok('CI builds a release (not a random debug key) by default', /BT=release/.test(workflow));
+ok('CI refuses to ship a Play bundle with the public key', /no AAB/.test(workflow));
+ok('CI verifies the APK really contains the web bundle', /Verify the APK is self-contained/.test(workflow) && /assets\/public\/index\.html/.test(workflow));
+ok('CI verifies the APK really contains the native bridge', /apk-capacitor\.json/.test(workflow));
+ok('CI rejects a debuggable APK when a release was requested', /application-debuggable/.test(workflow));
+const gradleVersion = (gradle.match(/versionName\(ciVersionName \?: "([^"]+)"\)/) || [])[1];
+ok('the app version matches the Gradle default', gradleVersion === pkg.version, `${gradleVersion} vs ${pkg.version}`);
+/* the service worker must not be registered in the shell (stale assets after an update) */
+const mainTsx = fs.readFileSync(path.join(ROOT, 'src/main.tsx'), 'utf8');
+ok('the PWA service worker is disabled inside the APK', /serviceWorker.*&& !isNativeShell\(\)/.test(mainTsx));
+
+/* ------------------------------------------------------------------ *
  * 2 · browser environment that mimics the Android shell
  * ------------------------------------------------------------------ */
 const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', {
@@ -272,6 +300,22 @@ try { await api.get('/api/auth/me'); } catch (e) { apiErr = e; }
 ok('401 still raises ApiError', apiErr?.status === 401, String(apiErr));
 ok('an expired token is dropped', localStorage.getItem('mda.token') === null);
 localStorage.clear();
+
+/* bridge missing on a device (plugin not registered / disabled): must not look like "offline" */
+calls = [];
+let fallbackHits = 0;
+globalThis.fetch = async (url) => {
+  fallbackHits++;
+  if (String(url).includes('/api/health')) {
+    return new Response('{"ok":true,"app":"MDA"}', { status: 200, headers: { 'content-type': 'application/json' } });
+  }
+  return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+};
+__setNativeTransport(() => { throw new Error('"CapacitorHttp" plugin is not implemented on android'); });
+const rescued = await api.get('/api/health');
+ok('a missing native plugin falls back to the WebView fetch', rescued.ok === true && fallbackHits === 1, `hits=${fallbackHits}`);
+globalThis.fetch = fakeFetch;
+useTransport();
 
 /* network death last: it flips internal "backend is down" state for 25 s */
 calls = [];

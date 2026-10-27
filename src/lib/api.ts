@@ -93,6 +93,23 @@ function localAnswer<T>(path: string, params?: Record<string, unknown>): T | und
   } catch { return undefined; }
 }
 
+/* The bridge is only worth falling back from when the *plugin* is missing or refuses the
+   call — a network error must stay a network error (otherwise offline mode gets slow). */
+function bridgeUnusable(e: unknown): boolean {
+  const message = String((e as Error)?.message || e || '');
+  return /native-http-unavailable|not implemented|plugin .*not found|not found.*plugin/i.test(message);
+}
+
+async function browserFetch(url: string, init: RequestInit, timeout: number): Promise<Response> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeout);
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function fetchWithTimeout(url: string, init: RequestInit, timeout = NET_TIMEOUT): Promise<Response> {
   /* Android shell: go through the native bridge, which is not subject to the same-origin
      policy. That is what lets the app talk to a deployed server that predates our CORS
@@ -107,16 +124,13 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeout = NET_TI
         t.name = 'AbortError';
         throw t;
       }
-      throw e;
+      /* Last line of defence: if the native plugin is not available on this device/build,
+         use the WebView's own fetch instead of declaring the backend unreachable. */
+      if (!bridgeUnusable(e)) throw e;
+      return browserFetch(url, init, timeout);
     }
   }
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeout);
-  try {
-    return await fetch(url, { ...init, signal: ctrl.signal });
-  } finally {
-    clearTimeout(timer);
-  }
+  return browserFetch(url, init, timeout);
 }
 
 async function request<T>(path: string, options: RequestInit & { params?: Record<string, unknown>; timeoutMs?: number } = {}): Promise<T> {

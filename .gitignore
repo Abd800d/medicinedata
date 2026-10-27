@@ -27,10 +27,15 @@ android/local.properties
 *.smoke*
 .smoke/
 
-# Signing material — never commit
+# Signing material — never commit …
 *.keystore
 *.jks
 *.p12
 *.b64
+# … except the direct-install distribution key. It is deliberately committed so that every
+# release carries the *same* signature and an update installs over the previous version
+# ("App not installed" came from a fresh debug key on every CI run). It must never be used
+# as a Google Play upload key — configure ANDROID_KEYSTORE_BASE64 for that (docs/SIGNING.md).
+!android/mda-distribution.keystore
 # Generated store screenshots (built from your own phone captures)
 store/screenshots/

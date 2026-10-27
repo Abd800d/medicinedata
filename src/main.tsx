@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles.css';
 import { loadLocal } from './lib/localcatalog';
+import { isNativeShell } from './lib/server';
 
 /* The APK must be usable with zero network: warm the bundled catalogue before the first paint
    of any list screen. Failure is non-fatal (a connected backend still takes over). */
@@ -56,8 +57,11 @@ const hideBoot = () => {
 };
 requestAnimationFrame(hideBoot);
 
-/* PWA service worker (production build) */
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+/* PWA service worker (production web build only).
+   Inside the Android shell the assets already live on the device and an installed service
+   worker can keep serving the *previous* build after an update — a silent source of "the new
+   version still shows the old bug". So the SW is registered on the web only. */
+if (import.meta.env.PROD && 'serviceWorker' in navigator && !isNativeShell()) {
   window.addEventListener('load', () => {
     import('virtual:pwa-register').then(({ registerSW }) => registerSW({ immediate: true })).catch(() => {});
   });
