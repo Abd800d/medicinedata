@@ -26,7 +26,9 @@ export type NativeTransport = (options: NativeRequestOptions) => Promise<NativeR
 
 /** Inverse of readAsBase64 — used for downloads (backups, exports, CSV). */
 function base64ToBytes(base64: string): Uint8Array {
-  const binary = atob(base64);
+  /* Android's Base64.DEFAULT wraps the string at 76 chars, so strip the line breaks
+     before decoding (atob itself is forgiving, but being explicit avoids surprises). */
+  const binary = atob(base64.replace(/\s+/g, ''));
   const out = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
   return out;
