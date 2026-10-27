@@ -6,6 +6,7 @@
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api, getApiBase, getToken } from './api';
+import { smartFetch } from './nativeHttp';
 import {
   enqueue, flushQueue, readQueue, removeOp, subscribeQueue, updateOp,
   queueSummary, type QueuedOp, type FlushResult,
@@ -48,12 +49,12 @@ async function sendOp(op: QueuedOp) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 15_000);
   try {
-    const res = await fetch(`${getApiBase()}${op.path}`, {
+    const res = await smartFetch(`${getApiBase()}${op.path}`, {
       method: op.method,
       headers,
       body: op.body === undefined ? undefined : JSON.stringify(op.body),
       signal: ctrl.signal,
-    });
+    }, 15_000);
     let body: any = null;
     try { body = await res.json(); } catch { /* empty */ }
     return { status: res.status, body };

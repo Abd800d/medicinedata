@@ -9,6 +9,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowRight, ExternalLink, FileText, Loader2, ShieldCheck } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
 import { useConfig } from '../lib/config';
+import { smartFetch } from '../lib/nativeHttp';
 
 export default function Legal() {
   const { doc } = useParams<{ doc: string }>();
@@ -27,7 +28,7 @@ export default function Legal() {
     let alive = true;
     setLoading(true);
     setError('');
-    fetch(target, { headers: { Accept: 'text/html' } })
+    smartFetch(target, { headers: { Accept: 'text/html' } }, 15_000)
       .then(async (r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.text();
