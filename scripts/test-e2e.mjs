@@ -590,6 +590,17 @@ for (const q of ['e2e-photo-', 'e2e-nophoto-']) {
   for (const u of (found.json || [])) await call(`/api/admin/users/${u.id}`, { method: 'DELETE', token: admin });
 }
 
+/* ------------------------------------------------------------------ 18. versions & what's new */
+console.log('18 · the app can prove which version it is running');
+const cfgVer = await call('/api/config');
+ok('the backend reports its own version', /^\d+\.\d+\.\d+/.test(String(cfgVer.json?.version || '')), String(cfgVer.json?.version));
+ok('the reported version matches package.json', cfgVer.json?.version === JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8')).version);
+ok('it says when it started', typeof cfgVer.json?.started_at === 'string' && cfgVer.json.started_at.includes('T'));
+ok('it advertises the features the new screens need', cfgVer.json?.features?.photo_upload === true && cfgVer.json?.features?.audit_log === true && cfgVer.json?.features?.whats_new === true, JSON.stringify(cfgVer.json?.features));
+const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
+const vtxt = fs.readFileSync(path.join(process.cwd(), 'public', 'version.txt'), 'utf8');
+ok('public/version.txt is written for the APK', JSON.parse(vtxt).version === pkg.version, JSON.parse(vtxt).version);
+
 /* ------------------------------------------------------------------ cleanup */
 console.log('cleanup');
 /* Remove everything the import block created, so the shipped offline catalogue never

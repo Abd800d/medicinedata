@@ -1,6 +1,6 @@
 {
   "name": "medicinedata",
-  "version": "1.10.0",
+  "version": "1.10.1",
   "private": true,
   "description": "MDA — MedicineData: pharmaceutical reference, Yemen/Arab market products, prescriptions and pharmacy management.",
   "type": "module",
@@ -10,7 +10,7 @@
     "dev": "concurrently -k -n API,WEB -c cyan,magenta \"node server/index.js\" \"vite\"",
     "dev:api": "node server/index.js",
     "dev:web": "vite",
-    "prebuild": "node scripts/sync-core.mjs",
+    "prebuild": "node scripts/sync-core.mjs && node scripts/write-version.mjs",
     "build": "vite build",
     "start": "NODE_ENV=production node server/index.js",
     "seed": "node server/seed.js",

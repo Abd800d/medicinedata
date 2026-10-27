@@ -9,6 +9,7 @@ import { Avatar, Badge, useToast } from '../components/ui';
 import { cx } from '../lib/utils';
 import { requestInstall } from '../components/install';
 import LockSettings from '../components/LockSettings';
+import VersionCard from '../components/VersionCard';
 import { useOnline } from '../lib/offline';
 import { downloadPack } from '../lib/offline';
 import { useState } from 'react';
@@ -198,6 +199,8 @@ export default function More() {
         <a href={`https://wa.me/${(config.whatsapp || '').replace(/[^\d]/g, '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[11.5px] font-bold bg-emerald-500/10 text-emerald-200"><Phone className="h-3.5 w-3.5" />WhatsApp · {config.whatsapp}</a>
         <a href={`mailto:${config.support_email}`} className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[11.5px] font-bold bg-white/[.05] text-ink-200"><Mail className="h-3.5 w-3.5" />{config.support_email}</a>
       </div>
+
+      <VersionCard />
 
       <div className="space-y-2 text-center">
         <div className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-semibold text-ink-500 bg-white/[.05]">

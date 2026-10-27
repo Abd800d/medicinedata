@@ -184,6 +184,47 @@ console.log('photos · medicine pictures come from the phone gallery');
   ok('deleting a photo also unlinks the file', /removeUploadedFile\(img\.url\)/.test(adminRoutes));
 }
 
+console.log('release · the update is visible, not just installed');
+{
+  const app = fs.readFileSync(path.join(ROOT, 'src/App.tsx'), 'utf8');
+  ok('a what\'s-new screen is routed', /whats-new/.test(app) && /<WhatsNew \/>/.test(app));
+  ok('a one-time sheet is mounted with the router', /<WhatsNewSheet \/>/.test(app));
+
+  const page = fs.readFileSync(path.join(ROOT, 'src/pages/WhatsNew.tsx'), 'utf8');
+  ok('the sheet is shown once per version', /shouldShowWhatsNew/.test(page) && /markVersionSeen/.test(page));
+  ok('each item links to where the feature lives', /to: '\/admin\?tab=media'/.test(page) && /to: '\/review'/.test(page));
+  ok('features behind a role say so instead of hiding silently', /متاح لحساب المدير أو الصيدلي/.test(page));
+  ok('the theme can be switched from that screen', /export function ThemeCard/.test(page) && /setMode\(o\.key\)/.test(page) && /key: 'light'/.test(page));
+
+  const info = fs.readFileSync(path.join(ROOT, 'src/lib/appInfo.ts'), 'utf8');
+  ok('the app reads the installed APK version from Capacitor', /App\.getInfo\(\)/.test(info));
+  ok('it reads the bundle version from version.txt', /version\.txt/.test(info));
+  ok('it compares itself with the server', /judgeVersions/.test(info));
+  ok('a phone newer than the server is explained, not hidden', /server-older/.test(info) && /Render/.test(info));
+
+  const card = fs.readFileSync(path.join(ROOT, 'src/components/VersionCard.tsx'), 'utf8');
+  ok('the versions card shows all three numbers', /Installed app/.test(card) && /Bundle in the app/.test(card) && /'Server'/.test(card));
+  ok('the card is reachable from المزيد', /<VersionCard \/>/.test(fs.readFileSync(path.join(ROOT, 'src/pages/More.tsx'), 'utf8')));
+
+  const gradle = fs.readFileSync(path.join(ROOT, 'android/app/src/main/java/com/mda/medicinedata/MainActivity.java'), 'utf8');
+  ok('the shell clears the WebView cache when the version changes', /clearCacheAfterUpdate/.test(gradle) && /clearCache\(true\)/.test(gradle));
+  ok('it stores the version it last ran', /lastVersionName/.test(gradle));
+
+  const script = fs.readFileSync(path.join(ROOT, 'scripts/write-version.mjs'), 'utf8');
+  ok('the bundle version is written at build time', /version\.txt/.test(script));
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  ok('the version file is produced on every build', /write-version/.test(pkg.scripts.prebuild));
+
+  const ci = fs.readFileSync(path.join(ROOT, '.github/workflows/android.yml'), 'utf8');
+  ok('CI refuses an APK whose bundled version differs', /stale bundle, refusing to publish/.test(ci));
+  ok('CI proves the new screens are inside the APK', /whats-new/.test(ci));
+
+  const serverCfg = fs.readFileSync(path.join(ROOT, 'server/routes/index.js'), 'utf8');
+  ok('the API publishes its version and features', /version: APP_VERSION/.test(serverCfg) && /features: \{/.test(serverCfg));
+  const configTs = fs.readFileSync(path.join(ROOT, 'src/lib/config.tsx'), 'utf8');
+  ok('a fresh install starts on the clinical light theme', /return 'light';/.test(configTs));
+}
+
 /* ------------------------------------------------------------------ *
  * 2 · browser environment that mimics the Android shell
  * ------------------------------------------------------------------ */

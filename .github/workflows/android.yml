@@ -291,6 +291,22 @@ jobs:
           VC=$(grep -oE "versionCode='[0-9]+'" badging.txt | head -1 | grep -oE "[0-9]+" || echo "?")
           echo "APK is self-contained: web bundle + native transport + versionCode $VC"
 
+          # Proof that the *new* UI is inside this APK, not only the new version number:
+          # version.txt is written at build time from package.json, and the what's-new route
+          # must exist in the packed JavaScript.
+          WANT="$(node -p "require('./package.json').version")"
+          HAVE="$(unzip -p "$APK" assets/public/version.txt 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{console.log(JSON.parse(s).version||"")}catch{console.log("")}})' )"
+          echo "package.json=$WANT  apk version.txt=$HAVE"
+          if [ "$HAVE" != "$WANT" ]; then
+            echo "::error::the APK carries version.txt='$HAVE' but package.json says '$WANT' — stale bundle, refusing to publish"
+            exit 1
+          fi
+          if ! unzip -p "$APK" 'assets/public/assets/*.js' | grep -q "whats-new"; then
+            echo "::error::the packed JavaScript has no what's-new route — the APK does not contain this release's screens"
+            exit 1
+          fi
+          echo "::notice::the APK contains v$WANT including the new screens"
+
       - name: Publish gradle failure log
         if: failure()
         env:
