@@ -33,8 +33,8 @@ android {
         // The fallback only applies to a manual build: keep it at or above the last published code.
         def ciVersionCode = project.findProperty("versionCode")?.toString()?.trim()
         def ciVersionName = project.findProperty("versionName")?.toString()?.trim()
-        versionCode(ciVersionCode ? ciVersionCode.toInteger() : 46)
-        versionName(ciVersionName ?: "1.9.1")
+        versionCode(ciVersionCode ? ciVersionCode.toInteger() : 49)
+        versionName(ciVersionName ?: "1.10.0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

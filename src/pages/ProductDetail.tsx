@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
-  AlertTriangle, BadgeCheck, Building2, ChevronLeft, ChevronRight, Copy, Globe2, Heart, MapPin, MessageCircle,
+  AlertTriangle, BadgeCheck, Building2, Camera, ChevronLeft, ChevronRight, Copy, Globe2, Heart, MapPin, MessageCircle,
   Package, Pencil, Share2, ShieldCheck, Truck, UserRound, Pill, Phone,
 } from 'lucide-react';
 import { useApi } from '../lib/useApi';
@@ -11,6 +11,7 @@ import { useConfig } from '../lib/config';
 import { api, assetUrl } from '../lib/api';
 import { Badge, EmptyState, ErrorState, PageLoader, SmartImage, useToast } from '../components/ui';
 import { ProductCard, ProductRecord } from '../components/catalog';
+import ProductImages from '../components/ProductImages';
 import { copyText, cx, fmt, shareItem } from '../lib/utils';
 
 export default function ProductDetail() {
@@ -22,6 +23,8 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const { data: p, loading, error, reload } = useApi<any>(`/api/catalog/products/${id}`);
   const [active, setActive] = useState(0);
+  const [photosOpen, setPhotosOpen] = useState(true);
+  const canManagePhotos = user?.role === 'admin' || user?.role === 'pharmacist';
 
   if (loading && !p) return <PageLoader />;
   if (error && !p) {
@@ -76,6 +79,13 @@ export default function ProductDetail() {
 
             <div className="absolute end-3 top-3 flex gap-1.5">
               <button onClick={onShare} className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-950/70 text-white backdrop-blur transition hover:bg-ink-950/90"><Share2 className="h-4 w-4" /></button>
+              {(user?.role === 'admin' || user?.role === 'pharmacist') && (
+                <button onClick={() => {
+                  setPhotosOpen(true);
+                  setTimeout(() => document.getElementById('product-photos')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
+                }} aria-label={arabic ? 'إضافة صورة من الهاتف' : 'Add photo'}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-600/90 text-white backdrop-blur transition hover:bg-brand-600"><Camera className="h-4 w-4" /></button>
+              )}
               {user?.role === 'admin' && (
                 <Link to={`/admin?tab=products&edit=${p.id}`} className="flex h-9 w-9 items-center justify-center rounded-full bg-ink-950/70 text-white backdrop-blur transition hover:bg-ink-950/90"><Pencil className="h-4 w-4" /></Link>
               )}
@@ -113,6 +123,26 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
+
+      {/* Staff: add or re-crop a photo of this pack straight from the phone, no admin panel needed. */}
+      {canManagePhotos && (
+        <div className="card p-3.5" id="product-photos">
+          <button onClick={() => setPhotosOpen((v) => !v)} className="flex w-full items-center gap-2">
+            <Camera className="h-4 w-4 text-brand-300" />
+            <span className="flex-1 text-start text-[12px] font-extrabold">
+              {arabic ? 'صور هذا الدواء' : 'Photos of this medicine'}
+            </span>
+            <span className="rounded-full bg-brand-500/15 px-2 py-0.5 text-[9.5px] font-bold text-brand-200">
+              {arabic ? 'إضافة / تعديل' : 'Add / edit'}
+            </span>
+          </button>
+          {photosOpen && (
+            <div className="mt-3">
+              <ProductImages product={p} compact onChange={reload} />
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="card p-4">

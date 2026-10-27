@@ -9,8 +9,9 @@
  * Everything here is local: nothing leaves the device until "تأكيد الرفع".
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Check, Crop, Loader2, RotateCcw, RotateCw, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { AlertTriangle, Check, Crop, Loader2, RotateCcw, RotateCw, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { cx } from '../lib/utils';
+import { decodeErrorMessage, normalizeImage } from '../lib/imageFile';
 
 export type EditedImage = {
   file: File;
@@ -88,14 +89,39 @@ export default function ImageStudio({ file, onDone, onCancel }: Props) {
   const dragRef = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
   const [srcUrl, setSrcUrl] = useState('');
 
+  /* Phone photos are straightened (EXIF), bounded to 2048 px and re-encoded here, before
+     anything is drawn — a sideways portrait or a HEIC file is caught at this point. */
+  const [working, setWorking] = useState<File>(file);
+  const [originalBytes, setOriginalBytes] = useState(file.size);
+  const [error, setError] = useState('');
+  const urlRef = useRef('');
+
   useEffect(() => {
-    const url = URL.createObjectURL(file);
-    setSrcUrl(url);
-    const image = new Image();
-    image.onload = () => setImg(image);
-    image.src = url;
-    return () => URL.revokeObjectURL(url);
+    let alive = true;
+    setImg(null);
+    setError('');
+    (async () => {
+      try {
+        const out = await normalizeImage(file);
+        if (!alive) return;
+        setWorking(out.file);
+        setOriginalBytes(out.originalBytes);
+        if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+        const url = URL.createObjectURL(out.file);
+        urlRef.current = url;
+        setSrcUrl(url);
+        const image = new Image();
+        image.onload = () => { if (alive) setImg(image); };
+        image.onerror = () => { if (alive) setError(decodeErrorMessage(new Error(), 'ar')); };
+        image.src = url;
+      } catch (e) {
+        if (alive) setError(decodeErrorMessage(e, 'ar'));
+      }
+    })();
+    return () => { alive = false; };
   }, [file]);
+
+  useEffect(() => () => { if (urlRef.current) URL.revokeObjectURL(urlRef.current); }, []);
 
   const ratio = ASPECTS.find((a) => a.key === aspect)?.ratio ?? null;
 
@@ -131,7 +157,7 @@ export default function ImageStudio({ file, onDone, onCancel }: Props) {
       const size = draw(canvas, img, { rotation, zoom, offX: off.x, offY: off.y, ratio, outWidth: outW });
       const blob: Blob | null = await new Promise((resolve) => canvas.toBlob((b) => resolve(b), 'image/jpeg', quality));
       if (!blob) throw new Error('تعذر تجهيز الصورة');
-      const base = (file.name || 'photo').replace(/\.[^.]+$/, '');
+      const base = (working.name || 'photo').replace(/\.[^.]+$/, '');
       const out = new File([blob], `${base}-mda.jpg`, { type: 'image/jpeg' });
       onDone({
         file: out,
@@ -139,7 +165,7 @@ export default function ImageStudio({ file, onDone, onCancel }: Props) {
         width: size.width,
         height: size.height,
         bytes: out.size,
-        bytesOriginal: file.size,
+        bytesOriginal: originalBytes,
         edited: true,
       });
     } finally {
@@ -147,9 +173,11 @@ export default function ImageStudio({ file, onDone, onCancel }: Props) {
     }
   };
 
+  /* "بدون تعديل" still uploads the straightened, downscaled copy produced above — the phone
+     already did that work and sending the 8 MB original helps nobody. */
   const keepOriginal = () => onDone({
-    file, preview: srcUrl, width: img?.naturalWidth || 0, height: img?.naturalHeight || 0,
-    bytes: file.size, bytesOriginal: file.size, edited: false,
+    file: working, preview: srcUrl, width: img?.naturalWidth || 0, height: img?.naturalHeight || 0,
+    bytes: working.size, bytesOriginal: originalBytes, edited: false,
   });
 
   return (
@@ -170,8 +198,17 @@ export default function ImageStudio({ file, onDone, onCancel }: Props) {
             onPointerCancel={onPointerUp}
             className="mx-auto block max-h-[46vh] w-auto max-w-full cursor-grab touch-none select-none active:cursor-grabbing"
           />
-          {!img && <div className="grid h-40 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-ink-400" /></div>}
+          {!img && !error && <div className="grid h-40 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-ink-400" /></div>}
+          {error && (
+            <div className="flex flex-col items-center gap-2 p-4 text-center">
+              <AlertTriangle className="h-6 w-6 text-amber-400" />
+              <p className="text-[11.5px] leading-5 text-amber-200">{error}</p>
+            </div>
+          )}
         </div>
+        {error && (
+          <button onClick={onCancel} className="btn-ghost mt-2 w-full text-[11.5px]"><X className="h-3.5 w-3.5" />إغلاق واختيار صورة أخرى</button>
+        )}
         <p className="mt-1 text-center text-[10px] text-ink-500">اسحب لتحريك الصورة داخل الإطار · استخدم التقريب للتكبير</p>
 
         <div className="mt-3 grid grid-cols-2 gap-2">
@@ -218,7 +255,7 @@ export default function ImageStudio({ file, onDone, onCancel }: Props) {
           <button onClick={keepOriginal} className="btn-ghost text-[11.5px]">بدون تعديل</button>
         </div>
         <p className="mt-2 rounded-lg p-2 text-[10px] leading-4 bg-white/[.05] text-ink-500">
-          تُصغَّر الصورة إلى 1600 بكسل كحد أقصى وتُحوَّل إلى JPEG. الأصل: {(file.size / 1024 / 1024).toFixed(2)} MB — لا يُرفع أي شيء قبل اعتمادك.
+          تُصغَّر الصورة إلى 1600 بكسل كحد أقصى وتُحوَّل إلى JPEG. الأصل: {(originalBytes / 1024 / 1024).toFixed(2)} MB — لا يُرفع أي شيء قبل اعتمادك.
         </p>
       </div>
     </div>
