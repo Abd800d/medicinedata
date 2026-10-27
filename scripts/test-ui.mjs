@@ -171,16 +171,20 @@ const html = document.documentElement;
 ok('nothing is painted before the provider mounts', !html.dataset.theme);
 
 const theme = ui.mountTheme(document.getElementById('root'));
-ok('defaults to the branded dark theme', theme.mode === 'dark:dark', String(theme.mode));
-ok('html carries data-theme="dark"', html.dataset.theme === 'dark');
-ok('html keeps the .dark class for tailwind', html.classList.contains('dark'));
-ok('theme-color meta is the navy value', document.querySelector('meta[name="theme-color"]').getAttribute('content') === '#050c1a');
+/* The master specification asks for a clean medical white interface and forbids dark navy as
+   the dominant colour, so a first launch starts light. */
+ok('a first launch starts on the clinical light theme', theme.mode === 'light:light', String(theme.mode));
+ok('html carries data-theme="light"', html.dataset.theme === 'light');
+ok('the .dark class is absent on light', !html.classList.contains('dark'));
+ok('theme-color meta is the clinical value', document.querySelector('meta[name="theme-color"]').getAttribute('content') === '#f4f8fd');
+
+theme.setMode('dark');
+ok('switching to dark flips data-theme', html.dataset.theme === 'dark', html.dataset.theme);
+ok('dark mode adds the .dark class for tailwind', html.classList.contains('dark'));
+ok('theme-color follows the theme back to navy', document.querySelector('meta[name="theme-color"]').getAttribute('content') === '#050c1a');
 
 theme.setMode('light');
-ok('switching to light flips data-theme', html.dataset.theme === 'light', html.dataset.theme);
-ok('light mode drops the .dark class', !html.classList.contains('dark'));
-ok('theme-color follows the theme', document.querySelector('meta[name="theme-color"]').getAttribute('content') === '#f4f8fd');
-ok('choice is persisted', localStorage.getItem('mda.themeMode') === 'light');
+ok('the choice is persisted', localStorage.getItem('mda.themeMode') === 'light');
 
 globalThis.__sysDark = true;
 theme.setMode('system');

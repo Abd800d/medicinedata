@@ -81,7 +81,10 @@ const readMode = (): ThemeMode => {
     const v = localStorage.getItem(THEME_KEY);
     if (v === 'light' || v === 'dark' || v === 'system') return v;
   } catch { /* private mode */ }
-  return 'dark'; // the branded default
+  /* The master specification asks for a clean medical white interface and forbids dark navy
+     as the dominant colour, so new installs start light. Anyone who already chose a theme
+     keeps it — this only decides the first launch. */
+  return 'light';
 };
 
 const systemPrefersDark = () =>

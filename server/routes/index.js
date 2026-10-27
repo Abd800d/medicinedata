@@ -13,6 +13,16 @@ import { getSetting, db } from '../db.js';
 import { idempotency, pruneIdempotency } from '../lib/idempotency.js';
 import { legalUrls } from '../lib/legal.js';
 import { googleOAuthReady } from '../lib/google-oauth.js';
+import { readFileSync } from 'node:fs';
+
+/* The backend's own version, straight from package.json — never hard-coded twice. */
+const APP_VERSION = (() => {
+  try {
+    const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+    return String(pkg.version || '0.0.0');
+  } catch { return '0.0.0'; }
+})();
+const STARTED_AT = new Date().toISOString();
 
 const router = Router();
 router.use(optionalAuth);
@@ -54,6 +64,21 @@ router.get('/config', (_req, res) => {
     welcome_text_ar: getSetting('welcome_text_ar', '') || getSetting('welcome_text', ''),
     welcome_text_en: getSetting('welcome_text_en', ''),
     allow_registration: getSetting('allow_registration', true),
+    /* Which release the backend is actually running. The app compares this with its own
+       bundle version and says so out loud when the phone is newer than the server — that is
+       what "the update did nothing" looks like when Render has not redeployed yet. */
+    version: APP_VERSION,
+    build: process.env.GITHUB_RUN_NUMBER || process.env.RENDER_GIT_COMMIT?.slice(0, 7) || 'dev',
+    started_at: STARTED_AT,
+    features: {
+      photo_upload: true,
+      photo_replace: true,
+      audit_log: true,
+      import_dry_run: true,
+      google_oauth: googleOAuthReady(),
+      account_delete: true,
+      whats_new: true,
+    },
   });
 });
 

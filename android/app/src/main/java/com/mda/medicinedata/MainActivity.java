@@ -1,8 +1,11 @@
 package com.mda.medicinedata;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.WebView;
 
 import com.getcapacitor.BridgeActivity;
 
@@ -20,6 +23,12 @@ import com.getcapacitor.BridgeActivity;
  *
  * v1.8.0 adds {@code window.MDASecure.set('1'|'0')} so the per-prescription toggle takes
  * effect while the prescription is on screen (calls only from our own bundled pages).
+ *
+ * v1.10.1 — "I installed the update and nothing changed". The WebView keeps an HTTP cache of
+ * the bundled pages, so a new APK could keep painting yesterday's JavaScript. On every launch
+ * the shell compares the installed versionName with the last one it saw; when they differ it
+ * drops the WebView cache before the first page loads. This is the difference between an
+ * update that is visible and one that only exists in the APK.
  */
 public class MainActivity extends BridgeActivity {
 
@@ -109,9 +118,36 @@ public class MainActivity extends BridgeActivity {
         return v;
     }
 
+    private static final String PREFS = "mda_shell";
+    private static final String KEY_VERSION = "lastVersionName";
+
+    /** Clear the WebView cache the first time a *different* APK version runs. */
+    private void clearCacheAfterUpdate() {
+        try {
+            Context ctx = getApplicationContext();
+            SharedPreferences prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+            String installed = "";
+            try {
+                installed = ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0).versionName;
+            } catch (Throwable ignored) { /* package info unavailable */ }
+            String lastSeen = prefs.getString(KEY_VERSION, "");
+            if (installed != null && !installed.isEmpty() && !installed.equals(lastSeen)) {
+                WebView webView = getBridge() == null ? null : getBridge().getWebView();
+                if (webView != null) {
+                    webView.clearCache(true);
+                    webView.clearFormData();
+                }
+                prefs.edit().putString(KEY_VERSION, installed).apply();
+            }
+        } catch (Throwable ignored) {
+            // A cache is an optimisation: never let it stop the app from starting.
+        }
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        clearCacheAfterUpdate();
         registerSecureBridge();
         refreshSecureFlag();
     }

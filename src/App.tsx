@@ -12,6 +12,7 @@ import { syncSecureFromGlobal } from './lib/secure';
 import LockScreen from './components/LockScreen';
 import Layout from './components/Layout';
 import DeepLinks from './components/DeepLinks';
+import { WhatsNewSheet } from './pages/WhatsNew';
 
 const Home = lazy(() => import('./pages/Home'));
 const Systems = lazy(() => import('./pages/Systems'));
@@ -34,6 +35,7 @@ const More = lazy(() => import('./pages/More'));
 const Offline = lazy(() => import('./pages/Offline'));
 const ServerSettings = lazy(() => import('./pages/ServerSettings'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const WhatsNew = lazy(() => import('./pages/WhatsNew'));
 const About = lazy(() => import('./pages/About'));
 const Auth = lazy(() => import('./pages/Auth'));
 const Profile = lazy(() => import('./pages/Profile'));
@@ -108,6 +110,8 @@ export default function App() {
             <DeepLinks />
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <Welcome />
+              {/* Once per installed version: says out loud what changed after an update. */}
+              <WhatsNewSheet />
               <Suspense fallback={<PageLoader />}>
                 <Routes>
                   <Route element={<Layout />}>
@@ -132,6 +136,7 @@ export default function App() {
                     <Route path="sync" element={<SyncCenter />} />
                     <Route path="legal/:doc" element={<Legal />} />
                     <Route path="about" element={<About />} />
+                    <Route path="whats-new" element={<WhatsNew />} />
                     <Route path="auth" element={<Auth />} />
                     <Route path="forgot-password" element={<ForgotPassword />} />
                     <Route path="profile" element={<Profile />} />
