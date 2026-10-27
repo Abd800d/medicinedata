@@ -7,6 +7,7 @@ import { api } from '../../lib/api';
 import { useApi } from '../../lib/useApi';
 import { Badge, Field, Modal, PageLoader, Select, SmartImage, TextArea, useToast } from '../../components/ui';
 import { cx, num, useDebounced } from '../../lib/utils';
+import { openExternal } from '../../lib/external';
 
 type Sub = 'drugs' | 'products' | 'systems' | 'categories' | 'companies';
 
@@ -360,7 +361,7 @@ function ImagesModal({ product, onClose }: { product: any; onClose: () => void }
     try {
       const res = await api.get<any>('/api/admin/image-search', { q: searchQ });
       setResults(res.items || []); setCandidates([]);
-      if (!res.configured) window.open(res.searchUrl, '_blank');
+      if (!res.configured) await openExternal(res.searchUrl);
     } catch (e: any) { push(e.message || 'خطأ', 'error'); }
     finally { setBusy(false); }
   };

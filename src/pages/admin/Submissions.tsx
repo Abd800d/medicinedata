@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Clock, FilePlus2, Loader2, Trash2, XCircle } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useApi } from '../../lib/useApi';
@@ -9,6 +10,7 @@ export default function Submissions() {
   const [status, setStatus] = useState('pending');
   const { data, loading, reload } = useApi<any[]>('/api/submissions', { status: status || undefined });
   const { push } = useToast();
+  const navigate = useNavigate();
   const [busy, setBusy] = useState<number | null>(null);
 
   const review = async (row: any, next: string) => {
@@ -17,7 +19,7 @@ export default function Submissions() {
       const res = await api.patch<any>(`/api/submissions/${row.id}`, { status: next });
       push(next === 'approved' ? 'تم النشر في قاعدة البيانات' : 'تم تحديث الطلب');
       reload();
-      if (res?.drug_id) window.open(`/drugs/${res.drug_id}`, '_blank');
+      if (res?.drug_id) navigate(`/drugs/${res.drug_id}`);
     } catch (e: any) { push(e.message || 'خطأ', 'error'); }
     finally { setBusy(null); }
   };

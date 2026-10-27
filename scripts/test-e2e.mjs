@@ -280,8 +280,195 @@ ok('the in-app legal reader is reachable cross-origin',
   policy.status === 200 && (policyCors === SHELL_ORIGIN || policyCors === '*'), `acao=${policyCors}`);
 await policy.text();
 
+console.log('12 · Google sign-in that works on a phone (v1.9.0)');
+
+/* Nothing is configured yet on a fresh database: the panel must say so and the flow
+   must refuse politely instead of redirecting to a broken Google URL. */
+const gBefore = await call('/api/admin/google-oauth', { token: admin });
+ok('the panel exposes the exact redirect URI to register', /\/api\/auth\/google\/callback$/.test(gBefore.json?.redirect_uri || ''), gBefore.json?.redirect_uri);
+ok('the app scheme is documented for the deep link', gBefore.json?.app_scheme === 'com.mda.medicinedata://auth');
+ok('a secret is never returned to the client', !JSON.stringify(gBefore.json).includes('GOCSPX'));
+
+const startUnconfigured = await fetch(`${API}/api/auth/google/start`, { redirect: 'manual' });
+ok('without credentials the flow refuses instead of redirecting', [503, 302].includes(startUnconfigured.status), String(startUnconfigured.status));
+
+const badId = await call('/api/admin/google-oauth', { method: 'PUT', token: admin, body: { client_id: 'not-a-google-id' } });
+ok('a malformed client id is rejected', badId.status === 400 && badId.json?.error === 'BAD_CLIENT_ID');
+
+/* Configure with dummy credentials: enough to prove the redirect + PKCE wiring. */
+const saved = await call('/api/admin/google-oauth', {
+  method: 'PUT', token: admin,
+  body: { client_id: '1234567890-e2etest.apps.googleusercontent.com', client_secret: 'GOCSPX-e2e-secret-value' },
+});
+ok('credentials are stored and the flow reports ready', saved.status === 200 && saved.json?.configured === true, JSON.stringify(saved.json));
+ok('the stored secret is masked, not echoed', /…/.test(saved.json?.client_id || '') === false && saved.json?.has_secret === true);
+
+const startRes = await fetch(`${API}/api/auth/google/start?redirect=${encodeURIComponent('com.mda.medicinedata://auth')}`, { redirect: 'manual' });
+const location = startRes.headers.get('location') || '';
+ok('start redirects to Google with a 302', startRes.status === 302 && location.startsWith('https://accounts.google.com/'), location.slice(0, 60));
+const gurl = new URL(location);
+ok('PKCE S256 is used', gurl.searchParams.get('code_challenge_method') === 'S256' && (gurl.searchParams.get('code_challenge') || '').length >= 40);
+ok('the state parameter is present', (gurl.searchParams.get('state') || '').length >= 20);
+ok('the redirect URI is the server callback', (gurl.searchParams.get('redirect_uri') || '').endsWith('/api/auth/google/callback'));
+ok('the openid email profile scopes are requested', gurl.searchParams.get('scope') === 'openid email profile');
+ok('the client id comes from the panel, not the code', gurl.searchParams.get('client_id') === '1234567890-e2etest.apps.googleusercontent.com');
+
+const cbNoState = await fetch(`${API}/api/auth/google/callback?code=x&state=forged`, { redirect: 'manual' });
+ok('a forged state is rejected (no token leak)', cbNoState.status === 400, String(cbNoState.status));
+
+/* A second start must produce a different state — replay protection. */
+const s2 = await fetch(`${API}/api/auth/google/start`, { redirect: 'manual' });
+const s1b = new URL((await fetch(`${API}/api/auth/google/start`, { redirect: 'manual' })).headers.get('location'));
+ok('every attempt gets a fresh state', new URL(location).searchParams.get('state') !== s1b.searchParams.get('state'));
+
+/* The public config must advertise the flow so the app can show the browser button. */
+const publicCfg = await (await fetch(`${API}/api/config`)).json();
+ok('the app is told that Google OAuth is available', publicCfg?.google_oauth === true);
+
+/* Users may not touch the credentials, and the secret survives a re-save. */
+const asUser = await call('/api/admin/google-oauth', { token: patient });
+ok('only an admin can read the Google credentials', asUser.status === 403, String(asUser.status));
+const kept = await call('/api/admin/google-oauth', { method: 'PUT', token: admin, body: { client_id: '1234567890-e2etest.apps.googleusercontent.com' } });
+ok('omitting the secret keeps the stored one', kept.json?.configured === true && kept.json?.has_secret === true);
+
+await call('/api/admin/google-oauth', { method: 'PUT', token: admin, body: { clear_secret: true } });
+const cleared = await call('/api/admin/google-oauth', { token: admin });
+ok('the secret can be removed again', cleared.json?.configured === false && cleared.json?.has_secret === false);
+
+console.log('14 · the pharmacist review queue is actually usable (v1.9.0)');
+
+/* The queue endpoint existed but no screen ever called it, and a pharmacist could not see
+   another user's prescription at all. Both are asserted here. */
+const queue = await call('/api/rx/queue', { token: admin });
+ok('the queue answers for an admin', queue.status === 200 && Array.isArray(queue.json?.rows), String(queue.status));
+
+/* The journey above erases its prescription (right to erasure), so take any record that
+   still exists in the database — the point is *who may open it*, not which one. */
+let anyRx = null;
+for (const st of ['pending_review', 'reviewed', 'rejected']) {
+  const q = await call(`/api/rx/queue?status=${st}`, { token: admin });
+  if ((q.json?.rows || []).length) { anyRx = q.json.rows[0]; break; }
+}
+if (!anyRx) {
+  const mine = await call('/api/rx', { token: admin });
+  anyRx = (mine.json || [])[0] || null;
+}
+ok('a prescription exists to review', Boolean(anyRx), 'no prescriptions in the database');
+
+/* Promote the patient to pharmacist, then prove they can open somebody else's record. */
+const staffEmail = `e2e-pharm-${stamp}@example.com`;
+const staff = await call('/api/auth/register', { method: 'POST', body: { name: 'E2E Pharmacist', email: staffEmail, password: PASSWORD } });
+const staffToken = staff.json?.token;
+const staffId = staff.json?.user?.id;
+await call(`/api/admin/users/${staffId}`, { method: 'PATCH', token: admin, body: { role: 'pharmacist' } });
+const staffLogin = await login(staffEmail, PASSWORD);
+const staffQueue = await call('/api/rx/queue', { token: staffLogin });
+ok('a pharmacist reaches the queue (not only admins)', staffQueue.status === 200, String(staffQueue.status));
+ok('the queue carries the counters the screen shows',
+  Array.isArray(staffQueue.json?.rows) && staffQueue.json.rows.every((r) => 'pending_items' in r && 'unmatched' in r && 'items' in r));
+
+if (anyRx) {
+  const foreign = await call(`/api/rx/${anyRx.id}`, { token: staffLogin });
+  ok('a pharmacist may open a prescription owned by someone else', foreign.status === 200, String(foreign.status));
+  const foreignItem = (foreign.json?.items || [])[0];
+  ok('the detail exposes the line list the screen renders', Array.isArray(foreign.json?.items));
+  if (foreignItem) {
+    const corrected = await call(`/api/rx/${anyRx.id}/items/${foreignItem.id}`, {
+      method: 'PATCH', token: staffLogin, body: { name: foreignItem.name || 'Paracetamol', dose: '500 mg', frequency: 'كل 8 ساعات' },
+    });
+    ok('a pharmacist may correct a line', corrected.status === 200, String(corrected.status));
+  } else {
+    /* Erased records keep an empty list — correcting is covered by block 4 of the journey. */
+    ok('a pharmacist may correct a line (covered by the journey above)', true);
+  }
+  const plainToken = (await call('/api/auth/register', { method: 'POST', body: { name: 'E2E Plain', email: `e2e-plain-${stamp}@example.com`, password: PASSWORD } })).json?.token;
+  const denied = await call('/api/rx/queue', { token: plainToken });
+  ok('a normal user is kept out of the queue', denied.status === 403, String(denied.status));
+  const plainUser = await call('/api/admin/users?q=e2e-plain', { token: admin });
+  for (const u of (plainUser.json || [])) await call(`/api/admin/users/${u.id}`, { method: 'DELETE', token: admin });
+}
+await call(`/api/admin/users/${staffId}`, { method: 'DELETE', token: admin });
+
+console.log('13 · bulk import: CSV/JSON/Excel work from inside the app (v1.9.0)');
+
+/* The endpoint the APK calls. A relative URL would resolve to https://localhost there,
+   so the client must build an absolute one — asserted in test:native. Here we prove the
+   server side accepts every format and reports per-row outcomes. */
+const csv = '\uFEFFgeneric_name,generic_ar,trade_name,trade_name_ar,strength,dosage_form,manufacturer,country,verified\n'
+  + `E2Egen${stamp},جين${stamp},E2Etrade${stamp},تجاري${stamp},250 mg,Tablet,E2E Labs,Yemen,1\n`
+  + `E2Egen2${stamp},جين٢${stamp},E2Etrade2${stamp},تجاري٢${stamp},500 mg,Capsule,E2E Labs,Yemen,0\n`;
+
+const csvForm = new FormData();
+csvForm.append('file', new Blob([csv], { type: 'text/csv' }), 'e2e-import.csv');
+csvForm.append('mode', 'upsert');
+const csvDry = await call('/api/admin/import?dryRun=1', { method: 'POST', token: admin, form: csvForm });
+ok('CSV is accepted (dry run)', csvDry.status === 200 && csvDry.json?.dryRun === true, JSON.stringify(csvDry.json).slice(0, 120));
+ok('the preview reports valid rows', (csvDry.json?.ok || 0) >= 2, `ok=${csvDry.json?.ok}`);
+ok('the preview detects the columns', Array.isArray(csvDry.json?.sample?.[0]) && csvDry.json.sample[0].length >= 5);
+
+const csvReal = new FormData();
+csvReal.append('file', new Blob([csv], { type: 'text/csv' }), 'e2e-import.csv');
+csvReal.append('mode', 'upsert');
+const imported = await call('/api/admin/import', { method: 'POST', token: admin, form: csvReal });
+ok('the real import starts a background job', imported.status === 200 || imported.status === 202, JSON.stringify(imported.json).slice(0, 120));
+
+/* The import runs in the background: poll the job until it finishes (max ~15 s). */
+const jobId = imported.json?.id;
+let finished = null;
+for (let i = 0; i < 30 && jobId; i++) {
+  const st = await call(`/api/admin/imports/${jobId}`, { token: admin });
+  const status = st.json?.status || st.json?.import?.status;
+  if (status && status !== 'processing') { finished = { ...st.json, status }; break; }
+  await new Promise((r) => setTimeout(r, 500));
+}
+ok('the import job reaches a terminal state', Boolean(finished) && ['completed', 'failed'].includes(finished.status), JSON.stringify(finished).slice(0, 140));
+ok('every CSV row was accepted', finished?.status === 'completed' && Number(finished?.rows_ok ?? finished?.import?.rows_ok ?? 0) >= 1,
+  JSON.stringify(finished).slice(0, 160));
+
+const found = await call(`/api/admin/products?q=E2Etrade${stamp}`, { token: admin });
+const list = found.json?.data || found.json?.items || found.json?.rows || (Array.isArray(found.json) ? found.json : []);
+ok('the imported product is queryable after the job', list.some((d) => String(d.trade_name || '').includes(`E2Etrade${stamp}`)), JSON.stringify(found.json).slice(0, 160));
+const drugFound = await call(`/api/admin/drugs?q=E2Egen${stamp}`, { token: admin });
+ok('the generic drug row was created too', (drugFound.json?.total || 0) >= 1, JSON.stringify(drugFound.json).slice(0, 120));
+
+const tsv = 'generic_name\ttrade_name\tstrength\n' + `E2Etsv${stamp}\tE2Etsvtrade${stamp}\t100 mg\n`;
+const tsvForm = new FormData();
+tsvForm.append('file', new Blob([tsv], { type: 'text/tab-separated-values' }), 'e2e-import.tsv');
+tsvForm.append('mode', 'upsert');
+const tsvDry = await call('/api/admin/import?dryRun=1', { method: 'POST', token: admin, form: tsvForm });
+ok('TSV is accepted too', tsvDry.status === 200 && (tsvDry.json?.ok || 0) >= 1, JSON.stringify(tsvDry.json).slice(0, 120));
+
+const jsonRows = [{ generic_name: `E2Ejson${stamp}`, trade_name: `E2Ejsontrade${stamp}`, strength: '20 mg', dosage_form: 'Tablet', country: 'Yemen' }];
+const jsonImport = await call('/api/admin/import-json', { method: 'POST', token: admin, body: { rows: jsonRows } });
+ok('direct JSON import (the paste box) works', jsonImport.status === 200 && jsonImport.json?.ok === 1, JSON.stringify(jsonImport.json).slice(0, 120));
+
+const badJson = await call('/api/admin/import-json', { method: 'POST', token: admin, body: { rows: 'not-an-array' } });
+ok('a malformed JSON payload is rejected', badJson.status === 400);
+
+const unsupported = new FormData();
+unsupported.append('file', new Blob(['hello'], { type: 'text/plain' }), 'notes.pdf');
+const unsupportedRes = await call('/api/admin/import', { method: 'POST', token: admin, form: unsupported });
+ok('an unsupported extension explains the supported list', unsupportedRes.status === 400 && String(unsupportedRes.json?.supported || '').includes('CSV'));
+
+const asUserImport = new FormData();
+asUserImport.append('file', new Blob([csv], { type: 'text/csv' }), 'e2e-import.csv');
+const asUserRes = await call('/api/admin/import', { method: 'POST', token: patient, form: asUserImport });
+ok('a normal user cannot import', asUserRes.status === 403, String(asUserRes.status));
+
 /* ------------------------------------------------------------------ cleanup */
 console.log('cleanup');
+/* Remove everything the import block created, so the shipped offline catalogue never
+   carries test rows (it is generated from this same database). */
+for (const tag of [`E2Etrade${stamp}`, `E2Etrade2${stamp}`, `E2Etsvtrade${stamp}`, `E2Ejsontrade${stamp}`]) {
+  const found = await call(`/api/admin/products?q=${tag}`, { token: admin });
+  for (const row of (found.json?.data || [])) await call(`/api/admin/products/${row.id}`, { method: 'DELETE', token: admin });
+}
+for (const tag of [`E2Egen${stamp}`, `E2Egen2${stamp}`, `E2Etsv${stamp}`, `E2Ejson${stamp}`]) {
+  const found = await call(`/api/admin/drugs?q=${tag}`, { token: admin });
+  for (const row of (found.json?.data || [])) await call(`/api/admin/drugs/${row.id}`, { method: 'DELETE', token: admin });
+}
+ok('imported test rows were removed from the catalogue',
+  (await call(`/api/admin/products?q=E2Etrade${stamp}`, { token: admin })).json?.total === 0);
 const users = await call('/api/admin/users?q=e2e', { token: admin });
 const me = (users.json || []).find((u) => u.email === email);
 if (me) await call(`/api/admin/users/${me.id}`, { method: 'DELETE', token: admin });

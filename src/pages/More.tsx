@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Moon, RefreshCw, Sun, MonitorSmartphone, Bot, Briefcase, ChevronLeft, ChevronRight, CloudDownload, Database, Download, ExternalLink, FilePlus2, FileText, Globe2, Info, Languages, LayoutDashboard, LogIn, LogOut, Mail, MessageCircle, Phone, ScanLine, ScrollText, Server, Settings2, ShieldCheck, ShoppingCart, Smartphone, UserRound, Users } from 'lucide-react';
+import { Moon, RefreshCw, Sun, MonitorSmartphone, Bot, Briefcase, ChevronLeft, ChevronRight, CloudDownload, Database, Download, ExternalLink, FilePlus2, FileText, Globe2, Info, Languages, LayoutDashboard, LogIn, LogOut, Mail, MessageCircle, Phone, ScanLine, ScrollText, Server, Settings2, ShieldCheck, ShoppingCart, Smartphone, UserRound, Users,
+  ClipboardList,
+} from 'lucide-react';
 import { useI18n } from '../lib/i18n';
 import { useConfig } from '../lib/config';
 import { useAuth } from '../lib/auth';
@@ -68,6 +70,19 @@ export default function More() {
           </div>
         )}
       </div>
+
+      {/* v1.9.0: pharmacists approve prescriptions from other users — the queue used to be
+          reachable only through an API nobody could call from the app. */}
+      {(user?.role === 'admin' || user?.role === 'pharmacist') && (
+        <Link to="/review" className="flex items-center gap-3 rounded-3xl border border-emerald-400/25 bg-emerald-500/10 p-3.5 backdrop-blur">
+          <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-emerald-500 to-teal-600 on-color shadow-tile ring-1 ring-white/20"><ClipboardList className="h-5 w-5" /></span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12.5px] font-extrabold text-emerald-200">{lang === 'ar' ? 'مراجعة الوصفات' : 'Prescription review'}</div>
+            <div className="text-[10.5px] text-emerald-200/70">{lang === 'ar' ? 'اعتماد وصفات المستخدمين والتصحيح اليدوي' : 'Approve and correct user prescriptions'}</div>
+          </div>
+          <ChevronLeft className="h-4 w-4 text-emerald-300 rtl:block ltr:hidden" /><ChevronRight className="hidden h-4 w-4 text-emerald-300 ltr:block" />
+        </Link>
+      )}
 
       {user?.role === 'admin' && (
         <Link to="/admin" className="flex items-center gap-3 rounded-3xl border border-amber-400/25 bg-amber-500/10 p-3.5 backdrop-blur">

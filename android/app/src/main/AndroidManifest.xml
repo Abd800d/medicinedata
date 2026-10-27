@@ -22,6 +22,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- v1.9.0: return path for "Sign in with Google".
+                 Google blocks OAuth inside an embedded WebView, so the flow runs in the
+                 system browser (Chrome Custom Tabs) and comes back through this scheme:
+                 com.mda.medicinedata://auth?token=…  → picked up by @capacitor/app. -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.mda.medicinedata" android:host="auth" />
+            </intent-filter>
+
         </activity>
 
         <provider

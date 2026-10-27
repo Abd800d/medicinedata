@@ -11,6 +11,7 @@ import { LockProvider, useAppLock } from './lib/lock';
 import { syncSecureFromGlobal } from './lib/secure';
 import LockScreen from './components/LockScreen';
 import Layout from './components/Layout';
+import DeepLinks from './components/DeepLinks';
 
 const Home = lazy(() => import('./pages/Home'));
 const Systems = lazy(() => import('./pages/Systems'));
@@ -36,6 +37,7 @@ const About = lazy(() => import('./pages/About'));
 const Auth = lazy(() => import('./pages/Auth'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Admin = lazy(() => import('./pages/admin/Admin'));
+const ReviewQueue = lazy(() => import('./pages/ReviewQueue'));
 
 function NotFound() {
   const { t, lang } = useI18n();
@@ -102,6 +104,7 @@ export default function App() {
           <ToastProvider>
             <SyncProvider>
             <LockGate>
+            <DeepLinks />
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <Welcome />
               <Suspense fallback={<PageLoader />}>
@@ -132,6 +135,7 @@ export default function App() {
                     <Route path="profile" element={<Profile />} />
                     <Route path="*" element={<NotFound />} />
                   </Route>
+                  <Route path="review" element={<ReviewQueue />} />
                   <Route path="admin" element={<Admin />} />
                 </Routes>
               </Suspense>

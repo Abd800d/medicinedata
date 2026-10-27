@@ -3,7 +3,7 @@ import {
   AlertTriangle, CheckCircle2, Database, Download, FileJson, FileSpreadsheet, FileText, HardDriveDownload,
   Loader2, Lock, RotateCcw, ShieldCheck, UploadCloud, X,
 } from 'lucide-react';
-import { api, getToken } from '../../lib/api';
+import { api, apiUrl, getToken } from '../../lib/api';
 import { smartFetch } from '../../lib/nativeHttp';
 import { useApi } from '../../lib/useApi';
 import { Badge, Field, Select, useToast } from '../../components/ui';
@@ -120,11 +120,11 @@ function BackupPanel() {
     if (!strong) return;
     setBusy(true);
     try {
-      const res = await fetch('/api/admin/backup', {
+      const res = await smartFetch(apiUrl('/api/admin/backup'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}) },
         body: JSON.stringify({ passphrase: pass }),
-      });
+      }, 180_000, true /* encrypted bytes: must not be decoded as text */);
       if (!res.ok) {
         let msg = `HTTP ${res.status}`;
         try { msg = (await res.json())?.error || msg; } catch { /* ignore */ }
@@ -149,9 +149,9 @@ function BackupPanel() {
     if (!f) return;
     const fd = new FormData(); fd.append('file', f);
     try {
-      const r = await fetch('/api/admin/backup/inspect', {
+      const r = await smartFetch(apiUrl('/api/admin/backup/inspect'), {
         method: 'POST', headers: getToken() ? { Authorization: `Bearer ${getToken()}` } : {}, body: fd,
-      });
+      }, 120_000);
       const json = await r.json();
       if (!r.ok) throw new Error(json?.error || 'ملف غير صالح');
       setInfo(json);
@@ -165,9 +165,9 @@ function BackupPanel() {
       const fd = new FormData();
       fd.append('file', file);
       fd.append('passphrase', restorePass);
-      const r = await fetch('/api/admin/backup/restore', {
+      const r = await smartFetch(apiUrl('/api/admin/backup/restore'), {
         method: 'POST', headers: getToken() ? { Authorization: `Bearer ${getToken()}` } : {}, body: fd,
-      });
+      }, 300_000);
       const json = await r.json();
       if (!r.ok) throw new Error(json?.error || 'تعذرت الاستعادة');
       push('تمت الاستعادة بنجاح — أعد تحميل الصفحة');

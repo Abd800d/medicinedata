@@ -7,6 +7,7 @@ import { api } from '../../lib/api';
 import { useToast, Badge, Spinner } from '../../components/ui';
 import { cx } from '../../lib/utils';
 import PlayKeystore from './PlayKeystore';
+import GoogleOAuthCard from './GoogleOAuthCard';
 
 type Integration = {
   configured: boolean;
@@ -64,6 +65,9 @@ export default function Integrations() {
           <button onClick={reload} className="btn-ghost px-2 py-1 text-[10.5px]">{'إعادة قراءة الحالة'}</button>
         </div>
       </div>
+
+      {/* v1.9.0: the real, phone-compatible Google sign-in setup */}
+      <GoogleOAuthCard />
 
       {list.map(([name, it]) => {
         const meta = META[name] || { title: name, icon: KeyRound, tone: 'from-ink-500 to-ink-700' };

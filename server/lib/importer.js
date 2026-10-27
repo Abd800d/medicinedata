@@ -57,8 +57,30 @@ export function mapRow(raw) {
   return out;
 }
 
-/* --- CSV parsing (RFC4180-ish, streaming friendly) --- */
-function parseCsvLine(line) {
+/* --- Delimited text parsing (RFC4180-ish, streaming friendly) --- */
+
+/**
+ * Guess the delimiter from the header line (v1.9.0 fix): TSV files were advertised in the
+ * panel but the parser only split on commas, so a tab-separated file arrived as one column
+ * and every row failed with "missing generic_name". Semicolon-separated CSV (common in
+ * Excel with an Arabic/European locale) had the same problem.
+ */
+export function detectDelimiter(headerLine) {
+  const line = String(headerLine || '');
+  const count = (ch) => (line.match(new RegExp(`\\${ch}`, 'g')) || []).length;
+  const tabs = count('t');
+  const commas = count(',');
+  const semis = count(';');
+  const pipes = count('|');
+  const best = Math.max(tabs, commas, semis, pipes);
+  if (best === 0) return ',';
+  if (tabs === best) return '\t';
+  if (semis === best) return ';';
+  if (pipes === best) return '|';
+  return ',';
+}
+
+function parseDelimitedLine(line, delimiter = ',') {
   const out = [];
   let cur = '';
   let quoted = false;
@@ -67,22 +89,27 @@ function parseCsvLine(line) {
     if (quoted) {
       if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') quoted = false; else cur += ch;
     } else if (ch === '"') quoted = true;
-    else if (ch === ',') { out.push(cur); cur = ''; }
+    else if (ch === delimiter) { out.push(cur); cur = ''; }
     else cur += ch;
   }
   out.push(cur);
   return out;
 }
 
+/* Kept for backwards compatibility with anything importing the old name. */
+const parseCsvLine = (line) => parseDelimitedLine(line, ',');
+
 export async function* csvRows(filePath) {
   const stream = fs.createReadStream(filePath);
   const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
   let headers = null;
+  let delimiter = null;
   for await (const line of rl) {
     const clean = line.replace(/^\uFEFF/, '');
     if (!clean.trim()) continue;
-    const cells = parseCsvLine(clean);
-    if (!headers) { headers = cells.map((c) => c.trim()); continue; }
+    if (delimiter === null) delimiter = detectDelimiter(clean);
+    const cells = delimiter === ',' ? parseCsvLine(clean) : parseDelimitedLine(clean, delimiter);
+    if (!headers) { headers = cells.map((c) => String(c ?? '').trim()); continue; }
     const obj = {};
     for (let i = 0; i < headers.length; i++) obj[headers[i]] = cells[i];
     yield obj;
@@ -396,11 +423,25 @@ export function detectKind(filename) {
   return null;
 }
 
-export function readRows(filePath, kind, { table = null, limit = 0 } = {}) {
+/**
+ * Read rows for the formats that fit in memory, or the first `limit` rows of a streamed
+ * CSV/TSV (v1.9.0 fix: csv/tsv had no branch here, so the *preview* of a CSV — the most
+ * common format — failed with "unsupported kind: csv" while the import itself worked).
+ * Always async so callers can await one shape for every format.
+ */
+export async function readRows(filePath, kind, { table = null, limit = 0 } = {}) {
   if (kind === 'xlsx') return xlsxRows(filePath).slice(0, limit || undefined);
   if (kind === 'json') return jsonRows(filePath).slice(0, limit || undefined);
   if (kind === 'xml') return xmlRows(filePath, limit);
   if (kind === 'sqlite') return sqliteRows(filePath, table, limit);
+  if (kind === 'csv' || kind === 'tsv' || kind === 'txt') {
+    const rows = [];
+    for await (const row of csvRows(filePath)) {
+      rows.push(row);
+      if (limit && rows.length >= limit) break;
+    }
+    return rows;
+  }
   throw new Error(`unsupported kind: ${kind}`);
 }
 
@@ -422,7 +463,7 @@ export async function countRows(filePath, kind, table = null) {
 }
 
 /** Dry-run friendly description of what was detected inside an upload. */
-export function inspectFile(filePath, kind, table = null) {
+export async function inspectFile(filePath, kind, table = null) {
   if (kind === 'sqlite') {
     const tables = inspectSqlite(filePath);
     const chosen = (table && tables.find((t) => t.name === table)) || tables[0] || null;
@@ -433,7 +474,7 @@ export function inspectFile(filePath, kind, table = null) {
       mapped_fields: chosen?.mapped_fields || [],
     };
   }
-  const sample = readRows(filePath, kind, { limit: 5 });
+  const sample = await readRows(filePath, kind, { limit: 5 });
   const columns = [...new Set(sample.flatMap((r) => Object.keys(r)))].slice(0, 60);
   return { kind, columns, mapped_fields: columns.map((c) => fieldOf(c)).filter(Boolean) };
 }

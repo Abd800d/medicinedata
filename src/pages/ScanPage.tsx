@@ -7,6 +7,7 @@ import { useConfig } from '../lib/config';
 import { ProductGrid, ProductRecord } from '../components/catalog';
 import { Badge, EmptyState, useToast } from '../components/ui';
 import BarcodeScanner from '../components/barcodescanner';
+import { openExternal } from '../lib/external';
 
 export default function ScanPage() {
   const { t, lang } = useI18n();
@@ -123,7 +124,7 @@ export default function ScanPage() {
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 {busy ? (lang === 'ar' ? 'جارٍ التعرف…' : 'Identifying…') : (lang === 'ar' ? 'تعرّف على الدواء' : 'Identify medicine')}
               </button>
-              <button onClick={() => lensUrl && window.open(lensUrl, '_blank')} className="btn-ghost" title="Google Lens"><ExternalLink className="h-4 w-4" /></button>
+              <button onClick={() => lensUrl && openExternal(lensUrl)} className="btn-ghost" title="Google Lens"><ExternalLink className="h-4 w-4" /></button>
             </div>
           </div>
         )}
@@ -156,8 +157,8 @@ export default function ScanPage() {
           <button onClick={() => navigate(`/search?q=${encodeURIComponent(manual)}`)} disabled={!manual.trim()} className="btn-primary shrink-0">{t('common.search')}</button>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <button onClick={() => window.open(googleSearch(manual || 'medicine box'), '_blank')} className="btn-ghost text-[11px]"><Search className="h-3.5 w-3.5" />Google Images</button>
-          <button onClick={() => window.open(lensUrl, '_blank')} className="btn-ghost text-[11px]"><ExternalLink className="h-3.5 w-3.5" />Google Lens</button>
+          <button onClick={() => openExternal(googleSearch(manual || 'medicine box'))} className="btn-ghost text-[11px]"><Search className="h-3.5 w-3.5" />Google Images</button>
+          <button onClick={() => openExternal(lensUrl)} className="btn-ghost text-[11px]"><ExternalLink className="h-3.5 w-3.5" />Google Lens</button>
         </div>
         <p className="text-[10.5px] leading-5 text-ink-400">{lang === 'ar' ? 'يُفتح Google Lens لرفع الصورة والبحث عنها بصريًا، ثم يمكنك نسخ الاسم هنا.' : 'Google Lens opens for visual search, then paste the name here.'}</p>
       </div>

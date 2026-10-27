@@ -12,6 +12,7 @@ import { optionalAuth, ensureAdmin, OWNER_EMAIL } from '../auth.js';
 import { getSetting, db } from '../db.js';
 import { idempotency, pruneIdempotency } from '../lib/idempotency.js';
 import { legalUrls } from '../lib/legal.js';
+import { googleOAuthReady } from '../lib/google-oauth.js';
 
 const router = Router();
 router.use(optionalAuth);
@@ -40,6 +41,8 @@ router.get('/config', (_req, res) => {
     /* Same URLs the Play listing must use, so the app never shows a stale policy link. */
     ...legalUrls(_req),
     google_client_id: process.env.GOOGLE_CLIENT_ID || getSetting('google_client_id', '') || '',
+    /* true when a Client ID *and* Secret exist → the phone can use the system-browser flow */
+    google_oauth: googleOAuthReady(),
     counts,
     default_lang: getSetting('default_lang', 'ar'),
     maintenance: getSetting('maintenance', false),
