@@ -17,6 +17,15 @@ const config: CapacitorConfig = {
     backgroundColor: '#050c1a',
   },
   plugins: {
+    /*
+     * Native HTTP. Without it every API call from the WebView (origin https://localhost)
+     * is cross-origin and depends on the *server* sending CORS headers — which a server
+     * deployed before v1.8.2 does not. With it, requests are executed by Android itself
+     * and reach any deployed version of the API. See src/lib/nativeHttp.ts.
+     */
+    CapacitorHttp: {
+      enabled: true,
+    },
     SplashScreen: {
       launchShowDuration: 1200,
       backgroundColor: '#050c1a',

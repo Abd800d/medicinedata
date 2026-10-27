@@ -1,6 +1,6 @@
 {
   "name": "medicinedata",
-  "version": "1.8.2",
+  "version": "1.8.3",
   "private": true,
   "description": "MDA — MedicineData: pharmaceutical reference, Yemen/Arab market products, prescriptions and pharmacy management.",
   "type": "module",
@@ -28,6 +28,7 @@
     "test:sync": "node scripts/test-sync.mjs",
     "test:data": "node scripts/test-data.mjs",
     "test:ui": "node scripts/test-ui.mjs",
+    "test:native": "node scripts/test-native.mjs",
     "test:e2e": "node scripts/test-e2e.mjs",
     "keystore": "node scripts/make-keystore.mjs",
     "store:assets": "bash scripts/make-store-assets.sh",

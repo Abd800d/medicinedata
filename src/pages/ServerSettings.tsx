@@ -1,22 +1,26 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  AlertTriangle, CheckCircle2, ChevronLeft, Copy, Globe2, Loader2, RefreshCw, Save, Server, ShieldCheck, Wifi, WifiOff,
+  AlertTriangle, CheckCircle2, ChevronLeft, Copy, Globe2, Loader2, Plug, RefreshCw, Save, Server, ShieldCheck, Wifi, WifiOff,
 } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
 import { describeApiBase, getSavedApiBase, setApiBase } from '../lib/api';
 import { DEFAULT_SERVER, fallbackServer, isNativeShell } from '../lib/server';
+import { nativeAvailable, smartFetch } from '../lib/nativeHttp';
 import { useToast } from '../components/ui';
 
 /* The build default: the baked server in the Android shell, relative URLs on the web. */
 const DEFAULT_BASE = fallbackServer();
+/* v1.8.3: in the APK every API call runs through Capacitor's native HTTP bridge, which is
+   not subject to the same-origin policy — the server needs no CORS headers at all. */
+const NATIVE_NOW = nativeAvailable();
 
 async function probe(base: string) {
   const url = `${base.replace(/\/$/, '')}/api/health`;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 25_000);
   try {
-    const res = await fetch(url, { signal: ctrl.signal, headers: { accept: 'application/json' } });
+    const res = await smartFetch(url, { signal: ctrl.signal, headers: { accept: 'application/json' } }, 25_000);
     if (!res.ok) return { ok: false, message: `HTTP ${res.status}` };
     const data = await res.json();
     return { ok: true, message: data?.app ? `${data.app} · ${new Date(data.time).toLocaleTimeString()}` : 'ok' };
@@ -139,6 +143,15 @@ export default function ServerSettings() {
                   info.source === 'saved' ? (ar ? 'عنوان محفوظ على الجهاز يتقدّم على المدمج' : 'a saved address overrides it') :
                   (ar ? 'افتراضي — لم تخصّص عنوانًا' : 'default — no custom address')}
               </div>
+              {/* v1.8.3: prove* the transport — native requests ignore CORS entirely */}
+              <div className="mt-2 flex items-center gap-1.5 text-[10px] font-semibold">
+                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${NATIVE_NOW ? 'bg-emerald-500/20 text-emerald-200' : 'bg-brand-500/20 text-brand-200'}`}>
+                  <Plug className="h-3 w-3" />
+                  {NATIVE_NOW
+                    ? (ar ? 'نقل أصلي — يتجاوز CORS بالكامل' : 'native transport — bypasses CORS')
+                    : (ar ? 'نقل عبر المتصفح (يحتاج CORS)' : 'browser transport (needs CORS)')}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -149,7 +162,9 @@ export default function ServerSettings() {
           <div className="flex items-center gap-1.5 font-bold"><AlertTriangle className="h-3.5 w-3.5" />{ar ? 'لم يستجب الخادم — الأسباب المحتملة' : 'No answer — likely causes'}</div>
           <ul className="space-y-0.5 ps-4" style={{ listStyle: 'disc' }}>
             <li>{ar ? 'خادم مجاني نائم: أول طلب يستغرق حتى دقيقة — أعد الاختبار بعد 30 ثانية.' : 'Free-tier server asleep: the first call takes up to a minute — retry in 30 s.'}</li>
-            <li>{ar ? 'نسخة قديمة من الخادم لا تسمح لتطبيق أندرويد (CORS): أعد النشر من Render → Manual Deploy ← آخر commit.' : 'Older server without CORS: redeploy from Render → Manual Deploy → latest commit.'}</li>
+            {NATIVE_NOW
+              ? <li>{ar ? 'الاتصال داخل التطبيق يمر عبر جسر أندرويد الأصلي، فلا يحتاج أي إعداد CORS على الخادم — إن ظهرت هذه الرسالة فالمشكلة في الشبكة أو في الرابط، لا في الخادم.' : 'Requests go through the native Android bridge, so no CORS setup is needed on the server — if this appears, it is the network or the URL, not the server.'}</li>
+              : <li>{ar ? 'نسخة قديمة من الخادم لا تسمح لتطبيق أندرويد (CORS): أعد النشر من Render → Manual Deploy ← آخر commit.' : 'Older server without CORS: redeploy from Render → Manual Deploy → latest commit.'}</li>}
             <li>{ar ? 'الرابط غير صحيح أو الخدمة متوقفة: افتح الرابط في المتصفح وتأكد من ظهور /api/health.' : 'Wrong URL or the service is down: open /api/health in a browser.'}</li>
           </ul>
         </div>

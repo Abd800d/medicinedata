@@ -1,5 +1,6 @@
 import { isLocalPath, loadLocal, localArt, localServe, setServerReachable, setServerWaking, getServerWaking } from './localcatalog';
 import { fallbackServer, normalizeServer, serverFromQuery } from './server';
+import { nativeAvailable, nativeFetch } from './nativeHttp';
 
 export class ApiError extends Error {
   status: number;
@@ -93,6 +94,22 @@ function localAnswer<T>(path: string, params?: Record<string, unknown>): T | und
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit, timeout = NET_TIMEOUT): Promise<Response> {
+  /* Android shell: go through the native bridge, which is not subject to the same-origin
+     policy. That is what lets the app talk to a deployed server that predates our CORS
+     headers — no redeploy, no proxy, and no silent fall back to the bundled catalogue. */
+  if (nativeAvailable() && /^https?:\/\//i.test(url)) {
+    try {
+      return await nativeFetch(url, init, Math.max(timeout, 10_000));
+    } catch (e) {
+      const err = e as Error;
+      if (err?.name === 'AbortError' || /timeout/i.test(String(err?.message))) {
+        const t = new Error('timeout');
+        t.name = 'AbortError';
+        throw t;
+      }
+      throw e;
+    }
+  }
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeout);
   try {

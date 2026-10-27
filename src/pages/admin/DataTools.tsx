@@ -4,6 +4,7 @@ import {
   Loader2, Lock, RotateCcw, ShieldCheck, UploadCloud, X,
 } from 'lucide-react';
 import { api, getToken } from '../../lib/api';
+import { smartFetch } from '../../lib/nativeHttp';
 import { useApi } from '../../lib/useApi';
 import { Badge, Field, Select, useToast } from '../../components/ui';
 import { cx, num } from '../../lib/utils';
@@ -255,7 +256,7 @@ function BackupPanel() {
 
 /** Download a file from an authenticated endpoint (kept local to avoid import cycles). */
 async function downloadWithToken(url: string, filename: string) {
-  const res = await fetch(url, { headers: getToken() ? { Authorization: `Bearer ${getToken()}` } : {} });
+  const res = await smartFetch(url, { headers: getToken() ? { Authorization: `Bearer ${getToken()}` } : {} }, 120_000, true);
   if (!res.ok) {
     let msg = `HTTP ${res.status}`;
     try { msg = (await res.json())?.error || msg; } catch { /* ignore */ }
