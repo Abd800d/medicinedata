@@ -10,6 +10,7 @@ import { useApi } from '../lib/useApi';
 import { api } from '../lib/api';
 import { Avatar, Badge, EmptyState, Field, PageLoader, useToast } from '../components/ui';
 import { ProductCard, ProductRecord } from '../components/catalog';
+import { DeleteAccountCard } from './ForgotPassword';
 import { dateFmt } from '../lib/utils';
 
 export default function Profile() {
@@ -126,6 +127,8 @@ export default function Profile() {
       </div>
 
       <button onClick={() => { logout(); refresh(); navigate('/'); }} className="btn-ghost w-full text-rose-300"><LogOut className="h-4 w-4" />{t('common.logout')}</button>
+
+      <DeleteAccountCard />
     </div>
   );
 }

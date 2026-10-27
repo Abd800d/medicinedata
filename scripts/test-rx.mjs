@@ -168,8 +168,8 @@ console.log('audit chain');
 const verify = await call('/api/admin/audit/verify', { token });
 ok('hash chain intact', verify.json?.ok === true, JSON.stringify(verify.json));
 const log = await call('/api/admin/audit?limit=200', { token });
-ok('approval audited with actor', Array.isArray(log.json) && log.json.some((r) => r.action === 'rx.approved' && r.actor_email));
-ok('correction audited with before/after', (log.json || []).some((r) => r.action === 'rx.item.corrected' && r.meta?.before));
+ok('approval audited with actor', Array.isArray(log.json?.data) && log.json.data.some((r) => r.action === 'rx.approved' && r.actor_email));
+ok('correction audited with before/after', (log.json?.data || []).some((r) => r.action === 'rx.item.corrected' && r.meta?.before));
 
 if (rxId) {
   console.log('privacy purge');

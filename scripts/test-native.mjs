@@ -126,6 +126,29 @@ console.log('google · deep link contract');
   ok('the callback only accepts our own scheme', /com\.mda\.medicinedata:\/\/auth/.test(serverOauth));
 }
 
+console.log('admin · audit log + account lifecycle contract');
+{
+  const adminSrc = fs.readFileSync(path.join(ROOT, 'src/pages/admin/Admin.tsx'), 'utf8');
+  ok('the audit tab is registered in the admin panel', /id: 'audit'/.test(adminSrc) && /<AuditLog \/>/.test(adminSrc));
+  const auditSrc = fs.readFileSync(path.join(ROOT, 'src/pages/admin/AuditLog.tsx'), 'utf8');
+  ok('the screen reads the paginated endpoint', /\/api\/admin\/audit'/.test(auditSrc) && /limit/.test(auditSrc) && /offset/.test(auditSrc));
+  ok('it verifies the hash chain from the server, not from local state', /\/api\/admin\/audit\/verify/.test(auditSrc));
+  ok('it filters by action, target and date', /\{ action \}/.test(auditSrc) && /\{ target \}/.test(auditSrc) && /\{ from \}/.test(auditSrc));
+  const routes = fs.readFileSync(path.join(ROOT, 'server/routes/admin.js'), 'utf8');
+  ok('the endpoint exposes real facets', /router\.get\('\/audit\/actions'/.test(routes));
+  const authRoutes = fs.readFileSync(path.join(ROOT, 'server/routes/auth.js'), 'utf8');
+  ok('account deletion requires the typed word', /confirm-required/.test(authRoutes) && /'DELETE'/.test(authRoutes));
+  ok('the owner account is protected from deletion', /owner-protected/.test(authRoutes));
+  ok('the last administrator cannot delete themselves', /last-admin/.test(authRoutes));
+  ok('prescription photos are removed from disk', /fs\.unlinkSync\(abs\)/.test(authRoutes));
+  ok('the deletion is written to the tamper-evident log', /audit\('account\.delete'/.test(authRoutes));
+  const appSrc = fs.readFileSync(path.join(ROOT, 'src/App.tsx'), 'utf8');
+  ok('a real password-recovery screen exists (no fake e-mail)', /forgot-password/.test(appSrc));
+  const forgotSrc = fs.readFileSync(path.join(ROOT, 'src/pages/ForgotPassword.tsx'), 'utf8');
+  ok('recovery goes through WhatsApp, which works on a phone', /wa\.me\/\$\{whatsapp\}/.test(forgotSrc));
+  ok('the delete card is on the profile page', /<DeleteAccountCard \/>/.test(fs.readFileSync(path.join(ROOT, 'src/pages/Profile.tsx'), 'utf8')));
+}
+
 /* ------------------------------------------------------------------ *
  * 2 · browser environment that mimics the Android shell
  * ------------------------------------------------------------------ */

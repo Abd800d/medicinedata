@@ -192,6 +192,9 @@ export default function Auth() {
             </div>
           )}
           {error && <div className="rounded-xl border border-rose-400/25 bg-rose-500/10 px-3 py-2 text-[11px] font-semibold text-rose-300">{error}</div>}
+          {mode === 'login' && (
+            <Link to="/forgot-password" className="block text-end text-[11px] font-bold text-brand-300 hover:underline">{t('auth.forgot')}</Link>
+          )}
           <button type="submit" disabled={busy} className="btn-primary w-full">
             {busy ? '…' : mode === 'login' ? t('common.login') : t('common.register')}
             {lang === 'ar' ? <ArrowLeft className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}

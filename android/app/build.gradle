@@ -30,11 +30,11 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         // CI always passes -PversionCode=<run number>: it must only ever grow, otherwise Android
         // refuses the update over an installed release ("app not installed").
-        // The fallback below matches the shipped v1.9.0 build (CI run #45).
+        // The fallback only applies to a manual build: keep it at or above the last published code.
         def ciVersionCode = project.findProperty("versionCode")?.toString()?.trim()
         def ciVersionName = project.findProperty("versionName")?.toString()?.trim()
-        versionCode(ciVersionCode ? ciVersionCode.toInteger() : 45)
-        versionName(ciVersionName ?: "1.9.0")
+        versionCode(ciVersionCode ? ciVersionCode.toInteger() : 46)
+        versionName(ciVersionName ?: "1.9.1")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

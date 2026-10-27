@@ -33,6 +33,7 @@ const SubmitDrug = lazy(() => import('./pages/SubmitDrug'));
 const More = lazy(() => import('./pages/More'));
 const Offline = lazy(() => import('./pages/Offline'));
 const ServerSettings = lazy(() => import('./pages/ServerSettings'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const About = lazy(() => import('./pages/About'));
 const Auth = lazy(() => import('./pages/Auth'));
 const Profile = lazy(() => import('./pages/Profile'));
@@ -132,6 +133,7 @@ export default function App() {
                     <Route path="legal/:doc" element={<Legal />} />
                     <Route path="about" element={<About />} />
                     <Route path="auth" element={<Auth />} />
+                    <Route path="forgot-password" element={<ForgotPassword />} />
                     <Route path="profile" element={<Profile />} />
                     <Route path="*" element={<NotFound />} />
                   </Route>

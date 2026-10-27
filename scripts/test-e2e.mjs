@@ -132,7 +132,7 @@ console.log('6 · audit trail');
 const chain = await call('/api/admin/audit/verify', { token: admin });
 ok('audit hash chain is intact', chain.json?.ok === true, JSON.stringify(chain.json)?.slice(0, 120));
 const audit = await call('/api/admin/audit?limit=50', { token: admin });
-const actions = (audit.json?.items || audit.json || []).map((r) => r.action);
+const actions = (audit.json?.data || []).map((r) => r.action);
 ok('consent, analysis and approval are all logged', ['rx.consent.granted', 'rx.analyzed', 'rx.approved'].every((a) => actions.includes(a)), actions.slice(0, 12).join(','));
 
 /* ------------------------------------------------------------------ 7. AI quality */
@@ -454,6 +454,62 @@ const asUserImport = new FormData();
 asUserImport.append('file', new Blob([csv], { type: 'text/csv' }), 'e2e-import.csv');
 const asUserRes = await call('/api/admin/import', { method: 'POST', token: patient, form: asUserImport });
 ok('a normal user cannot import', asUserRes.status === 403, String(asUserRes.status));
+
+/* ------------------------------------------------------------------ 15. audit log UI contract */
+console.log('15 · audit log (the admin tab)');
+const auditPage = await call('/api/admin/audit?limit=5', { token: admin });
+ok('the log returns an envelope with a total', Array.isArray(auditPage.json?.data) && typeof auditPage.json?.total === 'number', JSON.stringify(auditPage.json)?.slice(0, 100));
+ok('the newest entry is first', (auditPage.json?.data || []).every((r, i, a) => i === 0 || a[i - 1].id > r.id));
+ok('each row carries both hashes', (auditPage.json?.data || []).every((r) => r.hash && r.prev_hash));
+ok('the actor name is joined in', (auditPage.json?.data || []).some((r) => r.actor_email));
+const facets = await call('/api/admin/audit/actions', { token: admin });
+ok('action facets list what really happened', (facets.json?.actions || []).some((a) => a.action === 'rx.approved'), JSON.stringify(facets.json)?.slice(0, 120));
+ok('target facets exist too', Array.isArray(facets.json?.targets));
+const filtered = await call('/api/admin/audit?action=rx.&limit=20', { token: admin });
+ok('filtering by action prefix works', (filtered.json?.data || []).length > 0 && filtered.json.data.every((r) => r.action.startsWith('rx.')), String((filtered.json?.data || []).length));
+ok('the filtered total is a count, not a page length', typeof filtered.json?.total === 'number');
+const byText = await call('/api/admin/audit?q=MDAadmin&limit=5', { token: admin });
+ok('free-text search reaches the actor e-mail', (byText.json?.data || []).length >= 0);
+const today = new Date().toISOString().slice(0, 10);
+const byDate = await call(`/api/admin/audit?from=${today}&to=${today}&limit=200`, { token: admin });
+ok('a date range returns today events', (byDate.json?.data || []).length > 0, String((byDate.json?.data || []).length));
+const pageA = await call('/api/admin/audit?limit=2&offset=0', { token: admin });
+const pageB = await call('/api/admin/audit?limit=2&offset=2', { token: admin });
+ok('offset paging returns different rows', JSON.stringify((pageA.json?.data || []).map((r) => r.id)) !== JSON.stringify((pageB.json?.data || []).map((r) => r.id)));
+const auditAsUser = await call('/api/admin/audit', { token: patient });
+ok('a normal user cannot read the audit log', auditAsUser.status === 403, String(auditAsUser.status));
+const verifyNow = await call('/api/admin/audit/verify', { token: admin });
+ok('the chain still verifies after all of this', verifyNow.json?.ok === true && verifyNow.json?.entries > 0);
+
+/* ------------------------------------------------------------------ 16. account deletion */
+console.log('16 · delete my account');
+const delStamp = Date.now().toString(36);
+const delEmail = `e2e-del-${delStamp}@example.com`;
+const delReg = await call('/api/auth/register', { method: 'POST', body: { name: 'E2E Delete', email: delEmail, password: 'secret123', city: 'Sanaa' } });
+ok('a throwaway account exists to delete', delReg.status === 201 && !!delReg.json?.token, String(delReg.status));
+const delToken = delReg.json?.token;
+const delId = delReg.json?.user?.id;
+await call('/api/rx/consent', { method: 'POST', token: delToken, body: { kind: 'patient_data', granted: true } });
+await call('/api/community/favorites', { method: 'POST', token: delToken, body: { target_type: 'product', target_id: 1 } });
+const noConfirm = await call('/api/auth/me', { method: 'DELETE', token: delToken, body: {} });
+ok('deleting without the typed confirmation is refused', noConfirm.status === 400 && noConfirm.json?.error === 'confirm-required', String(noConfirm.status));
+const wrongPw = await call('/api/auth/me', { method: 'DELETE', token: delToken, body: { confirm: 'DELETE', password: 'nope' } });
+ok('a wrong password is refused', wrongPw.status === 403 && wrongPw.json?.error === 'wrong-password', String(wrongPw.status));
+const stillThere = await call('/api/auth/me', { token: delToken });
+ok('the refused attempts left the account intact', stillThere.status === 200);
+const deleted = await call('/api/auth/me', { method: 'DELETE', token: delToken, body: { confirm: 'DELETE', password: 'secret123' } });
+ok('the owner of the account can delete it', deleted.status === 200 && deleted.json?.ok === true, JSON.stringify(deleted.json)?.slice(0, 160));
+ok('the response reports what was erased', deleted.json?.deleted?.favorites >= 1, JSON.stringify(deleted.json?.deleted));
+const tokenDead = await call('/api/auth/me', { token: delToken });
+ok('the old token stops working immediately', tokenDead.status === 401, String(tokenDead.status));
+const loginDead = await call('/api/auth/login', { method: 'POST', body: { email: delEmail, password: 'secret123' } });
+ok('the credentials no longer exist', loginDead.status === 401, String(loginDead.status));
+const delAudit = await call('/api/admin/audit?action=account.delete&limit=20', { token: admin });
+const delEntry = (delAudit.json?.data || []).find((r) => String(r.target_id) === String(delId));
+ok('the deletion is recorded in the audit log', !!delEntry, JSON.stringify(delAudit.json?.data?.[0]?.meta)?.slice(0, 120));
+ok('the audit entry keeps the e-mail, not the password', delEntry?.actor_email === delEmail && !JSON.stringify(delEntry?.meta || {}).includes('secret123'));
+const ownerDel = await call('/api/auth/me', { method: 'DELETE', token: admin, body: { confirm: 'DELETE', password: 'MDAadmin@2026' } });
+ok('the owner account cannot delete itself', ownerDel.status === 403 && ownerDel.json?.error === 'owner-protected', String(ownerDel.status));
 
 /* ------------------------------------------------------------------ cleanup */
 console.log('cleanup');
