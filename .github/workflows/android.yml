@@ -70,21 +70,39 @@ jobs:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           BT="$BUILD_TYPE"
+          BUNDLED="android/mda-distribution.keystore"
+          HAS_BUNDLED=false; [ -f "$BUNDLED" ] && HAS_BUNDLED=true
+          HAS_SECRET=false; [ -n "$KEYSTORE_B64" ] && HAS_SECRET=true
           if [ -z "$BT" ] || [ "$BT" = "auto" ]; then
-            if [ -n "$KEYSTORE_B64" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then BT=release; else BT=debug; fi
+            # Always a *release* build: the repository ships a stable distribution key, so a
+            # release APK no longer needs any secret and — crucially — keeps one signature
+            # across versions, which is what lets an update install over the previous app.
+            BT=release
           fi
-          if [ "$BT" = "release" ] && [ -z "$KEYSTORE_B64" ]; then
-            echo "::error::build_type=release needs the ANDROID_KEYSTORE_BASE64 secret — see docs/SIGNING.md"
+          SIGNING=distribution
+          if [ "$HAS_SECRET" = "true" ]; then SIGNING=play
+          elif [ "$HAS_BUNDLED" != "true" ]; then
+            echo "::error::build_type=release needs either the ANDROID_KEYSTORE_BASE64 secret or android/mda-distribution.keystore — see docs/SIGNING.md"
             exit 1
           fi
-          if [ "$BT" != "release" ] && [ "$BUILD_FORMAT" != "apk" ]; then
-            # A debug bundle is useless: fall back to an APK instead of failing the whole run.
-            echo "::warning::debug build — producing app-debug.apk only (add ANDROID_KEYSTORE_BASE64 for a signed release/AAB)"
-            echo "BUILD_FORMAT=apk" >> "$GITHUB_ENV"
+          if [ "$BT" = "release" ] && [ "$SIGNING" = "distribution" ] && [ "$BUILD_FORMAT" != "apk" ]; then
+            # A Play bundle signed with the public distribution key would be rejected by Play
+            # (and would expose an upload key anyone could reuse): ship the APK only.
+            echo "::warning::no ANDROID_KEYSTORE_BASE64 — producing app-release.apk signed with the distribution key (no AAB)"
             BUILD_FORMAT=apk
           fi
-          echo "BUILD_TYPE=$BT" >> "$GITHUB_ENV"
-          echo "build_type=$BT (format: $BUILD_FORMAT)"
+          if [ "$BT" != "release" ] && [ "$BUILD_FORMAT" != "apk" ]; then
+            echo "::warning::debug build — producing app-debug.apk only (add ANDROID_KEYSTORE_BASE64 for a signed release/AAB)"
+            BUILD_FORMAT=apk
+          fi
+          {
+            echo "BUILD_TYPE=$BT"
+            echo "BUILD_FORMAT=$BUILD_FORMAT"
+            echo "HAS_KEYSTORE_SECRET=$HAS_SECRET"
+            echo "SIGNING_KIND=$SIGNING"
+          } >> "$GITHUB_ENV"
+          echo "build_type=$BT · format=$BUILD_FORMAT · signing=$SIGNING"
+          echo "::notice::signing with the $( [ "$SIGNING" = play ] && echo 'Google Play upload key' || echo 'bundled distribution key (stable across releases)' )"
 
       - name: Node 22
         uses: actions/setup-node@v4
@@ -165,8 +183,8 @@ jobs:
           sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
-      - name: Restore release keystore
-        if: env.BUILD_TYPE == 'release'
+      - name: Restore release keystore (Play upload key)
+        if: env.HAS_KEYSTORE_SECRET == 'true'
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KS_TYPE: ${{ vars.MDA_KEYSTORE_TYPE }}
@@ -182,6 +200,12 @@ jobs:
             echo "MDA_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}"
             echo "MDA_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}"
           } >> "$GITHUB_ENV"
+
+      - name: Bundled distribution key (when no Play key is configured)
+        if: env.HAS_KEYSTORE_SECRET != 'true'
+        run: |
+          test -f android/mda-distribution.keystore || { echo "::error::android/mda-distribution.keystore is missing"; exit 1; }
+          echo "::notice::using android/mda-distribution.keystore — the same key as every previous release, so updates install over the installed app"
 
       - name: Build APK
         working-directory: android
@@ -238,6 +262,34 @@ jobs:
             exit 1
           fi
           echo "::notice::targetSdk $TARGET satisfies the Play requirement"
+
+      - name: Verify the APK is self-contained (web bundle + native bridge inside)
+        run: |
+          APK=$(find android/app/build/outputs -name '*.apk' | sort | head -1)
+          test -n "$APK" || { echo "::error::no APK produced"; exit 1; }
+          unzip -l "$APK" > apk-list.txt
+          for entry in assets/public/index.html assets/capacitor.config.json; do
+            grep -q " $entry$" apk-list.txt || { echo "::error::$APK is missing $entry — the app would open a blank screen"; exit 1; }
+          done
+          JS=$(grep -c " assets/public/assets/.*\.js$" apk-list.txt || true)
+          echo "packed JS files: $JS"
+          [ "$JS" -ge 1 ] || { echo "::error::$APK carries no JavaScript bundle"; exit 1; }
+          unzip -p "$APK" assets/capacitor.config.json > apk-capacitor.json
+          node -e '
+            const cfg = require("./apk-capacitor.json");
+            const on = cfg?.plugins?.CapacitorHttp?.enabled === true;
+            console.log("APK capacitor.config.json → CapacitorHttp.enabled =", on);
+            if (!on) { console.error("::error::the APK would fall back to browser fetch and depend on server CORS"); process.exit(1); }
+          '
+          # A debuggable build is slower, warns on install and cannot be published.
+          if grep -q "application-debuggable" badging.txt; then
+            [ "$BUILD_TYPE" = "release" ] && { echo "::error::this is a debug build but BUILD_TYPE=release"; exit 1; }
+            echo "::notice::debug build (not for distribution)"
+          else
+            echo "::notice::not debuggable — a distribution-ready build"
+          fi
+          VC=$(grep -oE "versionCode='[0-9]+'" badging.txt | head -1 | grep -oE "[0-9]+" || echo "?")
+          echo "APK is self-contained: web bundle + native transport + versionCode $VC"
 
       - name: Publish gradle failure log
         if: failure()
@@ -382,11 +434,11 @@ jobs:
               ""
             if [ "$BUILD_TYPE" = "release" ]; then
               printf '%s\n' \
-                "### ✅ نسخة موقّعة رسميًا (release-signed)" \
+                "### ✅ نسخة release موقّعة بمفتاح ثابت" \
                 "" \
-                "- ثبّت \`app-release.apk\` للتوزيع المباشر." \
-                "- \`app-release.aab\` للرفع على Google Play (Play Console → Production → Create release)." \
-                "- ⚠️ إن كنت ثبّت نسخة debug سابقة (v1.0.x) احذفها أولًا: بصمة التوقيع مختلفة." \
+                "- ثبّت \`app-release.apk\` للتوزيع المباشر — تُحدَّث فوق النسخة السابقة بلا حذف." \
+                "- التوقيع: \`$SIGNING_KIND\` ($( [ "$SIGNING_KIND" = play ] && echo 'مفتاح الرفع الخاص بك' || echo 'مفتاح التوزيع المدمج في المستودع — نفس البصمة في كل إصدار' ))." \
+                "- ⚠️ النسخ السابقة (v1.8.0–v1.8.3) كانت debug بتوقيع مختلف: احذفها مرة واحدة فقط." \
                 "- بصمة الشهادة: \`$(grep -m1 'certificate SHA-256 digest' signature.txt 2>/dev/null | sed 's/.*digest: //' || echo 'see build log')\`" \
                 "" \
                 "### 🔐 التحميل" \

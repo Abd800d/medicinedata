@@ -9,16 +9,36 @@
 
 ## كيف يعمل الآن (بدون أي إعداد إضافي)
 
+منذ **v1.8.4** يُشحن مع المستودع مفتاح توزيع ثابت `android/mda-distribution.keystore`، ويُستخدم
+تلقائيًا متى لم يكن السر `ANDROID_KEYSTORE_BASE64` موجودًا. النتيجة: **كل إصدار يحمل نفس بصمة
+التوقيع**، فيُثبَّت التحديث الجديد **فوق** التطبيق الموجود بدون حذفه.
+
 | الحدث | ما يُبنى |
 |---|---|
-| push وسم `v*` **مع** وجود السر `ANDROID_KEYSTORE_BASE64` | `app-release.apk` موقّع ✅ + `app-release.aab` (الافتراضي) |
-| push وسم `v*` **بدون** السر | `app-debug.apk` (سلوك قديم، للتوزيع المباشر) |
-| Actions → Android APK → `build_type=debug` | `app-debug.apk` |
-| Actions → Android APK → `build_type=release` بدون السر | ❌ يفشل برسالة واضحة (حماية من توقيع debug خاطئ) |
-| Actions → Android APK → `build_type=release` + `build_format=aab` | `app-release.aab` فقط (لـGoogle Play) |
-| Actions → `build_format=both` | الاثنان معًا |
+| push وسم `v*` **بدون** سر (الوضع الحالي) | `app-release.apk` موقّع بمفتاح التوزيع الثابت ✅ (لا AAB) |
+| push وسم `v*` **مع** السر `ANDROID_KEYSTORE_BASE64` | `app-release.apk` + `app-release.aab` موقّعان بمفتاح الرفع الخاص بك |
+| push إلى `arena/**` أو `feature/**` | `app-release.apk` (للتحقق من سلسلة الأدوات والتوقيع) |
+| Actions → `build_type=debug` | `app-debug.apk` (للتشخيص فقط — توقيعه يتغيّر كل بناء) |
+| Actions → `build_type=release` + `build_format=aab` | `app-release.aab` فقط (لـGoogle Play — يحتاج السر) |
 
 الملفات تُرفع تلقائيًا في صفحة **Releases** عند الوسم، وتظهر أيضًا كـartifact باسم `mda-apk`.
+
+### مفتاح التوزيع المدمج — ما هو وما ليس هو
+
+| | |
+|---|---|
+| الملف | `android/mda-distribution.keystore` (PKCS#12) |
+| الاسم المستعار | `mda` |
+| كلمة المرور | `mda-distribute-2026` (مذكورة هنا لأن المفتاح **عام ومقصود**) |
+| البصمة (SHA-256) | `21:9F:C4:D7:3A:C3:EF:62:1C:C6:00:4B:7E:8A:6E:9E:B9:22:E8:5C:3A:CE:DD:0D:66:A0:B5:F4:B5:63:3F:C4` |
+| صلاحية الشهادة | إلى 2056 |
+| ✅ يصلح لـ | التثبيت المباشر (sideload) وتحديث الإصدارات فوق بعضها |
+| ❌ لا يصلح لـ | Google Play — للرفع استخدم `ANDROID_KEYSTORE_BASE64` (السر يتقدّم دائمًا على المفتاح المدمج) |
+
+> **لماذا مفتاح عام؟** لأن أسرار GitHub غير قابلة للإنشاء من هذه البيئة، وبِلا مفتاح ثابت كان كل
+> بناء على CI يُولّد مفتاح debug عشوائيًا ⇒ رسالة **«لم يتم تثبيت التطبيق»** عند تحديثه. وجوده في
+> المستودع مقصود ومُوثَّق. خطره محدود: من يملكه يستطيع توقيع APK يحمل نفس اسم الحزمة، ولهذا لا
+> يجوز استخدامه للنشر على Play (Play يستخدم مفتاح الرفع + Play App Signing).
 
 ---
 
