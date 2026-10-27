@@ -28,10 +28,12 @@ android {
         applicationId "com.mda.medicinedata"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Overridable from CI: ./gradlew assembleRelease -PversionCode=42 -PversionName=1.9.0
+        // CI always passes -PversionCode=<run number>: it must only ever grow, otherwise Android
+        // refuses the update over an installed release ("app not installed").
+        // The fallback below matches the shipped v1.9.0 build (CI run #45).
         def ciVersionCode = project.findProperty("versionCode")?.toString()?.trim()
         def ciVersionName = project.findProperty("versionName")?.toString()?.trim()
-        versionCode(ciVersionCode ? ciVersionCode.toInteger() : 13)
+        versionCode(ciVersionCode ? ciVersionCode.toInteger() : 45)
         versionName(ciVersionName ?: "1.9.0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
