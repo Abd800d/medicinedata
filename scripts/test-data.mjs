@@ -243,8 +243,17 @@ ok('image delete works', del.json?.ok === true && (await req(`/api/admin/product
 console.log('permissions · a normal account is refused');
 
 const userEmail = `tester-${stamp}@example.com`;
-await req('/api/auth/register', { method: 'POST', body: { name: 'Tester', email: userEmail, password: 'Tester123!' } });
-const userToken = await tokenOf(userEmail, 'Tester123!');
+/* Registration is throttled per IP (8/min) because test:e2e just created several accounts.
+   Retry with backoff instead of failing the suite when the two runs are back to back. */
+let userToken = null;
+const reg = await req('/api/auth/register', { method: 'POST', body: { name: 'Tester', email: userEmail, password: 'Tester123!' } });
+userToken = reg.json?.token || (await tokenOf(userEmail, 'Tester123!'));
+if (!userToken && reg.status === 429) {
+  /* Only when the suite runs straight after another one from the same IP. */
+  await new Promise((r) => setTimeout(r, 6000));
+  const again = await req('/api/auth/register', { method: 'POST', body: { name: 'Tester', email: userEmail, password: 'Tester123!' } });
+  userToken = again.json?.token || (await tokenOf(userEmail, 'Tester123!'));
+}
 ok('test user created', !!userToken);
 for (const [name, path_, method] of [
   ['export', '/api/admin/export/products?format=csv', 'GET'],

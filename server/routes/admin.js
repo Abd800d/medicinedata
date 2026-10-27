@@ -19,6 +19,7 @@ import { encryptFile, decryptBuffer, inspectBackup, restoreSnapshot, snapshotToT
 import { audit } from '../lib/audit.js';
 import { generateUploadKeystore, secretCommands } from '../lib/keystore.js';
 import { aiAdminView, saveAiConfig, testAiConfig } from '../lib/ai-config.js';
+import { googleOAuthReady, googleClientIdResolved, googleClientSecret, saveGoogleCredential, callbackUrl } from '../lib/google-oauth.js';
 
 const router = Router();
 router.use(adminRequired);
@@ -589,6 +590,42 @@ router.get('/image-search', async (req, res) => {
 router.get('/integrations', (_req, res) => {
   res.json({ integrations: integrations(), bundled_images: bundledImages(), env_file: process.env.ENV_FILE || '.env' });
 });
+/* Google OAuth credentials entered from the panel (v1.9.0).
+   The secret is AES-256-GCM encrypted at rest and never returned to any client. */
+router.get('/google-oauth', (req, res) => {
+  const id = googleClientIdResolved();
+  const secret = googleClientSecret();
+  res.json({
+    configured: googleOAuthReady(),
+    client_id: id || '',
+    has_secret: Boolean(secret),
+    secret_hint: secret ? `${secret.slice(0, 4)}…${secret.slice(-4)}` : null,
+    /* Exactly what must be pasted into Google Cloud Console → Authorized redirect URIs */
+    redirect_uri: callbackUrl(req),
+    app_scheme: 'com.mda.medicinedata://auth',
+    steps_ar: [
+      'افتح console.cloud.google.com ← APIs & Services ← Credentials.',
+      'Create credentials ← OAuth client ID ← نوع Web application.',
+      `Authorized redirect URIs: ${callbackUrl(req)}`,
+      'انسخ Client ID و Client Secret والصقهما هنا ثم احفظ.',
+      'بعدها يظهر زر «الدخول بحساب Google» في التطبيق ويفتح متصفح الجهاز.',
+    ],
+  });
+});
+router.put('/google-oauth', (req, res) => {
+  try {
+    const b = req.body || {};
+    if (b.client_id !== undefined && b.client_id !== '' && !/^[0-9A-Za-z._-]+\.apps\.googleusercontent\.com$/.test(String(b.client_id).trim())) {
+      return res.status(400).json({ error: 'BAD_CLIENT_ID', message: 'Client ID ينتهي بـ .apps.googleusercontent.com' });
+    }
+    const out = saveGoogleCredential({ clientId: b.client_id, clientSecret: b.client_secret, clearSecret: b.clear_secret === true });
+    audit('google.oauth.saved', { actor: req.user, targetType: 'settings', targetId: 0, meta: { has_secret: out.has_secret, configured: googleOAuthReady() }, ip: req.ip });
+    res.json({ ok: true, configured: googleOAuthReady(), has_secret: out.has_secret, client_id: googleClientIdResolved(), redirect_uri: callbackUrl(req) });
+  } catch (e) {
+    res.status(400).json({ error: e.code || 'SAVE_FAILED', message: String(e.message || e) });
+  }
+});
+
 router.post('/integrations/test', async (req, res) => {
   try {
     const target = String(req.body?.target || '');
@@ -761,7 +798,7 @@ async function runImport(importId, filePath, kind, opts) {
       if (batch.length) consume(batch);
     } else {
       /* XLSX / JSON / XML / SQLite are read in one go, then imported in batches. */
-      const rows = readRows(filePath, kind, { table: opts.table });
+      const rows = await readRows(filePath, kind, { table: opts.table });
       for (let i = 0; i < rows.length; i += 1000) {
         consume(rows.slice(i, i + 1000));
         await new Promise((r) => setImmediate(r));
@@ -795,8 +832,8 @@ router.post('/import', importUpload.single('file'), async (req, res) => {
     const importer = createImporter();
     const preview = { rows: 0, ok: 0, failed: 0, skipped: 0, errors: [], sample: [] };
     try {
-      preview.detected = inspectFile(req.file.path, kind, table);
-      const rows = readRows(req.file.path, kind, { table, limit: 50 });
+      preview.detected = await inspectFile(req.file.path, kind, table);
+      const rows = await readRows(req.file.path, kind, { table, limit: 50 });
       db.exec('SAVEPOINT dryrun');
       for (const r of rows) {
         preview.rows++;

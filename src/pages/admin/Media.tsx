@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Sparkles,
   AlertTriangle, CheckCircle2, Download, FileSpreadsheet, FileText, Image as ImageIcon, Loader2, RefreshCw,
-  Search, UploadCloud, X, ExternalLink, Database, ListChecks,
+  Search, UploadCloud, X, XCircle, ExternalLink, Database, ListChecks, Braces,
 } from 'lucide-react';
-import { api, getToken } from '../../lib/api';
+import { api, apiUrl, getToken } from '../../lib/api';
 import { useApi } from '../../lib/useApi';
 import { Badge, Field, PageLoader, Select, useToast } from '../../components/ui';
 import { cx, dateFmt, num } from '../../lib/utils';
 import ProductGallery from './ProductGallery';
+import { openExternal } from '../../lib/external';
 
 const TEMPLATE = 'generic_name,generic_ar,trade_name,trade_name_ar,strength,dosage_form,pack_size,manufacturer,manufacturer_country,agent,country,barcode,price,currency,image_url,system,category,drug_class,atc_code,indications_ar,dosage_adult,dosage_child,warnings,side_effects,contraindications,verified';
 
@@ -30,10 +31,25 @@ export default function Media() {
 }
 
 /* ------------------------------- import ------------------------------- */
+/** A sample row written in every supported format, so the owner can start immediately. */
+function sampleRow() {
+  const cols = TEMPLATE.split(',');
+  const values = {
+    generic_name: 'Paracetamol', generic_ar: 'باراسيتامول', trade_name: 'Panadol', trade_name_ar: 'بنادول',
+    strength: '500 mg', dosage_form: 'Tablet', pack_size: '20', manufacturer: 'GSK',
+    manufacturer_country: 'UK', agent: 'وكيل اليمن', country: 'Yemen', barcode: '6291041500123',
+    price: '', currency: 'YER', image_url: '', system: 'Nervous System',
+    category: 'Analgesics & Antipyretics', drug_class: 'Analgesic', atc_code: 'N02BE01',
+    indications_ar: 'خافض حرارة ومسكن', dosage_adult: '500-1000 mg كل 6 ساعات',
+    dosage_child: '', warnings: '', side_effects: '', contraindications: '', verified: '1',
+  } as Record<string, string>;
+  return Object.fromEntries(cols.map((c) => [c, values[c] ?? '']));
+}
+
 function ImportPanel() {
   const { data: systems } = useApi<any[]>('/api/admin/systems');
   const { push } = useToast();
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [systemId, setSystemId] = useState('');
   const [verify, setVerify] = useState(false);
   const [mode, setMode] = useState<'upsert' | 'insert' | 'update'>('upsert');
@@ -42,12 +58,28 @@ function ImportPanel() {
   const [busy, setBusy] = useState(false);
   const [job, setJob] = useState<any>(null);
   const [preview, setPreview] = useState<any>(null);
+  const [batch, setBatch] = useState<Array<{ name: string; state: 'queued' | 'running' | 'done' | 'failed'; detail?: string }>>([]);
+  const [jsonText, setJsonText] = useState('');
+  const [jsonResult, setJsonResult] = useState<any>(null);
+  const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const send = (dryRun: boolean, tableOverride?: string) => new Promise<any>((resolve, reject) => {
-    if (!file) return reject(new Error('اختر ملفًا أولًا'));
+  const file = files[0] || null;
+
+  const addFiles = (list: FileList | File[] | null) => {
+    const picked = Array.from(list || []).filter(Boolean);
+    if (!picked.length) return;
+    setFiles((prev) => {
+      const merged = [...prev];
+      for (const f of picked) if (!merged.some((m) => m.name === f.name && m.size === f.size)) merged.push(f);
+      return merged;
+    });
+    setJob(null); setPreview(null); setBatch([]);
+  };
+
+  const send = (f: File, dryRun: boolean, tableOverride?: string) => new Promise<any>((resolve, reject) => {
     const fd = new FormData();
-    fd.append('file', file);
+    fd.append('file', f);
     if (systemId) fd.append('system_id', systemId);
     if (verify) fd.append('verify', '1');
     fd.append('mode', mode);
@@ -55,7 +87,9 @@ function ImportPanel() {
     if (chosenTable) fd.append('table', chosenTable);
     if (dryRun) fd.append('dryRun', '1');
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/admin/import');
+    /* Absolute URL: a relative '/api/...' would hit the packaged bundle inside the APK
+       (origin https://localhost) and fail with 404 instead of importing. */
+    xhr.open('POST', apiUrl('/api/admin/import'));
     const token = getToken();
     if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     xhr.upload.onprogress = (e) => { if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100)); };
@@ -70,21 +104,67 @@ function ImportPanel() {
     xhr.send(fd);
   });
 
-  const start = async (dryRun: boolean, tableOverride?: string) => {
-    setBusy(true); setProgress(0); setPreview(null);
+  /** Start the import for one file (or for every queued file). */
+  const start = async (dryRun: boolean, tableOverride?: string, only?: File) => {
+    const queue = only ? [only] : files;
+    if (!queue.length) return;
+    setBusy(true); setProgress(0); setPreview(null); setJob(null);
+    setBatch(queue.map((f) => ({ name: f.name, state: 'queued' })));
     try {
-      const res = await send(dryRun, tableOverride);
-      if (dryRun) { setPreview(res); push('تمت معاينة الملف'); }
-      else { setJob(res); push('بدأ الاستيراد في الخلفية'); }
-    } catch (e: any) { push(e.message === 'NETWORK' ? 'تعذر الاتصال بالخادم' : e.message, 'error'); }
-    finally { setBusy(false); }
+      for (let i = 0; i < queue.length; i++) {
+        const f = queue[i];
+        setBatch((b) => b.map((x, idx) => (idx === i ? { ...x, state: 'running' } : x)));
+        try {
+          const res = await send(f, dryRun, tableOverride);
+          if (dryRun) {
+            setPreview({ ...res, filename: f.name });
+            setProgress(0);
+          } else {
+            setJob(res);
+          }
+          setBatch((b) => b.map((x, idx) => (idx === i
+            ? { ...x, state: 'done', detail: dryRun ? `صالح ${res.ok} · فاشل ${res.failed}` : `بدأ كعملية #${res.id ?? '—'}` }
+            : x)));
+        } catch (e: any) {
+          setBatch((b) => b.map((x, idx) => (idx === i ? { ...x, state: 'failed', detail: e.message === 'NETWORK' ? 'تعذر الاتصال' : e.message } : x)));
+        }
+      }
+      push(dryRun ? 'تمت المعاينة' : 'بدأ الاستيراد');
+    } finally { setBusy(false); }
   };
 
-  const template = () => {
-    const blob = new Blob(['\uFEFF' + TEMPLATE + '\n'], { type: 'text/csv;charset=utf-8' });
+  const download = (blob: Blob, name: string) => {
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = 'mda-import-template.csv'; a.click();
-    URL.revokeObjectURL(a.href);
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  };
+
+  const templateCsv = () => download(new Blob(['\uFEFF' + TEMPLATE + '\n'], { type: 'text/csv;charset=utf-8' }), 'mda-import-template.csv');
+  const templateJson = () => download(new Blob([JSON.stringify([sampleRow()], null, 2)], { type: 'application/json' }), 'mda-import-template.json');
+  const templateTsv = () => {
+    const row = sampleRow();
+    const keys = Object.keys(row);
+    const tsv = [keys.join('\t'), keys.map((k) => row[k]).join('\t')].join('\n');
+    download(new Blob(['\uFEFF' + tsv], { type: 'text/tab-separated-values;charset=utf-8' }), 'mda-import-template.tsv');
+  };
+
+  const importJson = async () => {
+    setJsonResult(null);
+    let rows: any;
+    try {
+      const parsed = JSON.parse(jsonText);
+      rows = Array.isArray(parsed) ? parsed : parsed?.rows ?? parsed?.drugs;
+    } catch { push('JSON غير صالح — تحقق من الأقواس والفواصل', 'error'); return; }
+    if (!Array.isArray(rows) || !rows.length) { push('المطلوب مصفوفة من الكائنات', 'error'); return; }
+    setBusy(true);
+    try {
+      const res = await api.post<any>('/api/admin/import-json', { rows, verify });
+      setJsonResult(res);
+      push(`أُضيف ${res.ok} · فشل ${res.failed}`);
+    } catch (e: any) { push(e.message || 'خطأ', 'error'); }
+    finally { setBusy(false); }
   };
 
   return (
@@ -93,16 +173,45 @@ function ImportPanel() {
         <div className="mb-2 flex items-center gap-2"><FileSpreadsheet className="h-4 w-4 text-violet-300" /><h2 className="text-[12.5px] font-extrabold">استيراد قاعدة البيانات</h2></div>
         <p className="text-[11px] leading-5 text-ink-500">
           CSV / TSV (حتى ملايين الصفوف، معالجة متدفقة) · Excel (XLSX/XLS) · JSON · <b>XML</b> (سجلات &lt;drug&gt;/&lt;product&gt; مع وراثة الحقول) · <b>SQLite</b> (ملف .db يُفتح للقراءة فقط، ويُكتشف الجدول تلقائيًا).
-          تُطابَق الأعمدة تلقائيًا بالعربية أو الإنجليزية، ويُنشأ الدواء والشركة والوكيل والتصنيف تلقائيًا عند الحاجة.
+          تُطابَق الأعمدة تلقائيًا بالعربية أو الإنجليزية، ويُنشأ الدواء والشركة والوكيل والتصنيف تلقائيًا عند الحاجة. <b>يمكن اختيار عدة ملفات دفعة واحدة.</b>
         </p>
 
-        <label className={cx('mt-3 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 text-center transition',
-          file ? 'border-brand-400/60 bg-brand-500/10' : 'border-white/[.08] hover:border-brand-400/50')}>
-          {busy ? <Loader2 className="mb-2 h-7 w-7 animate-spin text-brand-300" /> : file ? <CheckCircle2 className="mb-2 h-7 w-7 text-brand-300" /> : <UploadCloud className="mb-2 h-7 w-7 text-ink-400" />}
-          <span className="text-[12px] font-bold text-ink-200">{file ? file.name : 'اختر ملف CSV / XLSX / JSON / XML / SQLite'}</span>
-          <span className="mt-0.5 text-[10.5px] text-ink-400">{file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : 'اضغط للاختيار من جهازك'}</span>
-          <input ref={inputRef} type="file" accept=".csv,.tsv,.xlsx,.xls,.json,.xml,.db,.sqlite,.sqlite3" className="hidden" onChange={(e) => { setFile(e.target.files?.[0] || null); setJob(null); setPreview(null); }} />
+        <label
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
+          className={cx('mt-3 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 text-center transition',
+            dragOver ? 'border-brand-400 bg-brand-500/20' : files.length ? 'border-brand-400/60 bg-brand-500/10' : 'border-white/[.08] hover:border-brand-400/50')}>
+          {busy ? <Loader2 className="mb-2 h-7 w-7 animate-spin text-brand-300" /> : files.length ? <CheckCircle2 className="mb-2 h-7 w-7 text-brand-300" /> : <UploadCloud className="mb-2 h-7 w-7 text-ink-400" />}
+          <span className="text-[12px] font-bold text-ink-200">
+            {files.length ? `${files.length} ملف جاهز للاستيراد` : 'اختر أو أفلت ملفات CSV / XLSX / JSON / XML / SQLite'}
+          </span>
+          <span className="mt-0.5 text-[10.5px] text-ink-400">{files.length ? 'اضغط لإضافة المزيد' : 'اضغط للاختيار من جهازك — عدة ملفات مسموحة'}</span>
+          <input ref={inputRef} type="file" multiple accept=".csv,.tsv,.txt,.xlsx,.xls,.json,.xml,.db,.sqlite,.sqlite3" className="hidden"
+            onChange={(e) => { addFiles(e.target.files); if (inputRef.current) inputRef.current.value = ''; }} />
         </label>
+
+        {files.length > 0 && (
+          <div className="mt-2 space-y-1">
+            {files.map((f, i) => {
+              const row = batch[i];
+              return (
+                <div key={`${f.name}-${f.size}`} className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-[11px] bg-white/[.055]">
+                  {row?.state === 'running' ? <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-brand-300" />
+                    : row?.state === 'done' ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-300" />
+                      : row?.state === 'failed' ? <XCircle className="h-3.5 w-3.5 shrink-0 text-rose-300" />
+                        : <FileSpreadsheet className="h-3.5 w-3.5 shrink-0 text-ink-400" />}
+                  <span className="min-w-0 flex-1 truncate font-semibold text-ink-200">{f.name}</span>
+                  <span className="shrink-0 text-[10px] text-ink-500">{(f.size / 1024 / 1024).toFixed(2)} MB</span>
+                  {row?.detail && <span className="shrink-0 text-[10px] text-ink-400">{row.detail}</span>}
+                  <button onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))} className="shrink-0 text-ink-500 hover:text-rose-300" aria-label="إزالة">
+                    <XCircle className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
         {progress > 0 && progress < 100 && <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full rounded-full bg-brand-600 transition-all" style={{ width: `${progress}%` }} /></div>}
 
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -122,15 +231,21 @@ function ImportPanel() {
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
-          <button onClick={() => start(true)} disabled={!file || busy} className="btn-ghost text-[11.5px]"><ListChecks className="h-4 w-4" />معاينة تجريبية</button>
-          <button onClick={() => start(false)} disabled={!file || busy} className="btn-primary text-[11.5px]"><UploadCloud className="h-4 w-4" />بدء الاستيراد</button>
-          <button onClick={template} className="btn-ghost ms-auto text-[11px]"><Download className="h-3.5 w-3.5" />قالب CSV</button>
+          <button onClick={() => start(true)} disabled={!files.length || busy} className="btn-ghost text-[11.5px]"><ListChecks className="h-4 w-4" />معاينة {files.length > 1 ? `(${files.length})` : ''}</button>
+          <button onClick={() => start(false)} disabled={!files.length || busy} className="btn-primary text-[11.5px]"><UploadCloud className="h-4 w-4" />بدء الاستيراد{files.length > 1 ? ` (${files.length} ملفات)` : ''}</button>
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-semibold text-ink-500">قوالب جاهزة:</span>
+          <button onClick={templateCsv} className="btn-ghost px-2 py-1 text-[10.5px]"><Download className="h-3 w-3" />CSV</button>
+          <button onClick={templateTsv} className="btn-ghost px-2 py-1 text-[10.5px]"><Download className="h-3 w-3" />TSV</button>
+          <button onClick={templateJson} className="btn-ghost px-2 py-1 text-[10.5px]"><Download className="h-3 w-3" />JSON</button>
         </div>
       </div>
 
       {preview && (
         <div className="card p-4">
-          <div className="mb-1.5 flex items-center justify-between"><h3 className="text-[12px] font-extrabold">نتيجة المعاينة</h3><Badge tone="sky">{preview.kind}</Badge></div>
+          <div className="mb-1.5 flex items-center justify-between"><h3 className="text-[12px] font-extrabold">نتيجة المعاينة</h3><Badge tone="sky">{preview.filename || preview.kind}</Badge></div>
           <div className="flex flex-wrap gap-2 text-[11px]">
             <span className="text-emerald-300">صالح: {preview.ok}</span>
             <span className="text-amber-300">تم تجاهله: {preview.skipped ?? 0}</span>
@@ -143,7 +258,7 @@ function ImportPanel() {
               <div className="mb-1 font-bold text-ink-300">جداول ملف SQLite (أعلى = الأنسب):</div>
               <div className="space-y-1">
                 {preview.detected.tables.map((t: any) => (
-                  <button key={t.name} onClick={() => { setTable(t.name); start(true, t.name); }}
+                  <button key={t.name} onClick={() => { setTable(t.name); start(true, t.name, files[0]); }}
                     className={cx('flex w-full items-center gap-2 rounded-lg px-2 py-1 text-start', table === t.name ? 'bg-brand-500/20 text-brand-200' : 'hover:bg-white/[.06]')}>
                     <span className="font-mono">{t.name}</span>
                     <span className="text-ink-500">{t.rows} صف</span>
@@ -159,6 +274,31 @@ function ImportPanel() {
       )}
 
       {job && <ImportJob id={job.id} />}
+
+      {/* Direct JSON paste — the endpoint existed but had no screen (v1.9.0) */}
+      <div className="card p-4">
+        <div className="mb-2 flex items-center gap-2 text-[12px] font-extrabold"><Braces className="h-4 w-4 text-emerald-300" />لصق JSON مباشرة</div>
+        <p className="text-[10.5px] leading-5 text-ink-500">
+          مصفوفة من الكائنات بنفس أسماء الأعمدة، مثال:
+          <code className="mx-1 rounded bg-white/[.06] px-1 text-[10px]" dir="ltr">[{'{'}"generic_name":"Paracetamol","trade_name":"Panadol"{'}'}]</code>
+          — مناسب للنسخ من ملف أو من محادثة، حتى 50,000 صف.
+        </p>
+        <textarea value={jsonText} onChange={(e) => setJsonText(e.target.value)} dir="ltr" rows={5} spellCheck={false}
+          placeholder='[{"generic_name":"...","trade_name":"..."}]'
+          className="mt-2 w-full rounded-xl border border-white/[.08] bg-black/30 p-2.5 font-mono text-[10.5px] text-ink-200 outline-none focus:border-brand-400/50" />
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button onClick={importJson} disabled={busy || !jsonText.trim()} className="btn-primary text-[11.5px]">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Braces className="h-4 w-4" />}استيراد
+          </button>
+          <button onClick={async () => { try { setJsonText(await navigator.clipboard.readText()); } catch { push('تعذّر القراءة من الحافظة', 'error'); } }} className="btn-ghost text-[11px]">لصق من الحافظة</button>
+          {jsonResult && (
+            <span className="text-[11px]">
+              <span className="text-emerald-300">أُضيف {jsonResult.ok}</span> · <span className="text-rose-300">فشل {jsonResult.failed}</span> · <span className="text-ink-400">إجمالي {jsonResult.total}</span>
+            </span>
+          )}
+        </div>
+        {jsonResult?.errors?.length > 0 && <ul className="mt-1 space-y-0.5 text-[10.5px] text-rose-300">{jsonResult.errors.map((e: string, i: number) => <li key={i}>• {e}</li>)}</ul>}
+      </div>
 
       <div className="card p-4">
         <div className="mb-2 flex items-center gap-2 text-[12px] font-extrabold"><FileText className="h-4 w-4 text-sky-300" />أعمدة مدعومة</div>
@@ -233,7 +373,7 @@ function ImagesPanel() {
   const lookup = async () => {
     if (!q.trim()) return;
     setBusy(true);
-    try { const res = await api.get<any>('/api/admin/image-search', { q }); setSearch(res); if (!res.configured) window.open(res.searchUrl, '_blank'); }
+    try { const res = await api.get<any>('/api/admin/image-search', { q }); setSearch(res); if (!res.configured) await openExternal(res.searchUrl); }
     catch (e: any) { push(e.message || 'خطأ', 'error'); }
     finally { setBusy(false); }
   };

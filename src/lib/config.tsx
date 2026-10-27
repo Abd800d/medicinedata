@@ -17,6 +17,8 @@ export type AppConfig = {
   disclaimer_en: string;
   ai_enabled: boolean;
   google_client_id: string;
+  /** v1.9.0: true when the server holds a client id *and* secret → system-browser flow */
+  google_oauth?: boolean;
   counts: { drugs: number; products: number; systems: number };
   default_lang: string;
   maintenance?: boolean;
@@ -49,6 +51,7 @@ const DEFAULTS: AppConfig = {
   disclaimer_en: 'Reference information only; consult a licensed clinician.',
   ai_enabled: false,
   google_client_id: '',
+  google_oauth: false,
   counts: { drugs: 0, products: 0, systems: 0 },
   default_lang: 'ar',
   allow_registration: true,

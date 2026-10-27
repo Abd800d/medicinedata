@@ -54,6 +54,17 @@ const buildUrl = (path: string, params?: Record<string, unknown>) => {
   return base ? url.toString() : url.pathname + url.search;
 };
 
+/**
+ * Absolute URL for an API path (v1.9.0).
+ *
+ * Code that cannot go through `api.*` — XMLHttpRequest for upload progress, raw
+ * `fetch` for streams, `<img src>` style helpers — must not use a plain `/api/...`
+ * literal: inside the Android shell a relative URL resolves to `https://localhost`,
+ * which serves the packaged bundle and answers 404. Everything that speaks to the
+ * backend has to be absolute so that the native bridge (or CORS on the web) applies.
+ */
+export const apiUrl = (path: string, params?: Record<string, unknown>) => buildUrl(path, params);
+
 /* How long to wait for the backend before serving the built-in catalogue.
    Short, because a phone with no configured server should never stare at spinners. */
 const NET_TIMEOUT = 2600;

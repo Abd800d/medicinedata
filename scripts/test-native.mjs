@@ -72,6 +72,61 @@ const mainTsx = fs.readFileSync(path.join(ROOT, 'src/main.tsx'), 'utf8');
 ok('the PWA service worker is disabled inside the APK', /serviceWorker.*&& !isNativeShell\(\)/.test(mainTsx));
 
 /* ------------------------------------------------------------------ *
+ * 1c · no relative API URLs anywhere (v1.9.0)
+ * ------------------------------------------------------------------ *
+ * The import screen, the backup panel and the legal reader each had a literal
+ * '/api/...' call. Inside the shell that resolves to https://localhost, i.e. the
+ * packaged bundle, and every one of them failed with 404 while working on the web.
+ * A literal relative API URL in src/ is therefore a defect, not a style choice.
+ */
+console.log('source · absolute API URLs only');
+{
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
+    const full = path.join(dir, d.name);
+    return d.isDirectory() ? walk(full) : (/\.[jt]sx?$/.test(d.name) ? [full] : []);
+  });
+  const files = walk(path.join(ROOT, 'src'));
+  const offenders = [];
+  for (const file of files) {
+    const text = fs.readFileSync(file, 'utf8');
+    const lines = text.split('\n');
+    lines.forEach((line, i) => {
+      if (/\/\*|^\s*\*|^\s*\/\//.test(line)) return; /* comments may quote the old pattern */
+      const rel = /(fetch|smartFetch|open|xhr\.open|axios\.\w+)\s*\(\s*[`'"]\/api\//.exec(line);
+      if (rel) offenders.push(`${path.relative(ROOT, file)}:${i + 1} → ${rel[0]}`);
+    });
+  }
+  ok('no component calls the API with a relative URL', offenders.length === 0, offenders.slice(0, 3).join(' | '));
+
+  const apiSrc = fs.readFileSync(path.join(ROOT, 'src/lib/api.ts'), 'utf8');
+  ok('apiUrl() is exported for XHR and raw-fetch callers', /export const apiUrl =/.test(apiSrc));
+  const mediaSrc = fs.readFileSync(path.join(ROOT, 'src/pages/admin/Media.tsx'), 'utf8');
+  ok('the import uploader uses apiUrl()', /xhr\.open\('POST', apiUrl\('\/api\/admin\/import'\)\)/.test(mediaSrc));
+  const dataSrc = fs.readFileSync(path.join(ROOT, 'src/pages/admin/DataTools.tsx'), 'utf8');
+  ok('the encrypted backup panel uses apiUrl() + smartFetch', /smartFetch\(apiUrl\('\/api\/admin\/backup'\)/.test(dataSrc));
+  ok('the backup download asks for binary bytes', /180_000,\s*true/.test(dataSrc));
+}
+
+/* ------------------------------------------------------------------ *
+ * 1d · Google deep-link parsing (v1.9.0)
+ * ------------------------------------------------------------------ */
+console.log('google · deep link contract');
+{
+  const deepSrc = fs.readFileSync(path.join(ROOT, 'src/lib/googleauth.ts'), 'utf8');
+  ok('the app scheme matches AndroidManifest', /com\.mda\.medicinedata/.test(deepSrc));
+  const manifest = fs.readFileSync(path.join(ROOT, 'android/app/src/main/AndroidManifest.xml'), 'utf8');
+  ok('AndroidManifest registers the return scheme', /android:scheme="com\.mda\.medicinedata"[\s\S]{0,80}android:host="auth"/.test(manifest));
+  ok('the manifest filter is browsable (required by Android)', /<category android:name="android\.intent\.category\.BROWSABLE"\s*\/>\s*<data android:scheme="com\.mda\.medicinedata"/.test(manifest));
+  const appSrc = fs.readFileSync(path.join(ROOT, 'src/App.tsx'), 'utf8');
+  ok('deep links are wired into the app tree', /<DeepLinks \/>/.test(appSrc));
+  const serverOauth = fs.readFileSync(path.join(ROOT, 'server/lib/google-oauth.js'), 'utf8');
+  ok('the server uses PKCE S256', /S256/.test(serverOauth) && /createHash\('sha256'\)/.test(serverOauth));
+  ok('the server keeps the client secret server-side only', /client_secret: googleClientSecret\(\)/.test(serverOauth));
+  ok('the server encrypts the stored secret', /encryptSecret\(secret\)/.test(serverOauth));
+  ok('the callback only accepts our own scheme', /com\.mda\.medicinedata:\/\/auth/.test(serverOauth));
+}
+
+/* ------------------------------------------------------------------ *
  * 2 · browser environment that mimics the Android shell
  * ------------------------------------------------------------------ */
 const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', {
