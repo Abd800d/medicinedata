@@ -193,7 +193,8 @@ ok('the boundary is left to the native layer (no content-type header)', !calls[0
 console.log('\nsmartFetch · downloads and probes');
 useTransport();
 calls = [];
-route = () => ({ status: 200, headers: { 'content-type': 'application/pdf' }, data: 'JVBERi0=' }); /* "%PDF-" */
+/* Android's Base64.DEFAULT inserts a line break every 76 chars — the decoder must cope */
+route = () => ({ status: 200, headers: { 'content-type': 'application/pdf' }, data: 'JVBE\nRi0=' }); /* "%PDF-" */
 const pdf = await nativeHttp.smartFetch('https://x/api/admin/backup', {}, 30_000, true);
 const pdfBlob = await pdf.blob();
 ok('binary downloads ask the plugin for an arraybuffer', calls[0].responseType === 'arraybuffer', String(calls[0].responseType));
