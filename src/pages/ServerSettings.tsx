@@ -4,22 +4,24 @@ import {
   AlertTriangle, CheckCircle2, ChevronLeft, Copy, Globe2, Loader2, RefreshCw, Save, Server, ShieldCheck, Wifi, WifiOff,
 } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
-import { getApiBase, setApiBase } from '../lib/api';
+import { describeApiBase, getSavedApiBase, setApiBase } from '../lib/api';
+import { DEFAULT_SERVER, fallbackServer, isNativeShell } from '../lib/server';
 import { useToast } from '../components/ui';
 
-const DEFAULT_BASE = ((import.meta as any).env?.VITE_API_BASE as string) || '';
+/* The build default: the baked server in the Android shell, relative URLs on the web. */
+const DEFAULT_BASE = fallbackServer();
 
 async function probe(base: string) {
   const url = `${base.replace(/\/$/, '')}/api/health`;
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 6000);
+  const timer = setTimeout(() => ctrl.abort(), 25_000);
   try {
     const res = await fetch(url, { signal: ctrl.signal, headers: { accept: 'application/json' } });
     if (!res.ok) return { ok: false, message: `HTTP ${res.status}` };
     const data = await res.json();
     return { ok: true, message: data?.app ? `${data.app} · ${new Date(data.time).toLocaleTimeString()}` : 'ok' };
   } catch (e: any) {
-    return { ok: false, message: e?.name === 'AbortError' ? 'timeout' : 'unreachable' };
+    return { ok: false, message: e?.name === 'AbortError' ? 'timeout/cold-start' : 'unreachable' };
   } finally { clearTimeout(timer); }
 }
 
@@ -27,22 +29,23 @@ export default function ServerSettings() {
   const { lang } = useI18n();
   const ar = lang === 'ar';
   const { push } = useToast();
-  const [value, setValue] = useState(() => getApiBase());
+  const [value, setValue] = useState(() => getSavedApiBase());
+  const info = describeApiBase();
   const [testing, setTesting] = useState(false);
   const [state, setState] = useState<{ ok: boolean; message: string } | null>(null);
-  const effective = value.trim() || window.location.origin;
+  const effective = value.trim() || DEFAULT_BASE || window.location.origin;
 
   const test = async (raw = value) => {
     setTesting(true);
     setState(null);
-    const base = raw.trim() || window.location.origin;
+    const base = raw.trim() || DEFAULT_BASE || window.location.origin;
     const result = await probe(base);
     setState(result);
     setTesting(false);
     return result;
   };
 
-  useEffect(() => { void test(getApiBase() || window.location.origin); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { void test(effective); /* eslint-disable-next-line */ }, []);
 
   const save = async () => {
     const raw = value.trim().replace(/\/$/, '');
@@ -62,7 +65,7 @@ export default function ServerSettings() {
 
   const reset = () => {
     setApiBase('');
-    setValue(DEFAULT_BASE);
+    setValue('');
     push(ar ? 'تمت العودة للعنوان الافتراضي' : 'Reverted to the default server');
     setTimeout(() => window.location.reload(), 600);
   };
@@ -112,6 +115,45 @@ export default function ServerSettings() {
           </div>
         </div>
       </div>
+
+      {/* The server baked into this build — no typing needed on a fresh install */}
+      {DEFAULT_BASE && (
+        <div className="card relative overflow-hidden p-4">
+          <span className="pointer-events-none absolute -end-10 -top-12 h-32 w-32 rounded-full bg-brand-500/15 blur-2xl" />
+          <div className="relative flex items-start gap-2.5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-grad on-color shadow-tile ring-1 ring-white/20">
+              <ShieldCheck className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[12.5px] font-extrabold text-white">
+                {ar ? 'خادم مدمج في هذه النسخة' : 'Server built into this build'}
+              </h2>
+              <p className="mt-1 text-[11px] leading-6 text-ink-300">
+                {ar
+                  ? 'التطبيق يتصل به تلقائيًا من أول تشغيل — لا تحتاج إلى كتابة أي عنوان. يمكنك تغييره أدناه إن استضفت نسخة أخرى.'
+                  : 'The app connects to it on first launch — no URL to type. Change it below if you host another copy.'}
+              </p>
+              <code className="mt-1.5 block break-all rounded-lg bg-black/30 px-2 py-1 text-[10.5px] text-brand-200" dir="ltr">{DEFAULT_BASE}</code>
+              <div className="mt-1 text-[10px] text-ink-500">
+                {info.source === 'query' ? (ar ? 'مُستخدَم من رابط ?server=' : 'from ?server=') :
+                  info.source === 'saved' ? (ar ? 'عنوان محفوظ على الجهاز يتقدّم على المدمج' : 'a saved address overrides it') :
+                  (ar ? 'افتراضي — لم تخصّص عنوانًا' : 'default — no custom address')}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {state && !state.ok && (
+        <div className="card space-y-1.5 border-amber-400/25 bg-amber-500/[.07] p-3 text-[10.5px] leading-5 text-amber-200">
+          <div className="flex items-center gap-1.5 font-bold"><AlertTriangle className="h-3.5 w-3.5" />{ar ? 'لم يستجب الخادم — الأسباب المحتملة' : 'No answer — likely causes'}</div>
+          <ul className="space-y-0.5 ps-4" style={{ listStyle: 'disc' }}>
+            <li>{ar ? 'خادم مجاني نائم: أول طلب يستغرق حتى دقيقة — أعد الاختبار بعد 30 ثانية.' : 'Free-tier server asleep: the first call takes up to a minute — retry in 30 s.'}</li>
+            <li>{ar ? 'نسخة قديمة من الخادم لا تسمح لتطبيق أندرويد (CORS): أعد النشر من Render → Manual Deploy ← آخر commit.' : 'Older server without CORS: redeploy from Render → Manual Deploy → latest commit.'}</li>
+            <li>{ar ? 'الرابط غير صحيح أو الخدمة متوقفة: افتح الرابط في المتصفح وتأكد من ظهور /api/health.' : 'Wrong URL or the service is down: open /api/health in a browser.'}</li>
+          </ul>
+        </div>
+      )}
 
       <div className="card space-y-3 p-4">
         <label className="label" htmlFor="api-base">{ar ? 'عنوان الخادم' : 'Server URL'}</label>

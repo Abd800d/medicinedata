@@ -68,7 +68,19 @@ const state: State = {
 /* ---------------- server status (shared with the UI banner) ---------------- */
 type Listener = (reachable: boolean) => void;
 let serverReachable: boolean | null = null;
+/* 'waking' = the request timed out but the host may still be starting (Render free tier
+   sleeps after ~15 idle minutes and needs up to a minute to boot). */
+let serverWaking = false;
 const listeners = new Set<Listener>();
+
+export function setServerWaking(on: boolean) {
+  if (serverWaking === on) return;
+  serverWaking = on;
+  listeners.forEach((fn) => fn(serverReachable));
+}
+export function getServerWaking() {
+  return serverWaking;
+}
 
 export function setServerReachable(ok: boolean) {
   if (serverReachable === ok) return;

@@ -241,6 +241,45 @@ ok('clearing the database key falls back to the server setting',
   after.enabled === hadEnvironmentKey, `enabled=${after.enabled} env=${hadEnvironmentKey}`);
 }
 
+console.log('11 · the Android shell can reach the API (CORS, v1.8.2)');
+
+const SHELL_ORIGIN = 'https://localhost';
+const pre = await fetch(`${API}/api/health`, {
+  method: 'OPTIONS',
+  headers: {
+    Origin: SHELL_ORIGIN,
+    'Access-Control-Request-Method': 'GET',
+    'Access-Control-Request-Headers': 'authorization,content-type',
+  },
+});
+ok('preflight is answered without touching a handler (204)', pre.status === 204, `got ${pre.status}`);
+ok('the Capacitor origin is echoed back', pre.headers.get('access-control-allow-origin') === SHELL_ORIGIN);
+ok('the preflight allows Authorization (Bearer tokens)', /authorization/i.test(pre.headers.get('access-control-allow-headers') || ''));
+ok('the preflight allows the write methods the app uses', /POST/.test(pre.headers.get('access-control-allow-methods') || '') && /PUT/.test(pre.headers.get('access-control-allow-methods') || ''));
+ok('preflights are cached to keep the app fast', Number(pre.headers.get('access-control-max-age') || 0) >= 600);
+
+const authed = await fetch(`${API}/api/config`, { headers: { Origin: SHELL_ORIGIN, Accept: 'application/json' } });
+ok('real GET responses carry the CORS header too', authed.headers.get('access-control-allow-origin') === SHELL_ORIGIN);
+ok('idempotency headers stay readable by the client', /x-idempotency-key/i.test(authed.headers.get('access-control-expose-headers') || ''));
+ok('the API answer itself is untouched', authed.status === 200 && (await authed.json())?.app === 'MDA');
+
+const evil = await fetch(`${API}/api/config`, { headers: { Origin: 'https://evil.example.com' } });
+ok('an unrelated origin gets no CORS grant', evil.headers.get('access-control-allow-origin') === null);
+await evil.text();
+
+const post = await fetch(`${API}/api/auth/login`, {
+  method: 'POST',
+  headers: { Origin: SHELL_ORIGIN, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }),
+});
+ok('POST with credentials works cross-origin', post.status === 200 && Boolean((await post.json())?.token));
+
+const policy = await fetch(`${API}/privacy`, { headers: { Origin: SHELL_ORIGIN } });
+const policyCors = policy.headers.get('access-control-allow-origin');
+ok('the in-app legal reader is reachable cross-origin',
+  policy.status === 200 && (policyCors === SHELL_ORIGIN || policyCors === '*'), `acao=${policyCors}`);
+await policy.text();
+
 /* ------------------------------------------------------------------ cleanup */
 console.log('cleanup');
 const users = await call('/api/admin/users?q=e2e', { token: admin });

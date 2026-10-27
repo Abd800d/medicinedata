@@ -1,4 +1,5 @@
-import { isLocalPath, loadLocal, localArt, localServe, setServerReachable } from './localcatalog';
+import { isLocalPath, loadLocal, localArt, localServe, setServerReachable, setServerWaking, getServerWaking } from './localcatalog';
+import { fallbackServer, normalizeServer, serverFromQuery } from './server';
 
 export class ApiError extends Error {
   status: number;
@@ -13,8 +14,32 @@ const BASE_KEY = 'mda.apiBase';
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
 export const setToken = (t: string | null) => (t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY));
-export const getApiBase = () => localStorage.getItem(BASE_KEY) || (import.meta as any).env?.VITE_API_BASE || '';
-export const setApiBase = (b: string) => localStorage.setItem(BASE_KEY, b.replace(/\/$/, ''));
+/*
+ * Resolution order: ?server= (this session) → saved choice → build/env default → the
+ * baked server in the Android shell (relative URLs on the web deployment).
+ */
+const QUERY_BASE = serverFromQuery();
+
+export const getApiBase = () =>
+  QUERY_BASE || normalizeServer(localStorage.getItem(BASE_KEY)) || fallbackServer();
+
+/** Explicit choice made by the user (shown in الإعدادات); '' means "use the default". */
+export const getSavedApiBase = () => normalizeServer(localStorage.getItem(BASE_KEY));
+
+export const setApiBase = (b: string) => {
+  const clean = normalizeServer(b);
+  if (clean) localStorage.setItem(BASE_KEY, clean);
+  else localStorage.removeItem(BASE_KEY);
+};
+
+/** Where the app actually points right now, for display/diagnostics. */
+export const describeApiBase = () => {
+  if (QUERY_BASE) return { base: QUERY_BASE, source: 'query' as const };
+  const saved = getSavedApiBase();
+  if (saved) return { base: saved, source: 'saved' as const };
+  const fallback = fallbackServer();
+  return { base: fallback, source: fallback ? ('default' as const) : ('same-origin' as const) };
+};
 
 const buildUrl = (path: string, params?: Record<string, unknown>) => {
   const base = getApiBase();
@@ -31,9 +56,32 @@ const buildUrl = (path: string, params?: Record<string, unknown>) => {
 /* How long to wait for the backend before serving the built-in catalogue.
    Short, because a phone with no configured server should never stare at spinners. */
 const NET_TIMEOUT = 2600;
+/* Cold starts: a hosted free-tier server can take ~30–60 s to boot after idling. The
+   first call from a native shell therefore gets a longer budget, and a timeout is
+   reported as "waking" instead of "offline" so the UI can explain it. */
+const COLD_START_TIMEOUT = 25_000;
 /* After a failure, skip the network entirely for this long (fast, quiet offline mode). */
 const RETRY_AFTER = 25_000;
 let backendDownUntil = 0;
+let probedColdStart = false;
+
+/** One long, patient attempt per session before declaring the backend down. */
+async function wakeBackend(): Promise<boolean> {
+  if (probedColdStart) return false;
+  probedColdStart = true;
+  try {
+    setServerWaking(true);
+    const res = await fetchWithTimeout(buildUrl('/api/health'), { headers: { Accept: 'application/json' } }, COLD_START_TIMEOUT);
+    if (!res.ok) return false;
+    setServerReachable(true);
+    backendDownUntil = 0;
+    return true;
+  } catch {
+    return false;
+  } finally {
+    setServerWaking(false);
+  }
+}
 
 const backendKnownDown = () => Date.now() < backendDownUntil;
 
@@ -81,13 +129,32 @@ async function request<T>(path: string, options: RequestInit & { params?: Record
     setServerReachable(true);
     if (!slowCall) backendDownUntil = 0;
   } catch {
-    if (!slowCall) { setServerReachable(false); backendDownUntil = Date.now() + RETRY_AFTER; }
-    if (canBeLocal) {
-      await loadLocal();
-      const fallback = localAnswer<T>(path, params);
-      if (fallback !== undefined) return fallback;
+    /* A timeout from a hosted server is usually a cold start (free tiers sleep), not an
+       outage: give it one patient attempt before showing the built-in catalogue. */
+    if (!slowCall && fallbackServer() && (await wakeBackend())) {
+      try {
+        res = await fetchWithTimeout(buildUrl(path, params), { ...init, headers }, timeoutMs);
+        setServerReachable(true);
+        backendDownUntil = 0;
+      } catch {
+        setServerReachable(false);
+        backendDownUntil = Date.now() + RETRY_AFTER;
+        if (canBeLocal) {
+          await loadLocal();
+          const fallback = localAnswer<T>(path, params);
+          if (fallback !== undefined) return fallback;
+        }
+        throw new ApiError('NETWORK', 0);
+      }
+    } else {
+      if (!slowCall) { setServerReachable(false); backendDownUntil = Date.now() + RETRY_AFTER; }
+      if (canBeLocal) {
+        await loadLocal();
+        const fallback = localAnswer<T>(path, params);
+        if (fallback !== undefined) return fallback;
+      }
+      throw new ApiError('NETWORK', 0);
     }
-    throw new ApiError('NETWORK', 0);
   }
   const resType = res.headers.get('content-type') || '';
   /* A server that answers but is not our API (static host / SPA fallback) → use the bundle */

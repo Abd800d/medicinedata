@@ -139,6 +139,19 @@ ok('it names the scope of the switch', rxMarkup.includes('#7'));
 ok('it explains the browser limitation', rxMarkup.includes('المتصفح لا يستطيع منع لقطات الشاشة'));
 ok('it is an accessible switch', rxMarkup.includes('role="switch"') && rxMarkup.includes('aria-checked'));
 
+/* ---------------- baked server (v1.8.2) ---------------- */
+console.log('server · default endpoint');
+const srv = ui.serverLib;
+ok('a bare host is rejected (needs a scheme)', srv.normalizeServer('medicinedata-1.onrender.com') === '');
+ok('https origins are accepted and trimmed', srv.normalizeServer('https://medicinedata-1.onrender.com/') === 'https://medicinedata-1.onrender.com');
+ok('unsafe schemes are rejected', srv.normalizeServer('javascript:alert(1)') === '' && srv.normalizeServer('file:///etc/passwd') === '');
+ok('the default server is the deployed instance', srv.DEFAULT_SERVER === 'https://medicinedata-1.onrender.com');
+ok('?server= retargets the build without a rebuild', srv.serverFromQuery('?server=https://staging.example.com/') === 'https://staging.example.com');
+ok('a bogus ?server= is ignored', srv.serverFromQuery('?server=ftp://x') === '');
+/* jsdom runs at https://localhost, i.e. exactly the Android shell origin */
+ok('the shell is detected by its origin', srv.isNativeShell() === true);
+ok('the shell falls back to the baked server', srv.fallbackServer() === srv.DEFAULT_SERVER);
+
 /* ---------------- theme ---------------- */
 console.log('theme · dark / light / system');
 const html = document.documentElement;

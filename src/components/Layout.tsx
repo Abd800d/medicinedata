@@ -13,7 +13,8 @@ import { useI18n } from '../lib/i18n';
 import { useConfig } from '../lib/config';
 import { useAuth } from '../lib/auth';
 import { useOnline } from '../lib/offline';
-import { getServerReachable, subscribeServerStatus } from '../lib/localcatalog';
+import { getServerReachable, getServerWaking, subscribeServerStatus } from '../lib/localcatalog';
+import { describeApiBase } from '../lib/api';
 import { cx } from '../lib/utils';
 
 /* Bottom navigation — 5 destinations, matching the mobile reference design */
@@ -164,14 +165,29 @@ export function BottomNav() {
 /* Built-in catalogue mode: the phone has no server (yet) but the app is fully browsable. */
 export function useServerStatus() {
   const [reachable, setReachable] = useState<boolean | null>(() => getServerReachable());
-  useEffect(() => { const off = subscribeServerStatus(setReachable); return () => { off(); }; }, []);
-  return reachable;
+  const [waking, setWaking] = useState<boolean>(() => getServerWaking());
+  useEffect(() => {
+    const off = subscribeServerStatus((v) => { setReachable(v); setWaking(getServerWaking()); });
+    /* the waking flag flips without a reachability change, so poll it while mounted */
+    const t = setInterval(() => setWaking(getServerWaking()), 800);
+    return () => { off(); clearInterval(t); };
+  }, []);
+  return { reachable, waking };
 }
 
 export function OfflineBanner() {
   const online = useOnline();
-  const server = useServerStatus();
+  const { reachable: server, waking } = useServerStatus();
   const { t, lang } = useI18n();
+  /* Cold start of a hosted server: say so instead of showing "no server". */
+  if (waking) {
+    return (
+      <div className="sticky top-[62px] z-30 flex items-center justify-center gap-1.5 border-b border-brand-400/25 bg-brand-500/10 px-4 py-2 text-center text-[11px] font-bold text-brand-100 backdrop-blur">
+        <span className="h-3 w-3 animate-spin rounded-full border-2 border-brand-200/40 border-t-brand-200" />
+        {lang === 'ar' ? 'جارٍ تشغيل الخادم… (قد يستغرق حتى دقيقة)' : 'Starting the server… (up to a minute)'}
+      </div>
+    );
+  }
   if (!online) {
     return (
       <Link to="/offline" className="sticky top-[62px] z-30 block border-b border-amber-400/20 bg-amber-500/10 px-4 py-2 text-center text-[11.5px] font-bold text-amber-200 backdrop-blur">
@@ -187,8 +203,8 @@ export function OfflineBanner() {
     >
       <Database className="h-3.5 w-3.5 shrink-0" />
       {lang === 'ar'
-        ? 'البيانات المدمجة داخل التطبيق — الخادم غير متصل (اضغط للربط)'
-        : 'Built-in data — no server connected (tap to link)'}
+        ? `البيانات المدمجة — تعذّر الوصول إلى ${describeApiBase().base || 'الخادم'} (اضغط للمحاولة)`
+        : `Built-in data — cannot reach ${describeApiBase().base || 'the server'} (tap to retry)`}
     </Link>
   );
 }
