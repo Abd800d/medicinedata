@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, BarChart3, Boxes, Briefcase, CheckCircle2, ChevronLeft, ChevronRight, Database, Download,
   FileSpreadsheet, Inbox, LayoutDashboard, Loader2, MessageSquare, Package, RefreshCw, Save, Search,
-  Settings, ShieldAlert, Sparkles, TrendingUp, Upload, Users, Wrench, AlertTriangle, ExternalLink, Plug,
+  Settings, ShieldAlert, ShieldCheck, Sparkles, TrendingUp, Upload, Users, Wrench, AlertTriangle, ExternalLink, Plug,
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { useI18n } from '../../lib/i18n';
@@ -20,8 +20,9 @@ import SettingsPanel from './SettingsPanel';
 import Integrations from './Integrations';
 import Submissions from './Submissions';
 import AIQuality from './AIQuality';
+import AuditLog from './AuditLog';
 
-type Tab = 'dashboard' | 'ai' | 'catalog' | 'media' | 'data' | 'people' | 'submissions' | 'integrations' | 'settings';
+type Tab = 'dashboard' | 'ai' | 'catalog' | 'media' | 'data' | 'submissions' | 'people' | 'audit' | 'integrations' | 'settings';
 
 const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: 'dashboard', label: 'لوحة المعلومات', icon: LayoutDashboard },
@@ -31,6 +32,7 @@ const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: 'data', label: 'التصدير والنسخ', icon: Database },
   { id: 'people', label: 'المستخدمون والرسائل', icon: Users },
   { id: 'submissions', label: 'طلبات الإضافة', icon: FileSpreadsheet },
+  { id: 'audit', label: 'سجل التدقيق', icon: ShieldCheck },
   { id: 'integrations', label: 'التكاملات', icon: Plug },
   { id: 'settings', label: 'الإعدادات', icon: Settings },
 ];
@@ -93,6 +95,7 @@ export default function Admin() {
           {tab === 'data' && <DataTools />}
         {tab === 'people' && <People />}
         {tab === 'submissions' && <Submissions />}
+        {tab === 'audit' && <AuditLog />}
         {tab === 'integrations' && <Integrations />}
         {tab === 'settings' && <SettingsPanel />}
       </main>

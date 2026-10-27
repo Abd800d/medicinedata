@@ -136,15 +136,41 @@ router.post('/keystore', (req, res) => {
 /* ---------------- Audit log (immutable, hash-chained) ---------------- */
 router.get('/audit', (req, res) => {
   const limit = Math.min(500, Math.max(1, Number(req.query.limit) || 100));
+  const offset = Math.max(0, Number(req.query.offset) || 0);
   const action = String(req.query.action || '').trim();
   const target = String(req.query.target || '').trim();
+  const q = String(req.query.q || '').trim().slice(0, 120);
+  const from = String(req.query.from || '').trim().slice(0, 10);
+  const to = String(req.query.to || '').trim().slice(0, 10);
+  const where = [];
+  const args = [];
+  if (action) { where.push('a.action LIKE ?'); args.push(`${action}%`); }
+  if (target) { where.push('a.target_type = ?'); args.push(target); }
+  if (q) {
+    where.push('(a.action LIKE ? OR a.actor_email LIKE ? OR u.name LIKE ? OR a.target_id LIKE ? OR a.meta_json LIKE ?)');
+    args.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`);
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(from)) { where.push('date(a.created_at) >= date(?)'); args.push(from); }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(to)) { where.push('date(a.created_at) <= date(?)'); args.push(to); }
+  const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const rows = db.prepare(`SELECT a.*, u.name AS actor_name FROM audit_log a
       LEFT JOIN users u ON u.id = a.actor_id
-      ${action || target ? 'WHERE ' + [action ? '(a.action LIKE ?)' : null, target ? '(a.target_type=?)' : null].filter(Boolean).join(' AND ') : ''}
-      ORDER BY a.id DESC LIMIT ?`).all(
-    ...[...(action ? [`${action}%`] : []), ...(target ? [target] : []), limit],
-  );
-  res.json(rows.map((r) => ({ ...r, meta: r.meta_json ? JSON.parse(r.meta_json) : null })));
+      ${clause}
+      ORDER BY a.id DESC LIMIT ? OFFSET ?`).all(...args, limit, offset);
+  const total = db.prepare(`SELECT COUNT(*) AS n FROM audit_log a LEFT JOIN users u ON u.id = a.actor_id ${clause}`)
+    .get(...args).n;
+  res.json({
+    data: rows.map((r) => ({ ...r, meta: r.meta_json ? JSON.parse(r.meta_json) : null })),
+    total, limit, offset,
+  });
+});
+/* The actions that actually exist, so the filter is a list and not a guess. */
+router.get('/audit/actions', (_req, res) => {
+  const rows = db.prepare(`SELECT action, COUNT(*) AS n, MAX(created_at) AS last_at
+    FROM audit_log GROUP BY action ORDER BY n DESC`).all();
+  const targets = db.prepare(`SELECT target_type, COUNT(*) AS n FROM audit_log
+    WHERE target_type IS NOT NULL GROUP BY target_type ORDER BY n DESC`).all();
+  res.json({ actions: rows, targets });
 });
 router.get('/audit/verify', (_req, res) => {
   const result = verifyChain(20000);

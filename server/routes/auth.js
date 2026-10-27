@@ -8,6 +8,10 @@ import {
   googleOAuthReady, googleClientIdResolved, startGoogleFlow, consumeState,
   exchangeCode, verifyIdToken, callbackUrl, normalizeRedirect,
 } from '../lib/google-oauth.js';
+import { audit } from '../lib/audit.js';
+import { UPLOAD_DIR } from '../db.js';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const router = Router();
 
@@ -159,6 +163,101 @@ router.patch('/me', authRequired, (req, res) => {
     .run(name || null, phone || null, city || null, avatar || null, req.user.id);
   res.json(publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(req.user.id)));
 });
+
+/*
+ * Delete my account — self-service, immediate, irreversible.
+ *
+ * What leaves the database: the user row and everything keyed to it (favourites, saved
+ * prescriptions + their items and reviews, pharmacy stock, allergies, consents, cached
+ * idempotency responses) plus the prescription photographs on disk. Community threads they
+ * opened go with them; their replies and job posts stay readable but are detached from the
+ * account (ON DELETE SET NULL), so other users' conversations are not torn apart.
+ *
+ * Refused: the owner account, the last remaining administrator, and anyone who cannot prove
+ * the account is theirs (password for local accounts, the typed word for Google accounts).
+ */
+function deleteAccount(req, res) {
+  const { confirm, password } = req.body || {};
+  if (String(confirm || '').trim().toUpperCase() !== 'DELETE') {
+    return res.status(400).json({
+      error: 'confirm-required',
+      message: 'اكتب كلمة DELETE لتأكيد الحذف / type DELETE to confirm',
+    });
+  }
+  const me = db.prepare('SELECT * FROM users WHERE id=?').get(req.user.id);
+  if (!me) return res.status(404).json({ error: 'not-found' });
+  if (String(me.email).toLowerCase() === OWNER_EMAIL) {
+    return res.status(403).json({
+      error: 'owner-protected',
+      message: 'لا يمكن حذف حساب المالك / the owner account cannot be deleted',
+    });
+  }
+  if (me.password_hash && !checkPassword(String(password || ''), me.password_hash)) {
+    return res.status(403).json({
+      error: 'wrong-password',
+      message: 'كلمة المرور غير صحيحة / wrong password',
+    });
+  }
+  if (me.role === 'admin') {
+    const others = db.prepare("SELECT COUNT(*) AS n FROM users WHERE role='admin' AND active=1 AND id<>?").get(me.id).n;
+    if (!others) {
+      return res.status(409).json({
+        error: 'last-admin',
+        message: 'هذا آخر مدير — أضف مديرًا آخر قبل الحذف / promote another admin first',
+      });
+    }
+  }
+
+  const photos = db.prepare('SELECT image_url FROM prescriptions WHERE user_id=?').all(me.id)
+    .map((r) => r.image_url).filter((u) => typeof u === 'string' && u.startsWith('/uploads/'));
+  const counts = {
+    prescriptions: db.prepare('SELECT COUNT(*) AS n FROM prescriptions WHERE user_id=?').get(me.id).n,
+    favorites: db.prepare('SELECT COUNT(*) AS n FROM favorites WHERE user_id=?').get(me.id).n,
+    threads: db.prepare('SELECT COUNT(*) AS n FROM threads WHERE user_id=?').get(me.id).n,
+    pharmacy_items: db.prepare('SELECT COUNT(*) AS n FROM pharmacy_items WHERE user_id=?').get(me.id).n,
+    allergies: db.prepare('SELECT COUNT(*) AS n FROM user_allergies WHERE user_id=?').get(me.id).n,
+  };
+
+  const tx = db.transaction((id) => {
+    // Explicit, so it holds even if a deployment has foreign_keys off.
+    db.prepare('DELETE FROM prescription_reviews WHERE user_id=? OR prescription_id IN (SELECT id FROM prescriptions WHERE user_id=?)').run(id, id);
+    db.prepare('DELETE FROM prescription_items WHERE prescription_id IN (SELECT id FROM prescriptions WHERE user_id=?)').run(id);
+    db.prepare('DELETE FROM prescriptions WHERE user_id=?').run(id);
+    db.prepare('DELETE FROM pharmacy_items WHERE user_id=?').run(id);
+    db.prepare('DELETE FROM favorites WHERE user_id=?').run(id);
+    db.prepare('DELETE FROM user_allergies WHERE user_id=?').run(id);
+    db.prepare('DELETE FROM user_consents WHERE user_id=?').run(id);
+    db.prepare('DELETE FROM idempotency_keys WHERE user_id=?').run(id);
+    db.prepare('DELETE FROM thread_messages WHERE thread_id IN (SELECT id FROM threads WHERE user_id=?)').run(id);
+    db.prepare('DELETE FROM threads WHERE user_id=?').run(id);
+    db.prepare('UPDATE thread_messages SET user_id=NULL WHERE user_id=?').run(id);
+    db.prepare('UPDATE jobs SET user_id=NULL WHERE user_id=?').run(id);
+    db.prepare('UPDATE drug_submissions SET user_id=NULL WHERE user_id=?').run(id);
+    db.prepare('UPDATE prescription_items SET corrected_by=NULL WHERE corrected_by=?').run(id);
+    db.prepare('UPDATE prescription_reviews SET user_id=NULL WHERE user_id=?').run(id);
+    db.prepare('DELETE FROM users WHERE id=?').run(id);
+  });
+  tx(me.id);
+
+  // Photographs are personal data: remove the files, ignore anything already gone.
+  for (const url of photos) {
+    const abs = path.join(UPLOAD_DIR, url.replace(/^\/uploads\//, ''));
+    if (!abs.startsWith(UPLOAD_DIR)) continue;
+    try { fs.unlinkSync(abs); } catch { /* already removed */ }
+  }
+
+  audit('account.delete', {
+    actor: me,
+    targetType: 'user',
+    targetId: me.id,
+    meta: { provider: me.provider, role: me.role, counts, photos: photos.length },
+    ip: req.ip,
+  });
+  res.json({ ok: true, deleted: { ...counts, photos: photos.length } });
+}
+
+router.post('/delete-account', authRequired, deleteAccount);
+router.delete('/me', authRequired, deleteAccount);
 
 router.post('/change-password', authRequired, (req, res) => {
   const { current, next: nextPw } = req.body || {};

@@ -47,6 +47,8 @@
 | 👤 GET | `/auth/me` | بيانات الحساب الحالي |
 | 👤 PATCH | `/auth/me` | `{ name?, phone?, city?, avatar?, lang? }` |
 | 👤 POST | `/auth/change-password` | `{ current, next }` |
+| 👤 DELETE | `/auth/me` | حذف الحساب نهائيًا: `{ confirm: "DELETE", password? }` (`400 confirm-required` · `403 wrong-password`/`owner-protected` · `409 last-admin`) |
+| 👤 POST | `/auth/delete-account` | نفس العملية عبر POST (للجسر الأصلي) |
 
 ## الوصفات
 
@@ -190,7 +192,8 @@
 
 | الطريقة | المسار | الوصف |
 | --- | --- | --- |
-| GET | `/admin/audit?limit=&action=&target=` | آخر الأحداث مع `meta` (قبل/بعد التصحيح مثلًا) |
+| GET | `/admin/audit?limit=&offset=&action=&target=&q=&from=&to=` | `{ data, total, limit, offset }` — آخر الأحداث مع `meta` (قبل/بعد التصحيح مثلًا) |
+| GET | `/admin/audit/actions` | `{ actions:[{action,n,last_at}], targets:[{target_type,n}] }` — فهارس الفلترة الحقيقية |
 | GET | `/admin/audit/verify` | فحص سلسلة التجزئة؛ `{ ok, entries, broken_at? }` |
 | GET | `/admin/ai-stats?days=30` | جودة التحليل: نداءات/فشل/متوسط زمن لكل نموذج، حالة الوصفات، معدل التصحيح اليدوي، توزيع التنبيهات — **بلا أي نص مريض** |
 | GET | `/admin/import/capabilities` | الصيغ والأوضاع والأعمدة المدعومة |
