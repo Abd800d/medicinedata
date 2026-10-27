@@ -10,8 +10,12 @@ export const PRESETS = {
     label: 'Groq (مجاني)',
     label_en: 'Groq (free tier)',
     base: 'https://api.groq.com/openai/v1',
-    model: 'llama-3.3-70b-versatile',
+    /* llama-3.3-70b-versatile and llama-3.1-8b-instant left Groq's free/developer tiers on
+       2026-08-16; these are the models Groq now serves there. */
+    model: 'openai/gpt-oss-120b',
     vision: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    models: ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'],
+    vision_models: ['meta-llama/llama-4-scout-17b-16e-instruct'],
     free: true,
     keys_url: 'https://console.groq.com/keys',
   },
@@ -19,8 +23,11 @@ export const PRESETS = {
     label: 'Google Gemini (مجاني)',
     label_en: 'Google Gemini (free tier)',
     base: 'https://generativelanguage.googleapis.com/v1beta/openai',
-    model: 'gemini-2.0-flash',
-    vision: 'gemini-2.0-flash',
+    /* gemini-2.0-flash was shut down 2026-06-01. */
+    model: 'gemini-3.6-flash',
+    vision: 'gemini-3.6-flash',
+    models: ['gemini-3.6-flash', 'gemini-3.8-flash', 'gemini-3.1-flash-lite'],
+    vision_models: ['gemini-3.6-flash', 'gemini-3.8-flash'],
     free: true,
     keys_url: 'https://aistudio.google.com/apikey',
   },
@@ -30,6 +37,8 @@ export const PRESETS = {
     base: 'https://api.openai.com/v1',
     model: 'gpt-4o-mini',
     vision: 'gpt-4o-mini',
+    models: ['gpt-4o-mini', 'gpt-4.1-mini'],
+    vision_models: ['gpt-4o-mini'],
     free: false,
     keys_url: 'https://platform.openai.com/api-keys',
   },
@@ -90,4 +99,35 @@ export function normalizeBase(url) {
   if (!s) return '';
   if (!/^https?:\/\//i.test(s)) return '';
   return s;
+}
+
+/*
+ * Models that used to work and now return 404/400 from their provider.
+ *
+ * Without this table an owner who enabled AI months ago keeps a retired id in the database
+ * and every analysis fails with a generic provider error. The admin screen shows a one-tap
+ * switch to the replacement instead.
+ */
+export const RETIRED_MODELS = {
+  'llama-3.3-70b-versatile': { provider: 'groq', replacement: 'openai/gpt-oss-120b', note: 'Groq retired it on 2026-08-16' },
+  'llama-3.1-8b-instant': { provider: 'groq', replacement: 'openai/gpt-oss-20b', note: 'Groq retired it on 2026-08-16' },
+  'gemini-2.0-flash': { provider: 'gemini', replacement: 'gemini-3.6-flash', note: 'Google shut it down on 2026-06-01' },
+  'gemini-2.0-flash-001': { provider: 'gemini', replacement: 'gemini-3.6-flash', note: 'Google shut it down on 2026-06-01' },
+  'gemini-2.0-flash-lite': { provider: 'gemini', replacement: 'gemini-3.1-flash-lite', note: 'Google shut it down on 2026-06-01' },
+  'gemini-2.0-flash-lite-001': { provider: 'gemini', replacement: 'gemini-3.1-flash-lite', note: 'Google shut it down on 2026-06-01' },
+};
+
+/** `{ replacement, note }` when this model id is known-dead, else null. */
+export function retiredModel(id) {
+  return RETIRED_MODELS[String(id || '').trim().toLowerCase()] || null;
+}
+
+/**
+ * Preset defaults that are themselves retired must never ship again — this is what a test
+ * asserts, so the table and the presets cannot drift apart silently.
+ */
+export function retiredPresetDefaults() {
+  return Object.entries(PRESETS)
+    .flatMap(([id, p]) => [[id, 'model', p.model], [id, 'vision', p.vision]])
+    .filter(([, , value]) => Boolean(retiredModel(value)));
 }

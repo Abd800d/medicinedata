@@ -19,11 +19,17 @@ import { cx } from '../../lib/utils';
 
 type Preset = {
   label: string; label_en: string; base: string; model: string; vision: string;
+  models?: string[]; vision_models?: string[];
   free: boolean; keys_url: string;
+};
+
+type ModelWarning = {
+  model: string; replacement: string; note: string; field: 'model' | 'vision_model';
 };
 
 type AiView = {
   provider: string;
+  model_warning: ModelWarning | null;
   base_url: string;
   base_is_custom: boolean;
   model: string;
@@ -81,6 +87,8 @@ export default function AiSettings() {
 
   const preset = view?.presets?.[provider];
   const presets = useMemo(() => Object.entries(view?.presets || {}), [view]);
+  const modelChoices = preset?.models || [];
+  const visionChoices = preset?.vision_models || [];
 
   /* Choosing a provider fills the fields from its preset (still editable). */
   const pickProvider = (id: string) => {
@@ -120,6 +128,16 @@ export default function AiSettings() {
     } catch (e: any) {
       setResult({ ok: false, kind: 'client', error: e?.message || 'تعذر الاختبار' });
     } finally { setTesting(false); }
+  };
+
+  /* One tap away from a model the provider no longer serves. */
+  const applyReplacement = async () => {
+    const w = view?.model_warning;
+    if (!w) return;
+    if (w.field === 'vision_model') setVision(w.replacement); else setModel(w.replacement);
+    await save(w.field === 'vision_model'
+      ? { vision_model: w.replacement }
+      : { model: w.replacement, vision_model: w.replacement });
   };
 
   const clearKey = async () => {
@@ -164,6 +182,24 @@ export default function AiSettings() {
             <div className="rounded-lg bg-white/[.05] p-2"><div className="text-ink-500">المفتاح</div><div className="font-mono text-brand-200" dir="ltr">{view.key_hint || '—'}</div></div>
             <div className="rounded-lg bg-white/[.05] p-2"><div className="text-ink-500">المصدر</div>
               <div className="text-brand-200">{view.key_source === 'database' ? 'من التطبيق' : view.key_source === 'environment' ? 'متغيّرات الخادم' : 'لا يوجد'}</div></div>
+          </div>
+        )}
+
+        {view?.model_warning && (
+          <div className="space-y-1.5 rounded-xl border border-rose-400/30 bg-rose-500/10 p-2.5 text-[10.5px] leading-5 text-rose-100">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>
+                الموديل <code className="rounded bg-black/25 px-1 font-mono" dir="ltr">{view.model_warning.model}</code> لم يعد متاحًا — {view.model_warning.note}.
+                البديل الحالي: <code className="rounded bg-black/25 px-1 font-mono" dir="ltr">{view.model_warning.replacement}</code>.
+                بهذا الموديل سيفشل الاختبار والتحليل.
+              </span>
+            </div>
+            <button onClick={() => void applyReplacement()} disabled={saving}
+              className="btn-primary px-2.5 py-1 text-[10.5px]">
+              {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+              استخدم البديل الآن
+            </button>
           </div>
         )}
 
@@ -224,12 +260,32 @@ export default function AiSettings() {
           <label className="block">
             <span className="mb-1 block text-[10.5px] font-bold text-ink-400">موديل النص</span>
             <input value={model} onChange={(e) => setModel(e.target.value)} dir="ltr"
-              className="input w-full font-mono text-[11px]" placeholder="llama-3.3-70b-versatile" />
+              className="input w-full font-mono text-[11px]" placeholder="openai/gpt-oss-120b" />
+            {modelChoices.length > 0 && (
+              <span className="mt-1 flex flex-wrap gap-1">
+                {modelChoices.map((m) => (
+                  <button key={m} type="button" onClick={() => setModel(m)}
+                    className={cx('rounded-lg px-1.5 py-0.5 text-[10px] font-mono',
+                      model === m ? 'bg-brand-500/25 text-brand-100' : 'bg-white/[.05] text-ink-400 hover:text-ink-200')}
+                    dir="ltr">{m}</button>
+                ))}
+              </span>
+            )}
           </label>
-          <label className="block sm:col-span-2">
-            <span className="mb-1 block text-[10.5px] font-bold text-ink-400">موديل الصور (قراءة صور الوصفات والعلب)</span>
+          <label className="block">
+            <span className="mb-1 block text-[10.5px] font-bold text-ink-400">موديل الصور (وصفات وعلب)</span>
             <input value={vision} onChange={(e) => setVision(e.target.value)} dir="ltr"
               className="input w-full font-mono text-[11px]" placeholder="meta-llama/llama-4-scout-17b-16e-instruct" />
+            {visionChoices.length > 0 && (
+              <span className="mt-1 flex flex-wrap gap-1">
+                {visionChoices.map((m) => (
+                  <button key={m} type="button" onClick={() => setVision(m)}
+                    className={cx('rounded-lg px-1.5 py-0.5 text-[10px] font-mono',
+                      vision === m ? 'bg-brand-500/25 text-brand-100' : 'bg-white/[.05] text-ink-400 hover:text-ink-200')}
+                    dir="ltr">{m}</button>
+                ))}
+              </span>
+            )}
           </label>
         </div>
 

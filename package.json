@@ -1,8 +1,8 @@
 {
   "name": "medicinedata",
-  "version": "1.10.1",
+  "version": "1.10.2",
   "private": true,
-  "description": "MDA — MedicineData: pharmaceutical reference, Yemen/Arab market products, prescriptions and pharmacy management.",
+  "description": "MDA \u2014 MedicineData: pharmaceutical reference, Yemen/Arab market products, prescriptions and pharmacy management.",
   "type": "module",
   "author": "Dr. Abdulmajeed Abdullah Almakhedhi",
   "license": "SEE LICENSE IN LICENSE",

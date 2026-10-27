@@ -237,24 +237,61 @@ if (!canBoot) {
   const body = await healthRes.json().catch(() => ({}));
   const cfg = await fetch(`http://127.0.0.1:${freePort}/api/config`, { signal: AbortSignal.timeout(4000) })
     .then((r) => r.json()).catch(() => ({}));
+  const ai = await fetch(`http://127.0.0.1:${freePort}/api/ai/status`, { signal: AbortSignal.timeout(4000) })
+    .then((r) => r.json()).catch(() => ({}));
   const bootMs = Date.now() - startedAt;
   bootOk = body?.ok === true;
   bootDetail = `spawned: node server/index.js (PORT=${freePort})\n` +
     `GET /api/health → HTTP ${healthRes.status} ${JSON.stringify(body)}\n` +
     `GET /api/config → drugs=${cfg?.counts?.drugs ?? '?'} products=${cfg?.counts?.products ?? '?'} ai_enabled=${cfg?.ai_enabled} google=${cfg?.google_oauth ?? false}\n` +
+    `GET /api/ai/status → enabled=${ai?.enabled} provider=${ai?.provider || '?'} model=${ai?.model || '—'}\n` +
     `ready in ${bootMs} ms (no Google, no AI configured)`;
 } else {
   bootDetail = `the server did not answer /api/health on port ${freePort} within 20 s\n` +
     (stderr.trim() ? `stderr:\n${stderr.trim().split('\n').slice(-12).join('\n')}` : '') +
     (stdout.trim() ? `\nstdout:\n${stdout.trim().split('\n').slice(-12).join('\n')}` : '');
 }
-child.kill('SIGTERM');
-await new Promise((r) => setTimeout(r, 400));
-if (!child.killed) child.kill('SIGKILL');
+const healthPort = freePort;
 record('the API really boots and serves HTTP', canBoot ? bootOk : false, bootDetail,
   'Read the stderr above: it is the exact Node error. Common causes: better-sqlite3 ABI mismatch (npm rebuild better-sqlite3), a locked data/mda.db, or a bad .env value.');
 
-/* ------------------------------------------------------------- 9. summary */
+/* ------------------------------------------------------------- 9. AI readiness */
+let aiView = null;
+if (canBoot && bootOk) {
+  /* Admin-only, so ask with the default owner credentials the seed created. */
+  try {
+    const login = await fetch(`http://127.0.0.1:${healthPort}/api/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: process.env.OWNER_EMAIL || '7a8b1d@gmail.com', password: process.env.ADMIN_PASSWORD || 'MDAadmin@2026' }),
+      signal: AbortSignal.timeout(5000),
+    }).then((r) => r.json());
+    if (login?.token) {
+      aiView = await fetch(`http://127.0.0.1:${healthPort}/api/admin/ai`, {
+        headers: { Authorization: `Bearer ${login.token}` }, signal: AbortSignal.timeout(5000),
+      }).then((r) => r.json()).catch(() => null);
+    }
+  } catch { /* the AI line below degrades to "unknown" */ }
+}
+record(
+  'AI can be enabled from the app',
+  aiView ? aiView.can_store === true : true,
+  aiView
+    ? `can_store=${aiView.can_store} configured=${aiView.configured} key_source=${aiView.key_source}\n` +
+      `provider=${aiView.provider} model=${aiView.model || '—'}` +
+      (aiView.model_warning ? `\nmodel_warning: ${aiView.model_warning.model} → ${aiView.model_warning.replacement} (${aiView.model_warning.note})` : '')
+    : 'skipped (the API did not answer the admin login)',
+  aiView
+    ? 'Without this, "Add AI" fails with NO_SECRET. Set JWT_SECRET, or make sure ./data/mda.db is writable so the server can persist one.'
+    : 'Check that the seed created the owner account (7a8b1d@gmail.com / MDAadmin@2026).',
+  false,
+  /* Not a blocker for local development: the app is fully usable without AI. */
+);
+
+child.kill('SIGTERM');
+await new Promise((r) => setTimeout(r, 400));
+if (!child.killed) child.kill('SIGKILL');
+
+/* ------------------------------------------------------------- 10. summary */
 const blockers = results.filter((r) => !r.ok && r.blocker);
 console.log(`\n${C.bold}${'-'.repeat(64)}${C.reset}`);
 if (!blockers.length) {

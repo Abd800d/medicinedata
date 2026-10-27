@@ -186,6 +186,100 @@ npm run smoke -- /prescriptions   # عرض الصفحة في jsdom
 | `network` / `timeout` | الخادم لا يصل للمزوّد | فحص العنوان واتصال الخادم |
 | `no-key` | لا مفتاح | لصق المفتاح أولًا |
 
+---
+
+## كيف تضيف الذكاء الاصطناعي إلى التطبيق (v1.10.2)
+
+الذكاء الاصطناعي **مبني داخل التطبيق** لا مضافة خارجية: ثلاث شاشات تستخدمه، ولا شيء منها يحتاج مفتاحًا في الهاتف.
+الخطوة الوحيدة الناقصة على أي تثبيت جديد هي **مفتاح مزوّد واحد** يُخزَّن على الخادم.
+
+### الطريق الأقصر (من الهاتف، دقيقتان)
+
+| # | الخطوة | ما تراه |
+| --- | --- | --- |
+| 1 | سجّل الدخول بحساب المالك (`7a8b1d@gmail.com`) | — |
+| 2 | **المزيد ← الإدارة ← جودة التحليل** (`/admin?tab=ai`) | بطاقة «الذكاء الاصطناعي — التفعيل من الهاتف» |
+| 3 | اضغط **Groq (مجاني)** أو **Google Gemini (مجاني)** | يمتلئ العنوان والموديلات من القالب |
+| 4 | اضغط **أنشئ مفتاحًا** → أنشئ المفتاح في موقع المزوّد → انسخه | `console.groq.com/keys` أو `aistudio.google.com/apikey` |
+| 5 | الصق المفتاح في «مفتاح API» ← **حفظ** | «حُفظت الإعدادات — الذكاء الاصطناعي مفعّل» |
+| 6 | **اختبار حقيقي للمفتاح** | «نجح الاتصال — 162 ms» أو السبب بالضبط (`auth` / `model` / `quota` / `network`) |
+
+بعد الحفظ لا حاجة لإعادة تشغيل الخادم ولا لإعادة تثبيت التطبيق: الإعداد يُقرأ عند كل طلب.
+
+### الموديلات الحالية (v1.10.2)
+
+الموديلات القديمة في القوالب كانت ميتة، ولهذا كان الاختبار يفشل بـ `model` رغم صحة المفتاح:
+
+| المزوّد | الافتراضي الآن | بدائل جاهزة في الشاشة | الميت (لا تستخدمه) |
+| --- | --- | --- | --- |
+| Groq | `openai/gpt-oss-120b` | `openai/gpt-oss-20b` | `llama-3.3-70b-versatile` (أوقف 2026-08-16)، `llama-3.1-8b-instant` |
+| Gemini | `gemini-3.6-flash` | `gemini-3.8-flash`، `gemini-3.1-flash-lite` | `gemini-2.0-flash` (أُغلق 2026-06-01) |
+| الصور (رؤية) | Groq: `meta-llama/llama-4-scout-17b-16e-instruct` · Gemini: `gemini-3.6-flash` | — | — |
+
+كل موديل ميت معروف موجود في `RETIRED_MODELS` داخل `server/lib/ai/providers.js`. إن كان المحفوظ منه
+يظهر تنبيه أحمر في الشاشة مع زر **«استخدم البديل الآن»**، والاختبار المستقل يمنع أن يُشحن قالب ميت مرة أخرى.
+
+### إصلاح `NO_SECRET` (كان يمنع التفعيل على أي خادم بلا `JWT_SECRET`)
+
+كان `server/lib/secrets.js` يقرأ `process.env.JWT_SECRET` فقط، بينما `server/auth.js` يقبل سرًّا محفوظًا في
+`settings.jwt_secret`. النتيجة: تثبيت بلا متغيّر بيئة **يسجّل الدخول بنجاح** لكنه يرفض حفظ المفتاح:
+
+```
+PUT /api/admin/ai → 400 {"error":"NO_SECRET","message":"الخادم بلا JWT_SECRET — لا يمكن تشفير المفتاح"}
+```
+
+الآن يُشتق مفتاح التشفير من نفس مادة `auth.js`: متغير البيئة أولًا، ثم السر المحفوظ، ثم يُولَّد ويُحفظ تلقائيًا
+(بـ `INSERT OR IGNORE` كي يتفق عمليتان تقلعان معًا). النتيجة المقيسة على خادم **بلا** `JWT_SECRET`:
+
+```
+GET  /api/admin/ai → can_store = True
+PUT  /api/admin/ai → HTTP 200  configured=True key_hint=gsk_…3456
+# بعد إعادة تشغيل الخادم على نفس القاعدة:
+GET  /api/admin/ai → has_key=True key_source=database   ← المفتاح ما زال صالحًا
+```
+
+### التحقق الكامل (خادم وهمي، بلا مفتاح حقيقي)
+
+```bash
+node scripts/mock-ai.mjs 4111 &
+DATA_DIR=/tmp/ai PORT=4412 node server/index.js &      # بلا JWT_SECRET — هذا هو الاختبار
+TOKEN=$(curl -s -X POST localhost:4412/api/auth/login -H 'content-type: application/json' \
+  -d '{"email":"7a8b1d@gmail.com","password":"MDAadmin@2026"}' | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+curl -s -X PUT localhost:4412/api/admin/ai -H "authorization: Bearer $TOKEN" -H 'content-type: application/json' \
+  -d '{"provider":"custom","base_url":"http://127.0.0.1:4111/v1","model":"openai/gpt-oss-120b","vision_model":"meta-llama/llama-4-scout-17b-16e-instruct","api_key":"sk-realchain-test-123456"}'
+curl -s -X POST localhost:4412/api/admin/ai/test -H "authorization: Bearer $TOKEN" -H 'content-type: application/json' -d '{}'
+# → {"ok":true,"latency_ms":162,"model":"openai/gpt-oss-120b"}
+```
+
+المخرجات المسجّلة لهذه السلسلة: التحليل أنشأ وصفة `201` ببنود مستخرجة، و`/api/ai/ask` ردّ `mode:"ai"`.
+
+### أين يظهر الذكاء الاصطناعي في التطبيق؟
+
+| الشاشة | ما يفعله | يحتاج مفتاحًا؟ |
+| --- | --- | --- |
+| **المساعد الذكي** (`/ai`) | سؤال بلغة طبيعية، وجواب من قاعدة MDA بمراجع | لا — يسقط إلى البحث المحلي (`offline-database`) |
+| **الوصفات** (`/prescriptions`) | صورة وصفة → بنود + جرعات + تنبيهات حساسية، ثم طابور مراجعة صيدلي | نعم للتحليل |
+| **المسح** (`/scan`) | صورة علبة → أقرب منتجات في القاعدة | نعم للتعرّف |
+
+بدون مفتاح لا تظهر أخطاء: بطاقة `AiSetupHint` تشرح السبب وتضع للمدير زر «تفعيل الآن».
+
+### تشخيص سريع
+
+```bash
+npm run doctor        # سطر «AI can be enabled from the app» → can_store / configured / model / model_warning
+curl -s localhost:4000/api/ai/status
+curl -s localhost:4000/api/rx/status
+```
+
+| الحالة | المعنى | الحل |
+| --- | --- | --- |
+| `can_store=false` | لا مادة لتشفير المفتاح | تأكد أن `data/` قابل للكتابة (أو اضبط `JWT_SECRET`) |
+| `configured=false` + `has_key=true` | المفتاح موجود لكن العنوان/الموديل ناقص | أعد اختيار المزوّد ثم احفظ |
+| `model_warning` ظاهر | الموديل مسحوب | زر «استخدم البديل الآن» |
+| الاختبار `model` | الموديل غير متاح للمفتاح | اختر موديلًا من الأزرار المقترحة |
+| الاختبار `auth` | المفتاح خاطئ/منتهٍ | مفتاح جديد |
+| الاختبار `quota` | حصة مجانية | انتظر أو مزوّد آخر |
+
 ### الخصوصية
 - المفتاح **لا** يُعاد أبدًا لأي عميل: `GET /api/admin/ai` يعيد `has_key` و`key_hint` فقط (`gsk_…cdef`).
 - `GET /api/ai/status` و`GET /api/rx/status` عامّان ولا يحتويان أي مفتاح أو عنوان مزوّد أو حتى اسم حقول حسّاسة.

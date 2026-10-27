@@ -11,7 +11,7 @@
  */
 import { getSetting, setSetting } from '../db.js';
 import { encryptSecret, decryptSecret, maskSecret, secretsAvailable } from './secrets.js';
-import { PRESETS, PROVIDER_IDS, presetFor, normalizeBase } from './ai/providers.js';
+import { PRESETS, PROVIDER_IDS, presetFor, normalizeBase, retiredModel } from './ai/providers.js';
 
 const KEY = {
   provider: 'ai.provider',
@@ -66,8 +66,16 @@ export function getAiConfig() {
 /** Safe view for the admin screen: no key, no callable URL. */
 export function aiAdminView() {
   const c = getAiConfig();
+  /* A retired default must be visible, not a mystery provider error later. */
+  const retired = retiredModel(c.model);
+  const retiredVision = retiredModel(c.vision);
   return {
     provider: c.provider,
+    model_warning: retired
+      ? { model: c.model, replacement: retired.replacement, note: retired.note, field: 'model' }
+      : retiredVision
+        ? { model: c.vision, replacement: retiredVision.replacement, note: retiredVision.note, field: 'vision_model' }
+        : null,
     base_url: c.base,
     base_is_custom: !(presetFor(c.provider)?.base === c.base) && c.provider !== 'custom',
     model: c.model,
@@ -85,6 +93,8 @@ export function aiAdminView() {
       base: PRESETS[id].base,
       model: PRESETS[id].model,
       vision: PRESETS[id].vision,
+      models: PRESETS[id].models || (PRESETS[id].model ? [PRESETS[id].model] : []),
+      vision_models: PRESETS[id].vision_models || (PRESETS[id].vision ? [PRESETS[id].vision] : []),
       free: PRESETS[id].free,
       keys_url: PRESETS[id].keys_url,
     }])),
