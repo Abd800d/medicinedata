@@ -115,6 +115,16 @@ npm run build && npm start   # http://localhost:4000
 
 **حساب المدير** يُنشأ تلقائيًا من `OWNER_EMAIL` + `ADMIN_PASSWORD` (الافتراضي في التطوير `7a8b1d@gmail.com` / `MDAadmin@2026`). **غيّرهما قبل أي نشر.**
 
+### لا يعمل على `localhost`؟ شغّل الفاحص
+
+```bash
+npm run doctor
+```
+
+يفحص Node و`node_modules` وربط `better-sqlite3` و`.env` والمنافذ 4000/5173 وقاعدة الوكيل، ثم يُقلع خادمًا حقيقيًا
+ويستدعي `/api/health` — وإن فشل شيء يطبع الخطأ الفعلي والأمر الذي يصلحه.
+الأسباب الشائعة والأخطاء الحقيقية لكل منها: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md).
+
 ## متغيرات البيئة
 
 انظر [`docs/ENV.md`](docs/ENV.md) للشرح الكامل. أهمها:
@@ -239,6 +249,7 @@ TOKEN=<jwt> npm run smoke    # اختبار حالة تسجيل الدخول
 | الملف | المحتوى |
 | --- | --- |
 | [`docs/ENV.md`](docs/ENV.md) | كل متغيرات البيئة وقيمها |
+| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | أعطال التشغيل المحلي: الخطأ الفعلي ← السبب ← الإصلاح |
 | [`docs/DEPLOY.md`](docs/DEPLOY.md) | النشر، Nginx، systemd، نسخ احتياطي، تحديث |
 | [`docs/ANDROID.md`](docs/ANDROID.md) | بناء تطبيق أندرويد (محليًا أو عبر GitHub Actions) ونشره |
 | [`docs/SIGNING.md`](docs/SIGNING.md) | التوقيع الرسمي: keystore، الأسرار، APK/AAB، التحقق |
