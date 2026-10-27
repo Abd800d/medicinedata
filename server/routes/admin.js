@@ -22,7 +22,30 @@ import { aiAdminView, saveAiConfig, testAiConfig } from '../lib/ai-config.js';
 import { googleOAuthReady, googleClientIdResolved, googleClientSecret, saveGoogleCredential, callbackUrl } from '../lib/google-oauth.js';
 
 const router = Router();
-router.use(adminRequired);
+/* Photo management is deliberately shared with pharmacists: they are the ones standing in
+   front of the shelf holding a phone. Everything else in this router stays admin-only.
+   Listed explicitly, so a new endpoint is private until someone adds it here. */
+const STAFF_PHOTO_ROUTES = [
+  ['GET', /^\/products\/\d+\/images$/],
+  ['POST', /^\/products\/\d+\/images$/],
+  ['PUT', /^\/products\/\d+\/image$/],
+  ['PUT', /^\/product-images\/\d+\/file$/],
+];
+function adminOrStaffPhoto(req, res, next) {
+  const shared = req.user?.role === 'pharmacist'
+    && STAFF_PHOTO_ROUTES.some(([method, re]) => method === req.method && re.test(req.path));
+  if (shared) return next();
+  return adminRequired(req, res, next);
+}
+router.use(adminOrStaffPhoto);
+
+/* Delete a file that this server wrote under /uploads (never a remote or bundled URL). */
+function removeUploadedFile(url) {
+  if (typeof url !== 'string' || !url.startsWith('/uploads/')) return false;
+  const abs = path.join(UPLOAD_DIR, url.replace(/^\/uploads\//, ''));
+  if (!abs.startsWith(UPLOAD_DIR)) return false;
+  try { fs.unlinkSync(abs); return true; } catch { return false; }
+}
 
 const productUpload = makeUploader('products');
 const miscUpload = makeUploader('misc');
@@ -544,18 +567,50 @@ router.post('/products/:id/images/reorder', (req, res) => {
   res.json(db.prepare('SELECT * FROM product_images WHERE product_id=? ORDER BY sort_order, id').all(product.id));
 });
 
+/* Replace the picture behind an existing row.
+   Used by the phone studio: the pharmacist crops/rotates an already published photo and saves
+   it in place, keeping id, order and the audit trail. The new file gets a new name so the
+   immutable /uploads cache can never serve the old bytes. */
+router.put('/product-images/:imageId/file', productUpload.single('image'), (req, res) => {
+  const img = db.prepare('SELECT * FROM product_images WHERE id=?').get(req.params.imageId);
+  if (!img) {
+    if (req.file?.path) { try { fs.unlinkSync(req.file.path); } catch { /* ignore */ } }
+    return res.status(404).json({ error: 'Not found' });
+  }
+  if (!req.file) return res.status(400).json({ error: 'image is required' });
+  const url = `/uploads/products/${path.basename(req.file.path)}`;
+  const oldUrl = img.url;
+  db.prepare(`UPDATE product_images SET url=?, source='upload', uploaded_by=?, bytes=?, width=?, height=?,
+      edited=?, bytes_original=?, updated_at=datetime('now') WHERE id=?`)
+    .run(url, req.user?.id ?? null, req.file.size || null, Number(req.body?.width) || null,
+      Number(req.body?.height) || null, req.body?.edited === '1' ? 1 : 0,
+      Number(req.body?.bytes_original) || null, img.id);
+  db.prepare("UPDATE products SET image_url=?, image_source='upload', updated_at=datetime('now') WHERE id=? AND image_url=?")
+    .run(url, img.product_id, oldUrl);
+  const removed = removeUploadedFile(oldUrl);
+  audit('image.replace', {
+    actor: req.user, targetType: 'product_image', targetId: img.id,
+    meta: { from: oldUrl, to: url, bytes: req.file.size || null, bytes_original: Number(req.body?.bytes_original) || null, old_file_removed: removed },
+    ip: req.ip,
+  });
+  res.json(db.prepare('SELECT * FROM product_images WHERE id=?').get(img.id));
+});
+
 router.delete('/product-images/:imageId', (req, res) => {
   const img = db.prepare('SELECT * FROM product_images WHERE id=?').get(req.params.imageId);
   if (img) {
     audit('image.delete', { actor: req.user, targetType: 'product_image', targetId: img.id, meta: { url: img.url, product_id: img.product_id }, ip: req.ip });
     db.prepare('DELETE FROM product_images WHERE id=?').run(img.id);
+    /* The row is gone; the file would otherwise sit in /uploads forever. */
+    const removed = removeUploadedFile(img.url);
     const p = db.prepare('SELECT * FROM products WHERE id=?').get(img.product_id);
     if (p && p.image_url === img.url) {
       const next = db.prepare('SELECT url FROM product_images WHERE product_id=? ORDER BY sort_order LIMIT 1').get(p.id);
-      db.prepare('UPDATE products SET image_url=? WHERE id=?').run(next?.url || null, p.id);
+      db.prepare('UPDATE products SET image_url=?, updated_at=datetime(\'now\') WHERE id=?').run(next?.url || null, p.id);
     }
+    return res.json({ ok: true, file_removed: removed });
   }
-  res.json({ ok: true });
+  res.json({ ok: true, file_removed: false });
 });
 
 /* Download a remote image (web fetch) and attach it to a product */

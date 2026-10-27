@@ -11,6 +11,7 @@ import LockScreen from '../src/components/LockScreen';
 import RxSecureToggle from '../src/components/RxSecureToggle';
 import { ToastProvider } from '../src/components/ui';
 export * as serverLib from '../src/lib/server';
+export * as imageLib from '../src/lib/imageFile';
 
 /** Static markup of the lock screen (effects do not run during SSR). */
 export function renderLockMarkup() {

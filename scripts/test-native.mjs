@@ -149,6 +149,41 @@ console.log('admin · audit log + account lifecycle contract');
   ok('the delete card is on the profile page', /<DeleteAccountCard \/>/.test(fs.readFileSync(path.join(ROOT, 'src/pages/Profile.tsx'), 'utf8')));
 }
 
+console.log('photos · medicine pictures come from the phone gallery');
+{
+  const picker = fs.readFileSync(path.join(ROOT, 'src/components/ProductImages.tsx'), 'utf8');
+  ok('the gallery opens with a real file input', /type="file"[^>]*accept="image\/\*"/.test(picker));
+  ok('a second input asks the chooser for the camera', /capture="environment"/.test(picker));
+  ok('several photos can be added in one go', /multiple/.test(picker));
+  ok('the same photo can be picked twice in a row', /e\.target\.value = ''/.test(picker) || /target\.value=''/.test(picker));
+  ok('photos are straightened and compressed before upload', /normalizeImage\(/.test(picker));
+  ok('a published photo can be re-cropped in place', /product-images\/\$\{row\.id\}\/file/.test(picker));
+  ok('the new photo can become the main one', /makePrimary/.test(picker) && /\/image`/.test(picker));
+  ok('pharmacists may manage photos, deletion stays admin-only', /role === 'pharmacist'/.test(picker) && /isAdmin \?/.test(picker));
+  ok('image URLs go through assetUrl (never a bare /uploads in the shell)', /assetUrl\(row\.url\)/.test(picker));
+  ok('the upload carries the on-device crop numbers', /fd\.append\('width'/.test(picker) && /bytes_original/.test(picker));
+  ok('no hover-only controls (invisible on a touch screen)', !/group-hover:opacity-100/.test(picker));
+  ok('photos are not fetched with a raw relative URL', !/fetch\('\/api/.test(picker));
+
+  const studio = fs.readFileSync(path.join(ROOT, 'src/components/ImageStudio.tsx'), 'utf8');
+  ok('the studio applies the EXIF orientation', /imageOrientation: 'from-image'/.test(fs.readFileSync(path.join(ROOT, 'src/lib/imageFile.ts'), 'utf8')));
+  ok('the studio explains an undecodable photo instead of spinning forever', /decodeErrorMessage/.test(studio));
+
+  const lib = fs.readFileSync(path.join(ROOT, 'src/lib/imageFile.ts'), 'utf8');
+  ok('HEIC is detected and explained', /heic/i.test(lib) && /HEIC/.test(lib));
+  ok('a big photo is bounded before it reaches the network', /MAX_SOURCE_EDGE = 2048/.test(lib));
+  ok('binary download goes through the native bridge', /smartFetch\(assetUrl\(url\)/.test(lib));
+
+  const detail = fs.readFileSync(path.join(ROOT, 'src/pages/ProductDetail.tsx'), 'utf8');
+  ok('the product page offers photo management', /<ProductImages /.test(detail));
+  ok('it is shown to admins and pharmacists', /user\?\.role === 'admin' \|\| user\?\.role === 'pharmacist'/.test(detail));
+
+  const adminRoutes = fs.readFileSync(path.join(ROOT, 'server/routes/admin.js'), 'utf8');
+  ok('the replace-file endpoint exists', /router\.put\('\/product-images\/:imageId\/file'/.test(adminRoutes));
+  ok('pharmacists are let through only on the listed photo routes', /STAFF_PHOTO_ROUTES/.test(adminRoutes) && /req\.user\?\.role === 'pharmacist'/.test(adminRoutes));
+  ok('deleting a photo also unlinks the file', /removeUploadedFile\(img\.url\)/.test(adminRoutes));
+}
+
 /* ------------------------------------------------------------------ *
  * 2 · browser environment that mimics the Android shell
  * ------------------------------------------------------------------ */

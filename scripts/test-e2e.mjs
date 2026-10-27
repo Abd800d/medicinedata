@@ -511,6 +511,85 @@ ok('the audit entry keeps the e-mail, not the password', delEntry?.actor_email =
 const ownerDel = await call('/api/auth/me', { method: 'DELETE', token: admin, body: { confirm: 'DELETE', password: 'MDAadmin@2026' } });
 ok('the owner account cannot delete itself', ownerDel.status === 403 && ownerDel.json?.error === 'owner-protected', String(ownerDel.status));
 
+/* ------------------------------------------------------------------ 17. product photos from the phone */
+console.log('17 · photos of a medicine can be added and edited from the phone');
+/* The APK path: admin (or pharmacist) → product page → gallery/camera → crop → upload →
+   replace in place → delete. Every step below is the endpoint the screen calls. */
+const photoStamp = Date.now().toString().slice(-7);
+const pDrug = await call('/api/admin/drugs', { method: 'POST', token: admin, body: { generic_name: `E2Eimg${photoStamp}`, system_id: 1, verified: 0 } });
+ok('a product exists to hang photos on', pDrug.status === 201 && pDrug.json?.id > 0, String(pDrug.status));
+const pProd = await call('/api/admin/products', {
+  method: 'POST', token: admin,
+  body: { drug_id: pDrug.json.id, trade_name: `E2Eimgtrade${photoStamp}`, strength: '1 mg', dosage_form: 'Tablet', country: 'Yemen' },
+});
+ok('the product was created', pProd.status === 201 && pProd.json?.id > 0, String(pProd.status));
+const pId = pProd.json?.id;
+
+const photoForm = (field = 'images', name = 'pack.png') => {
+  const fd = new FormData();
+  fd.append(field, new Blob([PNG], { type: 'image/png' }), name);
+  fd.append('edited', '1');
+  fd.append('width', '900');
+  fd.append('height', '900');
+  fd.append('bytes_original', '5000');
+  return fd;
+};
+
+const asAdmin = await call(`/api/admin/products/${pId}/images`, { method: 'POST', token: admin, form: photoForm() });
+ok('an admin uploads a pack photo', asAdmin.status === 201 && asAdmin.json?.[0]?.url?.startsWith('/uploads/products/'), JSON.stringify(asAdmin.json)?.slice(0, 120));
+const photo = asAdmin.json?.[0];
+ok('the upload records who added it', photo?.uploaded_by > 0 && photo?.source === 'upload');
+ok('the phone-side crop metadata is kept', photo?.edited === 1 && photo?.width === 900 && photo?.bytes_original === 5000);
+const served = await fetch(API + photo.url);
+ok('the file is really served back', served.status === 200 && String(served.headers.get('content-type')).startsWith('image/'), String(served.status));
+
+const primary = await call(`/api/admin/products/${pId}/image`, { method: 'PUT', token: admin, body: { url: photo.url } });
+ok('it can be made the main photo', primary.status === 200);
+ok('the catalogue shows it on the product', (await call(`/api/catalog/products/${pId}`)).json?.image_url === photo.url);
+
+/* Editing an already published photo: same row, new bytes, new file name (cache-safe). */
+const replaced = await call(`/api/admin/product-images/${photo.id}/file`, { method: 'PUT', token: admin, form: photoForm('image', 'recrop.png') });
+ok('an existing photo can be re-cropped in place', replaced.status === 200 && replaced.json?.url && replaced.json.url !== photo.url, String(replaced.status));
+ok('the row keeps its id (history intact)', replaced.json?.id === photo.id);
+ok('the old bytes are gone from /uploads', (await fetch(API + photo.url)).status === 404);
+const fresh = await fetch(API + replaced.json.url);
+ok('the new bytes are served', fresh.status === 200);
+ok('the product points at the new file', (await call(`/api/catalog/products/${pId}`)).json?.image_url === replaced.json.url);
+
+/* A pharmacist standing in the shop can do the same; deleting stays an admin action. */
+const pharmEmail = `e2e-photo-${photoStamp}@example.com`;
+const pharm = await call('/api/auth/register', { method: 'POST', body: { name: 'E2E Photo Pharmacist', email: pharmEmail, password: PASSWORD } });
+await call(`/api/admin/users/${pharm.json?.user?.id}`, { method: 'PATCH', token: admin, body: { role: 'pharmacist' } });
+const pharmToken = await login(pharmEmail, PASSWORD);
+const pharmUpload = await call(`/api/admin/products/${pId}/images`, { method: 'POST', token: pharmToken, form: photoForm() });
+ok('a pharmacist may add a photo (shared permission)', pharmUpload.status === 201, String(pharmUpload.status));
+ok('the audit trail names the pharmacist', (await call(`/api/admin/audit?action=image.upload&limit=5`, { token: admin })).json?.data?.some((r) => r.actor_email === pharmEmail));
+const pharmReplace = await call(`/api/admin/product-images/${pharmUpload.json?.[0]?.id}/file`, { method: 'PUT', token: pharmToken, form: photoForm('image', 'pharm.png') });
+ok('a pharmacist may re-crop a photo', pharmReplace.status === 200, String(pharmReplace.status));
+const pharmDelete = await call(`/api/admin/product-images/${pharmUpload.json?.[0]?.id}`, { method: 'DELETE', token: pharmToken });
+ok('but only an admin may delete a photo', pharmDelete.status === 403, String(pharmDelete.status));
+ok('the refused delete left the photo in place', (await call(`/api/admin/products/${pId}/images`, { token: pharmToken })).json?.length === 2);
+
+const plainPhotoToken = (await call('/api/auth/register', { method: 'POST', body: { name: 'E2E NoPhoto', email: `e2e-nophoto-${photoStamp}@example.com`, password: PASSWORD } })).json?.token;
+const plainUpload = await call(`/api/admin/products/${pId}/images`, { method: 'POST', token: plainPhotoToken, form: photoForm() });
+ok('a normal user cannot add photos', plainUpload.status === 403, String(plainUpload.status));
+
+const pharmRow = pharmUpload.json?.[0];
+const adminDelete = await call(`/api/admin/product-images/${pharmRow.id}`, { method: 'DELETE', token: admin });
+ok('an admin delete also removes the file from disk', adminDelete.status === 200 && adminDelete.json?.file_removed === true, JSON.stringify(adminDelete.json));
+ok('the deleted file is no longer served', (await fetch(API + pharmRow.url)).status === 404);
+ok('deleting a photo is written to the audit trail',
+  (await call('/api/admin/audit?action=image.delete&limit=5', { token: admin })).json?.data?.length > 0);
+
+/* Cleanup: the shipped offline catalogue is generated from this database. */
+await call(`/api/admin/product-images/${replaced.json.id}`, { method: 'DELETE', token: admin });
+await call(`/api/admin/products/${pId}`, { method: 'DELETE', token: admin });
+await call(`/api/admin/drugs/${pDrug.json.id}`, { method: 'DELETE', token: admin });
+for (const q of ['e2e-photo-', 'e2e-nophoto-']) {
+  const found = await call(`/api/admin/users?q=${q}`, { token: admin });
+  for (const u of (found.json || [])) await call(`/api/admin/users/${u.id}`, { method: 'DELETE', token: admin });
+}
+
 /* ------------------------------------------------------------------ cleanup */
 console.log('cleanup');
 /* Remove everything the import block created, so the shipped offline catalogue never

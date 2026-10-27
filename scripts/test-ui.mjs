@@ -133,6 +133,19 @@ sec.applyNativeSecure(false);
 ok('the bridge receives "1" then "0"', bridged.join(',') === '1,0', bridged.join(','));
 delete globalThis.window.MDASecure;
 
+console.log('photos · phone gallery handling');
+{
+  const { looksHeic, decodeErrorMessage, MAX_SOURCE_EDGE } = ui.imageLib;
+  const fake = (name, type = '') => new File([new Uint8Array([1])], name, { type });
+  ok('HEIC is recognised by extension', looksHeic(fake('IMG_0001.HEIC')) === true);
+  ok('HEIC is recognised by MIME type', looksHeic(fake('x.bin', 'image/heic')) === true);
+  ok('a normal JPEG is not mistaken for HEIC', looksHeic(fake('pack.jpg', 'image/jpeg')) === false);
+  ok('the HEIC message tells the user what to do', /HEIC/.test(decodeErrorMessage({ code: 'heic' }, 'ar')) && /JPG/.test(decodeErrorMessage({ code: 'heic' }, 'ar')));
+  ok('the message exists in English too', /HEIC/.test(decodeErrorMessage({ code: 'heic' }, 'en')));
+  ok('a damaged photo gets a different message', !/HEIC/.test(decodeErrorMessage({ code: 'decode' }, 'ar')));
+  ok('the phone copy is bounded before upload', MAX_SOURCE_EDGE === 2048);
+}
+
 const rxMarkup = ui.renderRxSecureMarkup(7);
 ok('the prescription screen shows the block-screenshots card', rxMarkup.includes('منع لقطات الشاشة'));
 ok('it names the scope of the switch', rxMarkup.includes('#7'));
