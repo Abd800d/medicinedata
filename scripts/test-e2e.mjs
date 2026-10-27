@@ -201,14 +201,41 @@ const aiAnon = await call('/api/admin/ai');
 ok('AI settings are admin-only', aiAnon.status === 401);
 const ai0 = await call('/api/admin/ai', { token: admin });
 ok('the admin panel receives the provider catalogue', ai0.status === 200 && Boolean(ai0.json?.presets?.groq));
-ok('no API key is ever sent to the client', !JSON.stringify(ai0.json).includes('sk-') && ai0.json?.has_key !== undefined);
+/* The mask is allowed to show the provider prefix and the last 4 chars (gsk_…cdef); what must
+   never happen is the whole key. Asserting on the shape beats searching for "sk-", which is a
+   legitimate prefix of every OpenAI-style key and made this check fail for real deployments. */
+ok('no API key is ever sent to the client',
+  ai0.json?.has_key !== undefined
+  && (ai0.json.key_hint === null || (/…/.test(ai0.json.key_hint) && String(ai0.json.key_hint).length <= 12))
+  && !Object.keys(ai0.json).some((k) => /^(api_key|key|secret)$/i.test(k)));
 ok('the panel reports where the key came from', ['database', 'environment', 'none'].includes(ai0.json?.key_source));
+/* v1.10.2: a key can be stored even when JWT_SECRET is not an environment variable —
+   the server derives the encryption key from the secret it persisted on first boot. */
+ok('the key can be stored without a JWT_SECRET environment variable', ai0.json?.can_store === true,
+  `can_store=${ai0.json?.can_store}`);
+ok('every preset carries model choices for the one-tap picker',
+  Boolean(ai0.json?.presets?.groq?.models?.length) && Boolean(ai0.json?.presets?.gemini?.models?.length));
+ok('no shipped preset default is a retired model',
+  Object.values(ai0.json?.presets || {}).every((p) =>
+    !['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'gemini-2.0-flash', 'gemini-2.0-flash-001',
+      'gemini-2.0-flash-lite', 'gemini-2.0-flash-lite-001'].includes(p.model)));
 /* Never destroy a key the owner configured in the app: skip this block when one exists. */
 const hadDatabaseKey = ai0.json?.key_source === 'database';
 const hadEnvironmentKey = ai0.json?.key_source === 'environment';
 if (hadDatabaseKey) console.log('   (an AI key is already configured in the database — the write tests are skipped)');
 
 if (!hadDatabaseKey) {
+/* v1.10.2: a model the provider has retired is flagged instead of failing silently later. */
+const retired = await call('/api/admin/ai', {
+  method: 'PUT', token: admin, body: { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+});
+ok('a retired model is reported with its replacement',
+  retired.status === 200 && retired.json?.model_warning?.model === 'llama-3.3-70b-versatile'
+  && retired.json?.model_warning?.replacement === 'openai/gpt-oss-120b',
+  JSON.stringify(retired.json?.model_warning));
+const clean = await call('/api/admin/ai', { method: 'PUT', token: admin, body: { model: 'openai/gpt-oss-120b' } });
+ok('switching to the replacement clears the warning', clean.status === 200 && clean.json?.model_warning === null);
+
 const badProvider = await call('/api/admin/ai', { method: 'PUT', token: admin, body: { provider: 'nope' } });
 ok('an unknown provider is rejected', badProvider.status === 400 && badProvider.json?.error === 'BAD_PROVIDER');
 const badBase = await call('/api/admin/ai', { method: 'PUT', token: admin, body: { base_url: 'ftp://x' } });

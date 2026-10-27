@@ -26,6 +26,37 @@ type Release = {
 
 const RELEASES: Release[] = [
   {
+    version: '1.10.2',
+    date: '2026-10-28',
+    headline: 'الذكاء الاصطناعي يُفعّل من الهاتف بنقرة — بلا NO_SECRET ولا موديلات مسحوبة',
+    items: [
+      {
+        icon: Sparkles,
+        title: 'حفظ المفتاح يعمل على أي خادم',
+        body: 'كان الحفظ يفشل بالخطأ NO_SECRET إذا لم يكن JWT_SECRET متغيرًا في بيئة الخادم. الآن يُشتق مفتاح التشفير من السري الذي يحفظه الخادم نفسه — فيعمل التفعيل من الهاتف كما هو مقصود.',
+        to: '/admin?tab=ai',
+        need: 'admin',
+        cta: 'افتح التفعيل',
+      },
+      {
+        icon: RefreshCw,
+        title: 'موديلات حديثة بضغطة',
+        body: 'Groq أوقف llama-3.3-70b-versatile وGoogle أوقف gemini-2.0-flash. الافتراضيات صارت openai/gpt-oss-120b وgemini-3.6-flash، وأمامك أزرار بدائل جاهزة.',
+        to: '/admin?tab=ai',
+        need: 'admin',
+        cta: 'اختر الموديل',
+      },
+      {
+        icon: ShieldCheck,
+        title: 'تحذير الموديل المسحوب',
+        body: 'إن كان الموديل المحفوظ لم يعد متاحًا يظهر تنبيه أحمر باسم البديل، وزر واحد ينقلك إليه — بدل فشل غامض عند التحليل.',
+        to: '/admin?tab=ai',
+        need: 'admin',
+        cta: 'راجع الإعداد',
+      },
+    ],
+  },
+  {
     version: '1.10.1',
     date: '2026-10-27',
     headline: 'التحديث يُثبت نفسه: إصدارات ظاهرة + تصميم طبي فاتح',

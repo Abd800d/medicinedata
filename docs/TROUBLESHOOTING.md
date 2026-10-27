@@ -159,6 +159,33 @@ npm rebuild better-sqlite3         # إن غيّرت Node بعد التثبيت
 `npm run doctor` يميّز بين الحالتين ويكتب الأمر الصحيح حرفيًا. على نظام بلا prebuilt مطابق:
 `npm rebuild better-sqlite3 --build-from-source` (يحتاج `build-essential` + `python3`).
 
+### 5) حفظ مفتاح الذكاء الاصطناعي يفشل بـ `NO_SECRET`
+
+**الخطأ:**
+
+```
+PUT /api/admin/ai → HTTP 400
+{"error":"NO_SECRET","message":"الخادم بلا JWT_SECRET — لا يمكن تشفير المفتاح / Server has no JWT_SECRET"}
+```
+
+**السبب (قبل v1.10.2):** `server/lib/secrets.js` كان يقرأ `process.env.JWT_SECRET` فقط، بينما `server/auth.js`
+يقبل بديلًا محفوظًا في `settings.jwt_secret` ويولّده عند أول إقلاع. فخادم بلا متغيّر بيئة يسجّل الدخول
+بنجاح لكنه يرفض تشفير المفتاح.
+**الإصلاح (v1.10.2):** يُشتق مفتاح التشفير من نفس مادة `auth.js` (متغير البيئة ← السر المحفوظ ← توليد وحفظ تلقائي).
+**إن كنت على إصدار أقدم:** اضبط `JWT_SECRET` على الخادم مرة واحدة، أو حدّث إلى 1.10.2.
+**التحقق:** `npm run doctor` ← سطر «AI can be enabled from the app» يجب أن يطبع `can_store=true`.
+
+### 6) اختبار المفتاح يفشل بـ `model` رغم صحة المفتاح
+
+```
+POST /api/admin/ai/test → {"ok":false,"kind":"model","status":404,...}
+```
+
+**السبب:** الموديل مسحوب لدى المزوّد. Groq أوقفت `llama-3.3-70b-versatile` و`llama-3.1-8b-instant` في
+2026-08-16، وGoogle أوقفت `gemini-2.0-flash` في 2026-06-01.
+**الإصلاح:** من نفس الشاشة اختر موديلًا من الأزرار (`openai/gpt-oss-120b` أو `gemini-3.6-flash`)، أو اضغط
+**«استخدم البديل الآن»** إن ظهر التنبيه الأحمر.
+
 ## وأخيرًا: `.env` ليس سببًا لأي عطل
 
 `.env` **غائب** في هذه النسخة، ومع ذلك:

@@ -7,12 +7,39 @@
  * and rotating JWT_SECRET invalidates the stored key safely — the admin simply re-enters it.
  */
 import crypto from 'node:crypto';
+import { db, getSetting } from '../db.js';
 
 const PEPPER = 'mda.secrets.v1';
 
+/**
+ * The key material this deployment signs and encrypts with.
+ *
+ * Order matters and mirrors `server/auth.js`:
+ *   1. MDA_SECRET_KEY / JWT_SECRET from the environment (a deliberate deployment choice),
+ *   2. the secret `auth.js` generated on first boot and persisted in `settings.jwt_secret`.
+ *
+ * Step 2 used to be missing here, so a server without a JWT_SECRET environment variable
+ * still *signed* tokens with the generated secret but refused to encrypt an AI key with it
+ * ("NO_SECRET"), making the in-app AI activation impossible on exactly the installs that
+ * never set the variable — which is every phone-managed deployment.
+ */
+function secretMaterial() {
+  const env = String(process.env.MDA_SECRET_KEY || process.env.JWT_SECRET || '').trim();
+  if (env.length >= 16) return env;
+  let stored = String(getSetting('jwt_secret', '') || '').trim();
+  if (stored.length < 16) {
+    /* Same value `server/auth.js` would create. INSERT OR IGNORE + re-read keeps two
+       processes booting at once in agreement instead of each keeping its own secret. */
+    db.prepare('INSERT OR IGNORE INTO settings(key,value) VALUES(?,?)')
+      .run('jwt_secret', crypto.randomBytes(48).toString('hex'));
+    stored = String(getSetting('jwt_secret', '') || '').trim();
+  }
+  return stored.length >= 16 ? stored : '';
+}
+
 function derivedKey() {
-  const material = String(process.env.MDA_SECRET_KEY || process.env.JWT_SECRET || '').trim();
-  if (material.length < 16) return null;
+  const material = secretMaterial();
+  if (!material) return null;
   /* scrypt is deliberately slow; the result is cached for the process lifetime. */
   if (!derivedKey.cache || derivedKey.material !== material) {
     derivedKey.cache = crypto.scryptSync(material, PEPPER, 32);
