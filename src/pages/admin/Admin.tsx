@@ -21,11 +21,13 @@ import Integrations from './Integrations';
 import Submissions from './Submissions';
 import AIQuality from './AIQuality';
 import AuditLog from './AuditLog';
+import Overview from './Overview';
 
-type Tab = 'dashboard' | 'ai' | 'catalog' | 'media' | 'data' | 'submissions' | 'people' | 'audit' | 'integrations' | 'settings';
+type Tab = 'overview' | 'dashboard' | 'ai' | 'catalog' | 'media' | 'data' | 'submissions' | 'people' | 'audit' | 'integrations' | 'settings';
 
 const TABS: { id: Tab; label: string; icon: any }[] = [
-  { id: 'dashboard', label: 'لوحة المعلومات', icon: LayoutDashboard },
+  { id: 'overview', label: 'خلاصة التطبيق', icon: LayoutDashboard },
+  { id: 'dashboard', label: 'التفاصيل والإحصاءات', icon: BarChart3 },
   { id: 'ai', label: 'جودة التحليل', icon: Sparkles },
   { id: 'catalog', label: 'قاعدة الأدوية', icon: Boxes },
   { id: 'media', label: 'الاستيراد والصور', icon: Upload },
@@ -41,7 +43,7 @@ export default function Admin() {
   const { user, loading } = useAuth();
   const { lang } = useI18n();
   const [params, setParams] = useSearchParams();
-  const tab = (params.get('tab') as Tab) || 'dashboard';
+  const tab = (params.get('tab') as Tab) || 'overview';
   const [navOpen, setNavOpen] = useState(false);
 
   if (loading) return <PageLoader />;
@@ -88,6 +90,7 @@ export default function Admin() {
       </header>
 
       <main className="mx-auto max-w-6xl px-3 py-4">
+        {tab === 'overview' && <Overview />}
         {tab === 'dashboard' && <Dashboard />}
         {tab === 'ai' && <AIQuality />}
         {tab === 'catalog' && <Catalog />}

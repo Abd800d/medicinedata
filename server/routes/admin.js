@@ -19,6 +19,7 @@ import { encryptFile, decryptBuffer, inspectBackup, restoreSnapshot, snapshotToT
 import { audit } from '../lib/audit.js';
 import { generateUploadKeystore, secretCommands } from '../lib/keystore.js';
 import { aiAdminView, saveAiConfig, testAiConfig } from '../lib/ai-config.js';
+import { buildOverview } from '../lib/overview.js';
 import { googleOAuthReady, googleClientIdResolved, googleClientSecret, saveGoogleCredential, callbackUrl } from '../lib/google-oauth.js';
 
 const router = Router();
@@ -54,6 +55,48 @@ const backupUpload = makeUploader('backups', { anyData: true, maxBytes: 256 * 10
 
 const int = (v) => (v === undefined || v === null || v === '' ? null : Number(v));
 const clean = (v) => (v === undefined || v === null ? null : String(v).trim() || null);
+
+/* ---------------- Overview (the summary dashboard) ---------------- */
+/*
+ * One call that answers "how is the app doing now?": content, people, work waiting for a
+ * human, AI state, platform health, recent activity, an activation checklist and alerts.
+ * The screen renders this object only — it never has to stitch four endpoints together and
+ * show numbers from four different moments.
+ */
+router.get('/overview', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try { res.json(buildOverview()); }
+  catch (e) {
+    console.error('[MDA] overview failed', e);
+    res.status(500).json({ error: 'overview-failed', message: String(e?.message || e) });
+  }
+});
+
+/* The same summary as a spreadsheet row per metric — for a report to the owner or a backup. */
+router.get('/overview.csv', (_req, res) => {
+  const o = buildOverview();
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const line = (k, v, extra = '') => [esc(k), esc(v), esc(extra)].join(',');
+  const out = [line('metric', 'value', 'note')];
+  out.push(line('generated_at', o.generated_at));
+  out.push(line('health_score_percent', o.health.score, `${o.health.checks_ok}/${o.health.checks_total} checks`));
+  out.push(line('version', o.platform.version, o.platform.env));
+  out.push(line('uptime_seconds', o.platform.uptime_s));
+  out.push(line('db_mb', o.platform.db_mb));
+  out.push(line('uploads_mb', o.platform.uploads_mb));
+  for (const [k, v] of Object.entries(o.content)) {
+    if (typeof v === 'object' && v) out.push(line(`content.${k}`, v.with_image, `${v.percent}% of ${v.total}, missing ${v.missing}`));
+    else out.push(line(`content.${k}`, v));
+  }
+  for (const [k, v] of Object.entries(o.people)) if (typeof v !== 'object') out.push(line(`people.${k}`, v));
+  for (const [k, v] of Object.entries(o.work)) out.push(line(`work.${k}`, v));
+  for (const k of ['enabled', 'provider', 'model', 'runs_7d', 'failed_7d', 'last_run_at']) out.push(line(`ai.${k}`, o.ai[k]));
+  for (const c of o.checks) out.push(line(`check.${c.id}`, c.ok ? 'ok' : 'needs attention', c.hint_en || c.hint_ar));
+  for (const a of o.alerts) out.push(line(`alert.${a.id}`, a.level, a.text_en));
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="mda-overview-${new Date().toISOString().slice(0, 10)}.csv"`);
+  res.send(`\uFEFF${out.join('\n')}\n`);
+});
 
 /* ---------------- Stats ---------------- */
 /* ---------------- AI settings (v1.8.1) ---------------- */

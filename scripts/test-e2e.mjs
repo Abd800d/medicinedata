@@ -628,6 +628,55 @@ const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'),
 const vtxt = fs.readFileSync(path.join(process.cwd(), 'public', 'version.txt'), 'utf8');
 ok('public/version.txt is written for the APK', JSON.parse(vtxt).version === pkg.version, JSON.parse(vtxt).version);
 
+/* ------------------------------------------------------------------ 19. the summary dashboard */
+console.log('19 · the admin summary dashboard');
+const ovAnon = await call('/api/admin/overview');
+ok('the summary is admin-only', ovAnon.status === 401, String(ovAnon.status));
+const ov = await call('/api/admin/overview', { token: admin });
+ok('it answers in one call', ov.status === 200 && typeof ov.json?.generated_at === 'string');
+ok('it has every section the screen renders', ['health', 'content', 'people', 'work', 'ai', 'platform', 'activity', 'checks', 'alerts']
+  .every((k) => ov.json?.[k] !== undefined), Object.keys(ov.json || {}).join(','));
+const statsNow = await call('/api/admin/stats', { token: admin });
+ok('its catalogue numbers match /stats (one truth, two views)',
+  ov.json?.content?.drugs === statsNow.json?.counts?.drugs && ov.json?.content?.products === statsNow.json?.counts?.products,
+  `${ov.json?.content?.drugs}/${statsNow.json?.counts?.drugs} · ${ov.json?.content?.products}/${statsNow.json?.counts?.products}`);
+ok('the image coverage is a real percentage, not a guess',
+  typeof ov.json?.content?.images?.with_image === 'number'
+  && ov.json.content.images.with_image + ov.json.content.images.missing === ov.json.content.images.total
+  && ov.json.content.images.percent === Math.round((ov.json.content.images.with_image / ov.json.content.images.total) * 100));
+ok('it reports this server\'s own version and uptime',
+  ov.json?.platform?.version === pkg.version && Number(ov.json?.platform?.uptime_s) >= 0,
+  `${ov.json?.platform?.version} up ${ov.json?.platform?.uptime_s}s`);
+ok('the AI section reflects the live provider, not a hard-coded claim',
+  ov.json?.ai?.enabled === (await call('/api/ai/status')).json?.enabled);
+const scored = (ov.json?.checks || []).filter((c) => !c.optional);
+ok('the health score counts only actionable checks',
+  ov.json?.health?.checks_total === scored.length
+  && ov.json.health.score === Math.round((scored.filter((c) => c.ok).length / scored.length) * 100),
+  `score=${ov.json?.health?.score} total=${ov.json?.health?.checks_total}`);
+ok('every check and every alert leads somewhere', (ov.json?.checks || []).every((c) => String(c.to || '').startsWith('/'))
+  && (ov.json?.alerts || []).every((a) => String(a.to || '').startsWith('/')));
+ok('the work queue counts come from the real tables', typeof ov.json?.work?.rx_pending_review === 'number'
+  && typeof ov.json?.work?.submissions_pending === 'number' && typeof ov.json?.work?.pharmacy_expired === 'number');
+ok('a 7-day series is zero-filled to exactly 7 days',
+  ov.json?.people?.new_users_7d?.length === 7 && ov.json?.ai?.runs_7d_series?.length === 7);
+ok('nothing secret leaks into the summary',
+  !/api[_-]?key|jwt_secret|gsk_|sk-[A-Za-z0-9]{12}/i.test(JSON.stringify(ov.json?.ai || {})));
+
+const ovCsv = await fetch(`${API}/api/admin/overview.csv`, { headers: { Authorization: `Bearer ${admin}` } });
+/* Read bytes, not text(): Response.text() strips the BOM, and the BOM is what makes Excel
+   show Arabic correctly — the assertion has to look at the wire, not at the decoded string. */
+const csvBytes = new Uint8Array(await ovCsv.arrayBuffer());
+const csvText = new TextDecoder('utf-8').decode(csvBytes);
+ok('the same summary can be exported as CSV', ovCsv.status === 200
+  && csvBytes[0] === 0xef && csvBytes[1] === 0xbb && csvBytes[2] === 0xbf
+  && /"metric","value"/.test(csvText) && /"content\.drugs"/.test(csvText),
+  `bytes=${csvBytes[0]},${csvBytes[1]},${csvBytes[2]}`);
+ok('the CSV is served as a download, not as JSON', /text\/csv/.test(String(ovCsv.headers.get('content-type')))
+  && /attachment/.test(String(ovCsv.headers.get('content-disposition'))));
+ok('the CSV carries the checklist verdicts', /"check\.data","ok"/.test(csvText));
+ok('the CSV is admin-only too', (await fetch(`${API}/api/admin/overview.csv`)).status === 401);
+
 /* ------------------------------------------------------------------ cleanup */
 console.log('cleanup');
 /* Remove everything the import block created, so the shipped offline catalogue never

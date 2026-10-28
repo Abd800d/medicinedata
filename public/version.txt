@@ -1,1 +1,1 @@
-{"version":"1.10.3","built_at":"2026-10-28T00:00:48.441Z","build":"local","app":"MDA"}
+{"version":"1.11.0","built_at":"2026-10-28T00:41:47.627Z","build":"local","app":"MDA"}
