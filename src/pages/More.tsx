@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Moon, RefreshCw, Sun, MonitorSmartphone, Bot, Briefcase, ChevronLeft, ChevronRight, CloudDownload, Database, Download, ExternalLink, FilePlus2, FileText, Globe2, Info, Languages, LayoutDashboard, LogIn, LogOut, Mail, MessageCircle, Phone, ScanLine, ScrollText, Server, Settings2, ShieldCheck, ShoppingCart, Smartphone, UserRound, Users,
-  ClipboardList,
+  ClipboardList, BookOpen,
 } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
 import { useConfig } from '../lib/config';
@@ -179,6 +179,14 @@ export default function More() {
                 ? (lang === 'ar' ? 'مزوّد + مفتاح + اختبار حقيقي — من هنا' : 'Provider, key and a real self-test')
                 : (lang === 'ar' ? 'يفعّله المدير من لوحة الإدارة (مفتاح مجاني)' : 'An admin enables it (free key)')}
             </div>
+          </div>
+          <ChevronLeft className="h-3.5 w-3.5 text-ink-500 rtl:block ltr:hidden" /><ChevronRight className="hidden h-3.5 w-3.5 text-ink-500 ltr:block" />
+        </Link>
+        <Link to="/ai-guide" className="flex w-full items-center gap-3 px-3 py-2.5 text-start transition hover:bg-white/[.04]">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-fuchsia-500/15 text-fuchsia-300"><BookOpen className="h-4 w-4" /></span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12.5px] font-bold text-white">{lang === 'ar' ? 'دليل ربط الذكاء الاصطناعي' : 'Connect the AI — guide'}</div>
+            <div className="truncate text-[10px] text-ink-400">{lang === 'ar' ? 'خطوات + روابط المفاتيح + الاختبار — بروابط قابلة للنقر' : 'Steps, key links and a real self-test'}</div>
           </div>
           <ChevronLeft className="h-3.5 w-3.5 text-ink-500 rtl:block ltr:hidden" /><ChevronRight className="hidden h-3.5 w-3.5 text-ink-500 ltr:block" />
         </Link>

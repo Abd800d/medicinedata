@@ -184,6 +184,27 @@ console.log('photos · medicine pictures come from the phone gallery');
   ok('deleting a photo also unlinks the file', /removeUploadedFile\(img\.url\)/.test(adminRoutes));
 }
 
+console.log('release · the AI guide ships with every working link');
+{
+  const app = fs.readFileSync(path.join(ROOT, 'src/App.tsx'), 'utf8');
+  ok('the guide has its own route', /ai-guide/.test(app) && /<AiGuide \/>/.test(app));
+
+  const guide = fs.readFileSync(path.join(ROOT, 'src/pages/AiGuide.tsx'), 'utf8');
+  ok('it links both free providers', /console\.groq\.com\/keys/.test(guide) && /aistudio\.google\.com\/apikey/.test(guide));
+  ok('it links the in-app activation screen', /\/admin\?tab=ai/.test(guide));
+  ok('it links the APK and the docs', /releases\/latest/.test(guide) && /docs\/TROUBLESHOOTING\.md/.test(guide));
+  ok('it shows the live AI status instead of guessing', /\/api\/ai\/status/.test(guide));
+  ok('it opens links through the native bridge, not window.open', /openExternal/.test(guide) && !/target="_blank"[^>]*>\(ar \?/.test(guide));
+  ok('the status URL is absolute so the APK does not hit https://localhost', /apiUrl\('\/api\/ai\/status'\)/.test(guide));
+
+  ok('المزيد links to the guide', /to="\/ai-guide"/.test(fs.readFileSync(path.join(ROOT, 'src/pages/More.tsx'), 'utf8')));
+  ok('the "not enabled" card also links to it', /to="\/ai-guide"/.test(fs.readFileSync(path.join(ROOT, 'src/components/AiSetupHint.tsx'), 'utf8')));
+
+  const doc = fs.readFileSync(path.join(ROOT, 'docs/AI-SETUP-AR.md'), 'utf8');
+  ok('the same guide exists as a document with real URLs', /console\.groq\.com\/keys/.test(doc) && /releases\/latest/.test(doc));
+  ok('it documents the error kinds an owner will actually see', /NO_SECRET/.test(doc) && /quota/.test(doc) && /network/.test(doc));
+}
+
 console.log('release · the update is visible, not just installed');
 {
   const app = fs.readFileSync(path.join(ROOT, 'src/App.tsx'), 'utf8');
