@@ -6,7 +6,7 @@
  * يقرأ سببًا واضحًا، وإذا لم يكن هناك خادم متصل يُقاد إلى ربط الخادم أولًا.
  */
 import { Link } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, Bot, KeyRound, Server, WifiOff } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, BookOpen, Bot, KeyRound, Server, WifiOff } from 'lucide-react';
 import { useApi } from '../lib/useApi';
 import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
@@ -72,6 +72,9 @@ export default function AiSetupHint({ className = '' }: { className?: string }) 
             <AlertTriangle className="h-3 w-3" />{ar ? 'اطلب من مدير النظام تفعيله — دقيقة واحدة' : 'Ask an admin to enable it — takes a minute'}
           </span>
         )}
+        <Link to="/ai-guide" className="btn-soft px-3 py-1.5 text-[11px]">
+          <BookOpen className="h-3.5 w-3.5" />{ar ? 'دليل الربط بالخطوات والروابط' : 'Setup guide with links'}
+        </Link>
         <Link to="/about" className="btn-ghost px-3 py-1.5 text-[11px]">
           {ar ? 'ما الذي يعمل بدونه؟' : 'What works without it?'} <ArrowLeft className="h-3 w-3 rtl:rotate-180" />
         </Link>

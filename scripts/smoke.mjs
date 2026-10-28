@@ -28,7 +28,7 @@ const DEFAULT_ROUTES = ['/', '/systems', '/systems/nervous', '/search', '/search
   drugId ? `/drugs/${drugId}` : '/drugs/1', productId ? `/products/${productId}` : '/products/1',
   '/prescriptions', '/scan', '/ai', '/community', '/jobs', '/directories', '/pharmacy', '/submit-drug',
   '/about', '/profile', '/more', '/auth', '/review', '/admin', '/admin?tab=data', '/admin?tab=media', '/admin?tab=audit', '/forgot-password', '/whats-new', '/sync', '/offline', '/server',
-  '/legal/privacy', '/legal/terms'];
+  '/legal/privacy', '/legal/terms', '/ai-guide'];
 
 
 const routes = process.argv.slice(2).length ? process.argv.slice(2) : DEFAULT_ROUTES;
