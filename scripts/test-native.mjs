@@ -184,6 +184,28 @@ console.log('photos · medicine pictures come from the phone gallery');
   ok('deleting a photo also unlinks the file', /removeUploadedFile\(img\.url\)/.test(adminRoutes));
 }
 
+console.log('release · the summary dashboard opens first and reads one snapshot');
+{
+  const admin = fs.readFileSync(path.join(ROOT, 'src/pages/admin/Admin.tsx'), 'utf8');
+  ok('the summary is the default admin tab', /'overview'\s*\|/.test(admin) && /\|\| 'overview'/.test(admin));
+  ok('the old detailed dashboard is still reachable', /id: 'dashboard'/.test(admin) && /<Dashboard \/>/.test(admin));
+
+  const page = fs.readFileSync(path.join(ROOT, 'src/pages/admin/Overview.tsx'), 'utf8');
+  ok('the screen makes exactly one request', (page.match(/useApi</g) || []).length === 1 && /\/api\/admin\/overview/.test(page));
+  ok('it never invents a number when the server is silent', /\?\? '—'/.test(page) || /: '—'/.test(page));
+  ok('every alert is a link to the fix', /<Link key=\{a\.id\} to=\{a\.to\}/.test(page));
+  ok('the checklist links to each screen', /<Link key=\{ch\.id\} to=\{ch\.to\}/.test(page));
+  ok('optional checks are marked instead of counted', /optional_failed|optional/.test(page));
+  ok('it can export the summary as CSV', /overview\.csv/.test(page) && /downloadWithAuth/.test(page));
+  ok('auto-refresh is opt-in, not a hidden timer', /auto-refresh/.test(page) && /setInterval/.test(page));
+  ok('no chart library was added for two sparklines', !/recharts|chart\.js|victory/i.test(page));
+
+  const lib = fs.readFileSync(path.join(ROOT, 'server/lib/overview.js'), 'utf8');
+  ok('the backend score ignores optional checks', /scored = checks\.filter\(\(c\) => !c\.optional\)/.test(lib));
+  ok('the backend reports the real process uptime', /process\.uptime\(\)/.test(lib));
+  ok('the backend never selects password or token columns', !/password_hash|jwt_secret|api_key_enc/.test(lib));
+}
+
 console.log('release · the AI guide ships with every working link');
 {
   const app = fs.readFileSync(path.join(ROOT, 'src/App.tsx'), 'utf8');
