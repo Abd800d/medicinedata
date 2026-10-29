@@ -8,7 +8,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Camera, CheckCircle2, ClipboardList, Fingerprint, ImageIcon, Info, LayoutDashboard,
+  ArrowLeft, BadgeCheck, Camera, CheckCircle2, ClipboardList, FileText, Fingerprint, ImageIcon, Info, LayoutDashboard,
   Moon, Package, Palette, Pill, RefreshCw, ShieldAlert, ShieldCheck, Smartphone, Sparkles, Sun, Upload, X,
 } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
@@ -25,6 +25,42 @@ type Release = {
 };
 
 const RELEASES: Release[] = [
+  {
+    version: '1.13.0',
+    date: '2026-10-29',
+    headline: 'ست حالات توثيق حقيقية: من وثّق، ومتى، وبأي مستند',
+    items: [
+      {
+        icon: BadgeCheck,
+        title: 'حالة من ست حالات على كل سجل',
+        body: 'موثّق · مؤكد من الشركة المصنعة · مُقدَّم من مورّد · مُقدَّم من مستخدم · بيانات ناقصة · غير موثّق. ولم يبقَ «صح/خطأ» يخفي من أين جاء السجل.',
+        to: '/products',
+        cta: 'شاهد الحالات',
+      },
+      {
+        icon: ShieldCheck,
+        title: 'لوحة «التوثيق والمراجعة»',
+        body: 'طابور يبدأ بالمعلّق ثم المرفوض ثم الناقص، ولوحة قرار تُظهر اسم المراجع وتاريخ القرار والمستندات المرفقة وأسماء الحقول الناقصة. الخادم يرفض «مؤكد من الشركة» بلا مستند، و«مرفوض» بلا سبب مكتوب.',
+        to: '/admin?tab=verification',
+        need: 'admin',
+        cta: 'افتح الطابور',
+      },
+      {
+        icon: FileText,
+        title: 'الدليل مرفق ومرئي',
+        body: 'ارفع خطاب الشركة أو التفويض أو وثيقة التسجيل (أو ضع رابطها)، فيظهر على صفحة المنتج العامة مع «مَن قرّر ومتى». وسحب المستند لا يغيّر الحالة بصمت.',
+        to: '/products',
+        cta: 'مثال على سجل موثّق',
+      },
+      {
+        icon: ShieldAlert,
+        title: 'طلبات المستخدمين لم تعد تبدو «موثّقة»',
+        body: 'كل طلب يُعتمد من «أضف دواءً» يُسجَّل الآن «مُقدَّم من مستخدم» وبانتظار المراجعة، ولا يُعرض كأن صيدليًا راجعه.',
+        to: '/submit-drug',
+        cta: 'أرسل دواءً',
+      },
+    ],
+  },
   {
     version: '1.12.0',
     date: '2026-10-29',

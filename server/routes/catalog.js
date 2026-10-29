@@ -3,7 +3,8 @@ import { Router } from 'express';
 import { db } from '../db.js';
 import { normalize, searchNorm, rankCandidates, likePattern, similarity, queryTokens } from '../lib/search.js';
 import { packSvg, capsuleSvg } from '../lib/packArt.js';
-import { withProductVerification, productVerification, drugVerification } from '../lib/verification.js';
+import { withProductVerification, withDrugVerification } from '../lib/verification.js';
+import { detail as verificationDetail } from '../lib/verification-workflow.js';
 import { checkInteractions } from '../lib/interactions.js';
 
 const router = Router();
@@ -92,9 +93,10 @@ router.get('/drugs/:id', (req, res) => {
     ) ORDER BY d2.generic_name LIMIT 12`)
     .all(drug.id, drug.category_id, drug.category_id, drug.drug_class, drug.drug_class);
   res.json({
-    ...drug,
-    products: products.map((p) => ({ ...p, images: byDrug.get(p.id) || [] })),
+    ...withDrugVerification(drug),
+    products: products.map((p) => ({ ...withProductVerification(p), images: byDrug.get(p.id) || [] })),
     related,
+    verification_detail: verificationDetail('drugs', drug.id),
   });
 });
 
@@ -119,6 +121,9 @@ router.get('/products', (req, res) => {
   if (req.query.agent) { where.push('p.agent_id = @agent'); params.agent = Number(req.query.agent); }
   if (req.query.verified === '1') where.push('p.verified=1');
   if (req.query.unverified === '1') where.push('p.verified=0');
+  /* Six-state filter (v1.13.0). The legacy `verified=1` above stays for older clients. */
+  if (req.query.state) { where.push('p.verification_state = @state'); params.state = String(req.query.state); }
+  if (req.query.review) { where.push("COALESCE(p.review_status,'none') = @review"); params.review = String(req.query.review); }
   if (req.query.has_image === '1') where.push("p.image_url IS NOT NULL AND p.image_url <> ''");
   if (req.query.drug) { where.push('p.drug_id = @drug'); params.drug = Number(req.query.drug); }
   const w = 'WHERE ' + where.join(' AND ');
@@ -154,6 +159,10 @@ router.get('/products-facets', (_req, res) => {
       LEFT JOIN drugs d ON d.system_id=s.id
       LEFT JOIN products p ON p.drug_id=d.id AND p.active=1
       GROUP BY s.id ORDER BY n DESC`).all(),
+    states: db.prepare(`SELECT COALESCE(verification_state,'unverified') AS value, COUNT(*) n
+      FROM products WHERE active=1 GROUP BY value ORDER BY n DESC`).all(),
+    reviews: db.prepare(`SELECT COALESCE(review_status,'none') AS value, COUNT(*) n
+      FROM products WHERE active=1 GROUP BY value`).all(),
     totals: {
       products: db.prepare('SELECT COUNT(*) n FROM products WHERE active=1').get().n,
       verified: db.prepare('SELECT COUNT(*) n FROM products WHERE active=1 AND verified=1').get().n,
@@ -174,12 +183,16 @@ router.get('/products/:id', (req, res) => {
       p2.image_url, p2.country, p2.price, p2.currency, m.name AS manufacturer_name
     FROM products p2 LEFT JOIN manufacturers m ON m.id=p2.manufacturer_id
     WHERE p2.drug_id=? AND p2.id<>? AND p2.active=1 ORDER BY p2.verified DESC LIMIT 30`).all(p.drug_id, p.id) : [];
-  const drug = p.drug_id ? db.prepare('SELECT verified, generic_name, indications_en, dosage_adult, warnings FROM drugs WHERE id=?').get(p.drug_id) : null;
+  const drug = p.drug_id ? db.prepare('SELECT * FROM drugs WHERE id=?').get(p.drug_id) : null;
   res.json({
     ...withProductVerification(p),
     images,
     alternatives: alternatives.map(withProductVerification),
-    drug_verification: drug ? drugVerification(drug).status : null,
+    /* The full review trail: state + who + when + which documents + what is still missing.
+       `verification` (a string) stays for list-style clients; this is the honest detail. */
+    verification_detail: verificationDetail('products', p.id),
+    drug_verification: drug ? withDrugVerification(drug).verification : null,
+    drug_verification_detail: drug ? verificationDetail('drugs', drug.id) : null,
   });
 });
 

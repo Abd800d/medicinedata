@@ -20,6 +20,7 @@ import { audit } from '../lib/audit.js';
 import { generateUploadKeystore, secretCommands } from '../lib/keystore.js';
 import { aiAdminView, saveAiConfig, testAiConfig } from '../lib/ai-config.js';
 import { buildOverview } from '../lib/overview.js';
+import { refreshState } from '../lib/verification-workflow.js';
 import { googleOAuthReady, googleClientIdResolved, googleClientSecret, saveGoogleCredential, callbackUrl } from '../lib/google-oauth.js';
 
 const router = Router();
@@ -517,6 +518,9 @@ router.post('/products', (req, res) => {
   const cols = [...productFields, 'search_norm'];
   const info = db.prepare(`INSERT INTO products(${cols.join(',')}) VALUES(${cols.map((c) => '@' + c).join(',')})`).run(payload);
   if (payload.image_url) db.prepare('INSERT INTO product_images(product_id,url,source) VALUES(?,?,?)').run(info.lastInsertRowid, payload.image_url, 'admin');
+  /* A record added by staff starts unclaimed; its derived state must be stored so the six-state
+     filter and the queue agree with what the catalog shows. */
+  refreshState('products', info.lastInsertRowid);
   res.status(201).json(db.prepare('SELECT * FROM products WHERE id=?').get(info.lastInsertRowid));
 });
 router.put('/products/:id', (req, res) => {
@@ -528,6 +532,7 @@ router.put('/products/:id', (req, res) => {
   if (payload.image_url && payload.image_url !== cur.image_url) {
     db.prepare('INSERT INTO product_images(product_id,url,source) VALUES(?,?,?)').run(cur.id, payload.image_url, 'admin');
   }
+  refreshState('products', cur.id);
   res.json(db.prepare('SELECT * FROM products WHERE id=?').get(cur.id));
 });
 router.delete('/products/:id', (req, res) => {

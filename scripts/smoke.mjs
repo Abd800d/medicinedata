@@ -28,7 +28,7 @@ const DEFAULT_ROUTES = ['/', '/systems', '/systems/nervous', '/search', '/search
   drugId ? `/drugs/${drugId}` : '/drugs/1', productId ? `/products/${productId}` : '/products/1',
   '/prescriptions', '/scan', '/ai', '/community', '/jobs', '/directories', '/pharmacy', '/submit-drug',
   '/products', '/interactions',
-  '/about', '/profile', '/more', '/auth', '/review', '/admin', '/admin?tab=overview', '/admin?tab=data', '/admin?tab=media', '/admin?tab=audit', '/forgot-password', '/whats-new', '/sync', '/offline', '/server',
+  '/about', '/profile', '/more', '/auth', '/review', '/admin', '/admin?tab=overview', '/admin?tab=data', '/admin?tab=media', '/admin?tab=audit', '/admin?tab=verification', '/forgot-password', '/whats-new', '/sync', '/offline', '/server',
   '/legal/privacy', '/legal/terms', '/ai-guide'];
 
 
