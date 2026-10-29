@@ -28,8 +28,11 @@
 | 🔓 GET | `/catalog/categories/:id` | تصنيف + أدويته |
 | 🔓 GET | `/catalog/drugs` | `?q=&system_id=&category_id=&page=&limit=` (≤ 200) |
 | 🔓 GET | `/catalog/drugs/:id` | مونوغراف + منتجاته التجارية |
-| 🔓 GET | `/catalog/products` | `?q=&drug_id=&system_id=&manufacturer_id=&country=&page=` |
-| 🔓 GET | `/catalog/products/:id` | منتج + صور + بدائل بنفس المادة الفعالة |
+| 🔓 GET | `/catalog/products` | `?q=&drug_id=&system_id=&manufacturer_id=&agent=&country=&verified=1&unverified=1&has_image=1&page=&limit=` · كل صف يحمل `verification` ∈ `verified\|unverified\|incomplete` و`missing_fields[]` |
+| 🔓 GET | `/catalog/products/:id` | منتج + صور + بدائل + `verification` و`drug_verification` |
+| 🔓 GET | `/catalog/products-facets` | قيم الفلاتر محسوبة من القاعدة: `countries[], manufacturers[], agents[], systems[], totals{}` |
+| 🔓 POST | `/catalog/interactions/check` | `{ drug_ids?: number[], names?: string[] }` (≤25، والتكرار مسموح) → `{ checked, pairs[], duplications[], max_severity, limits[], disclaimer_ar/en }` |
+| 🔓 GET | `/catalog/interactions/search` | `?q=` (≥2 أحرف) → أسماء علمية فقط للفاحص |
 | 🔓 GET | `/catalog/search` | `?q=` → `{ drugs, products, suggestions, normalized }` (بحث ضبابي) |
 | 🔓 GET | `/catalog/barcode/:code` | البحث بالباركود — يقبل مسافات، UPC-A (12 رقمًا) أو EAN-13 |
 | 🔓 GET | `/catalog/manufacturers`, `/catalog/agents` | `?q=` |
@@ -93,7 +96,7 @@
 | الطريقة | المسار | الوصف |
 | --- | --- | --- |
 | 👤 GET | `/pharmacy` | `{ items, summary }` |
-| 👤 GET | `/pharmacy/summary` | قيمة المخزون، النواقص، قرب الانتهاء، المنتهي |
+| 👤 GET | `/pharmacy/summary` | قيمة المخزون، النواقص، المنتهي، و`expiry_buckets { d30, d60, d90, d180 }` — كل صنف في أقرب نافذة فقط |
 | 👤 POST | `/pharmacy` | إضافة صنف (`name` مطلوب) |
 | 👤 PUT | `/pharmacy/:id` | تعديل |
 | 👤 PATCH | `/pharmacy/:id/adjust` | `{ delta }` تعديل سريع للكمية |

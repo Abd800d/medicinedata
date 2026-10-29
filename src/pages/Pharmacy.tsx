@@ -18,7 +18,8 @@ type Item = {
   trade_name?: string; generic_name?: string; image_url?: string; manufacturer_name?: string;
   updated_at?: string; version?: number; client_uuid?: string | null;
 };
-type Summary = { items: number; units: number; stock_value: number; potential_value: number; low_stock: number; expiring_soon: number; expired: number };
+type Summary = { items: number; units: number; stock_value: number; potential_value: number; low_stock: number; expiring_soon: number; expired: number;
+  expiry_buckets?: { d30: number; d60: number; d90: number; d180: number } };
 
 const emptyForm = {
   id: 0, product_id: '', name: '', strength: '', form: '', quantity: '1', unit: 'box',
@@ -149,6 +150,35 @@ export default function Pharmacy() {
           ))}
         </div>
       </div>
+
+      {/* Expiry Guardian: four horizons, because "expiring soon" hides whether a batch is a
+          sell-now problem or a next-quarter one. */}
+      {summary?.expiry_buckets && (summary.expiry_buckets.d30 + summary.expiry_buckets.d60 + summary.expiry_buckets.d90 + summary.expiry_buckets.d180) > 0 && (
+        <div className="card p-3">
+          <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold text-ink-300">
+            <CalendarClock className="h-3.5 w-3.5 text-amber-300" />
+            {lang === 'ar' ? 'حارس الانتهاء — أربع نوافذ' : 'Expiry guardian — four windows'}
+          </div>
+          <div className="grid grid-cols-4 gap-1.5 text-center">
+            {([
+              ['30', summary.expiry_buckets.d30, 'bg-rose-500/15 text-rose-200'],
+              ['60', summary.expiry_buckets.d60, 'bg-amber-500/15 text-amber-200'],
+              ['90', summary.expiry_buckets.d90, 'bg-sky-500/15 text-sky-200'],
+              ['180', summary.expiry_buckets.d180, 'bg-white/[.06] text-ink-200'],
+            ] as const).map(([d, n, cls]) => (
+              <div key={d} className={`rounded-xl px-1 py-1.5 ${cls}`}>
+                <div className="text-[14px] font-black leading-none">{n}</div>
+                <div className="mt-0.5 text-[9px] opacity-80">{lang === 'ar' ? `خلال ${d} يومًا` : `within ${d} d`}</div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-1.5 text-[9.5px] leading-5 text-ink-500">
+            {lang === 'ar'
+              ? 'كل صنف يُحسب في أقرب نافذة إليه فقط، فالمجموع لا يتكرر. الأصناف بلا تاريخ انتهاء لا تُحسب.'
+              : 'Each item is counted in its nearest window only, so the numbers add up. Items without an expiry date are not counted.'}
+          </p>
+        </div>
+      )}
 
       {summary?.expired ? (
         <div className="flex items-center gap-2 rounded-2xl border p-3 text-[11px] font-semibold border-rose-400/25 bg-rose-500/10 text-rose-200">

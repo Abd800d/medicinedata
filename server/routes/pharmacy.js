@@ -37,8 +37,13 @@ function listItems(userId) {
 
 function summaryFor(userId) {
   const rows = listItems(userId);
-  const today = new Date().toISOString().slice(0, 10);
-  const in90 = new Date(Date.now() + 90 * 864e5).toISOString().slice(0, 10);
+  const day = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+  const today = day(0);
+  /* The plan asks for four horizons, not one: a batch expiring in 20 days needs a different
+     action (sell now / return to supplier) than one expiring in 150. Each item is counted in the
+     narrowest bucket that contains it, so the four numbers add up instead of overlapping. */
+  const edges = [30, 60, 90, 180].map(day);
+  const buckets = { d30: 0, d60: 0, d90: 0, d180: 0 };
   let stockValue = 0; let potential = 0; let low = 0; let expiring = 0; let expired = 0; let units = 0;
   for (const r of rows) {
     const qty = Number(r.quantity) || 0;
@@ -46,14 +51,16 @@ function summaryFor(userId) {
     potential += qty * (Number(r.sell_price) || 0);
     units += qty;
     if (qty <= 5) low++;
-    if (r.expiry_date) {
-      if (r.expiry_date < today) expired++;
-      else if (r.expiry_date <= in90) expiring++;
-    }
+    if (!r.expiry_date) continue;
+    if (r.expiry_date < today) { expired++; continue; }
+    if (r.expiry_date <= edges[0]) { buckets.d30++; expiring++; }
+    else if (r.expiry_date <= edges[1]) { buckets.d60++; expiring++; }
+    else if (r.expiry_date <= edges[2]) { buckets.d90++; expiring++; }
+    else if (r.expiry_date <= edges[3]) buckets.d180++;
   }
   return {
     items: rows.length, units, stock_value: Math.round(stockValue), potential_value: Math.round(potential),
-    low_stock: low, expiring_soon: expiring, expired,
+    low_stock: low, expiring_soon: expiring, expired, expiry_buckets: buckets,
   };
 }
 

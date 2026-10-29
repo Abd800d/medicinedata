@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Moon, RefreshCw, Sun, MonitorSmartphone, Bot, Briefcase, ChevronLeft, ChevronRight, CloudDownload, Database, Download, ExternalLink, FilePlus2, FileText, Globe2, Info, Languages, LayoutDashboard, LogIn, LogOut, Mail, MessageCircle, Phone, ScanLine, ScrollText, Server, Settings2, ShieldCheck, ShoppingCart, Smartphone, UserRound, Users,
-  ClipboardList, BookOpen,
+  ClipboardList, BookOpen, Package, Pill,
 } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
 import { useConfig } from '../lib/config';
@@ -22,6 +22,8 @@ export default function More() {
   const [busy, setBusy] = useState(false);
 
   const links = [
+    { to: '/interactions', icon: Pill, label: (lang === 'ar' ? 'فاحص التداخلات' : 'Interaction checker'), desc: (lang === 'ar' ? 'دواءان أو أكثر: تداخل، تكرار مادة فعالة، تكرار علاجي' : 'Two or more drugs: interactions, duplicate ingredient, class duplication'), g: 'from-[#f43f5e] to-[#fb7185]' },
+    { to: '/products', icon: Package, label: (lang === 'ar' ? 'المنتجات التجارية' : 'Commercial products'), desc: (lang === 'ar' ? 'بالبلد والشركة والوكيل المحلي وحالة التوثيق' : 'By country, manufacturer, local agent and verification state'), g: 'from-[#0d9488] to-[#2dd4bf]' },
     { to: '/prescriptions', icon: ScrollText, label: t('rx.title'), desc: t('more.rxDesc'), g: 'from-[#f43f5e] to-[#fb7185]' },
     { to: '/pharmacy', icon: ShoppingCart, label: t('pharmacy.title'), desc: (lang === 'ar' ? 'المخزون والأسعار وتواريخ الانتهاء' : 'Stock, prices and expiry tracking'), g: 'from-[#6366f1] to-[#818cf8]' },
     { to: '/submit-drug', icon: FilePlus2, label: t('submit.title'), desc: (lang === 'ar' ? 'أرسل دواءً مفقودًا للمراجعة' : 'Submit a missing medicine'), g: 'from-[#14b8a6] to-[#2dd4bf]' },

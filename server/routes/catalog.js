@@ -3,6 +3,8 @@ import { Router } from 'express';
 import { db } from '../db.js';
 import { normalize, searchNorm, rankCandidates, likePattern, similarity, queryTokens } from '../lib/search.js';
 import { packSvg, capsuleSvg } from '../lib/packArt.js';
+import { withProductVerification, productVerification, drugVerification } from '../lib/verification.js';
+import { checkInteractions } from '../lib/interactions.js';
 
 const router = Router();
 const safeLimit = (v, def = 20, max = 100) => Math.max(1, Math.min(max, parseInt(v, 10) || def));
@@ -96,22 +98,68 @@ router.get('/drugs/:id', (req, res) => {
   });
 });
 
+/*
+ * Commercial product browser (v1.12.0). Filters the plan calls for — country of marketing,
+ * manufacturer, local agent, verification state, presence of a real photo, and free text —
+ * plus the derived `verification` field so a client never has to guess what "verified" means.
+ */
 router.get('/products', (req, res) => {
   const limit = safeLimit(req.query.limit, 30, 200);
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-  const q = req.query.q;
+  const q = String(req.query.q || '').trim();
   const params = { limit, offset: (page - 1) * limit };
   const where = ['p.active=1'];
-  if (q) { where.push('(p.search_norm LIKE @q OR p.trade_name LIKE @q)'); params.q = likePattern(q); }
+  if (q) {
+    where.push('(p.search_norm LIKE @q OR p.trade_name LIKE @q OR p.trade_name_ar LIKE @q OR p.barcode LIKE @q OR d.search_norm LIKE @q)');
+    params.q = likePattern(q);
+  }
   if (req.query.country) { where.push('p.country = @country'); params.country = req.query.country; }
+  if (req.query.system) { where.push('d.system_id = (SELECT id FROM systems WHERE slug=@system)'); params.system = req.query.system; }
+  if (req.query.manufacturer) { where.push('p.manufacturer_id = @manufacturer'); params.manufacturer = Number(req.query.manufacturer); }
+  if (req.query.agent) { where.push('p.agent_id = @agent'); params.agent = Number(req.query.agent); }
   if (req.query.verified === '1') where.push('p.verified=1');
+  if (req.query.unverified === '1') where.push('p.verified=0');
   if (req.query.has_image === '1') where.push("p.image_url IS NOT NULL AND p.image_url <> ''");
+  if (req.query.drug) { where.push('p.drug_id = @drug'); params.drug = Number(req.query.drug); }
   const w = 'WHERE ' + where.join(' AND ');
-  const data = db.prepare(`SELECT p.*, d.generic_name, d.generic_ar, m.name AS manufacturer_name, a.name AS agent_name
-    FROM products p LEFT JOIN drugs d ON d.id=p.drug_id LEFT JOIN manufacturers m ON m.id=p.manufacturer_id
-    LEFT JOIN agents a ON a.id=p.agent_id ${w} ORDER BY p.verified DESC, p.trade_name COLLATE NOCASE LIMIT @limit OFFSET @offset`).all(params);
-  const total = db.prepare(`SELECT COUNT(*) n FROM products p ${w}`).get(params).n;
-  res.json({ data, page, limit, total, pages: Math.ceil(total / limit) });
+  const rows = db.prepare(`SELECT p.*, d.generic_name, d.generic_ar, d.id AS drug_id, d.drug_class,
+      s.slug AS system_slug, s.name_ar AS system_ar, s.name_en AS system_en,
+      m.name AS manufacturer_name, m.country AS manufacturer_country, a.name AS agent_name, a.city AS agent_city
+    FROM products p
+    LEFT JOIN drugs d ON d.id=p.drug_id
+    LEFT JOIN systems s ON s.id=d.system_id
+    LEFT JOIN manufacturers m ON m.id=p.manufacturer_id
+    LEFT JOIN agents a ON a.id=p.agent_id
+    ${w} ORDER BY p.verified DESC, p.trade_name COLLATE NOCASE LIMIT @limit OFFSET @offset`).all(params);
+  const total = db.prepare(`SELECT COUNT(*) n FROM products p LEFT JOIN drugs d ON d.id=p.drug_id ${w}`).get(params).n;
+  res.json({
+    data: rows.map(withProductVerification),
+    page, limit, total, pages: Math.ceil(total / limit),
+  });
+});
+
+/* Filter values for the browser above — read from the data, not a hand-written list. */
+router.get('/products-facets', (_req, res) => {
+  res.json({
+    countries: db.prepare(`SELECT country AS value, COUNT(*) n FROM products
+      WHERE active=1 AND country IS NOT NULL AND country<>'' GROUP BY country ORDER BY n DESC LIMIT 40`).all(),
+    manufacturers: db.prepare(`SELECT m.id AS value, m.name AS label, COUNT(p.id) n
+      FROM manufacturers m JOIN products p ON p.manufacturer_id=m.id AND p.active=1
+      GROUP BY m.id ORDER BY n DESC LIMIT 40`).all(),
+    agents: db.prepare(`SELECT a.id AS value, a.name AS label, a.city, COUNT(p.id) n
+      FROM agents a JOIN products p ON p.agent_id=a.id AND p.active=1
+      GROUP BY a.id ORDER BY n DESC LIMIT 40`).all(),
+    systems: db.prepare(`SELECT s.slug AS value, s.name_ar AS label_ar, s.name_en AS label_en,
+        COUNT(p.id) n FROM systems s
+      LEFT JOIN drugs d ON d.system_id=s.id
+      LEFT JOIN products p ON p.drug_id=d.id AND p.active=1
+      GROUP BY s.id ORDER BY n DESC`).all(),
+    totals: {
+      products: db.prepare('SELECT COUNT(*) n FROM products WHERE active=1').get().n,
+      verified: db.prepare('SELECT COUNT(*) n FROM products WHERE active=1 AND verified=1').get().n,
+      with_image: db.prepare("SELECT COUNT(*) n FROM products WHERE active=1 AND image_url IS NOT NULL AND image_url<>''").get().n,
+    },
+  });
 });
 
 router.get('/products/:id', (req, res) => {
@@ -126,7 +174,67 @@ router.get('/products/:id', (req, res) => {
       p2.image_url, p2.country, p2.price, p2.currency, m.name AS manufacturer_name
     FROM products p2 LEFT JOIN manufacturers m ON m.id=p2.manufacturer_id
     WHERE p2.drug_id=? AND p2.id<>? AND p2.active=1 ORDER BY p2.verified DESC LIMIT 30`).all(p.drug_id, p.id) : [];
-  res.json({ ...p, images, alternatives });
+  const drug = p.drug_id ? db.prepare('SELECT verified, generic_name, indications_en, dosage_adult, warnings FROM drugs WHERE id=?').get(p.drug_id) : null;
+  res.json({
+    ...withProductVerification(p),
+    images,
+    alternatives: alternatives.map(withProductVerification),
+    drug_verification: drug ? drugVerification(drug).status : null,
+  });
+});
+
+/*
+ * Pair-wise interaction check (v1.12.0) — POST { drug_ids: [1,2,3] } or { names: ["warfarin","aspirin"] }.
+ * Public and read-only: it reads stored text, creates nothing, and returns its own limits.
+ */
+router.post('/interactions/check', (req, res) => {
+  const ids = Array.isArray(req.body?.drug_ids) ? req.body.drug_ids.map(Number).filter((n) => Number.isFinite(n) && n > 0) : [];
+  const names = Array.isArray(req.body?.names) ? req.body.names.map((s) => String(s || '').trim()).filter(Boolean) : [];
+  if (!ids.length && !names.length) return res.status(400).json({ error: 'أضف دواءين على الأقل / Add at least two drugs' });
+  /* Refuse loudly instead of silently truncating: a clinician who entered 26 drugs must never
+     believe 26 were checked. */
+  if (ids.length > 25 || names.length > 25) {
+    return res.status(400).json({ error: 'الحد الأقصى 25 دواءً في الفحص الواحد / At most 25 drugs per check' });
+  }
+
+  const picked = [];
+  for (const id of ids) {
+    const row = db.prepare('SELECT id, generic_name, generic_ar, synonyms, drug_class, interactions FROM drugs WHERE id=?').get(id);
+    /* duplicates are kept on purpose: adding the same active ingredient twice is a real
+       finding (double dose), not something to silently dedupe away. */
+    if (row) picked.push(row);
+  }
+  for (const name of names) {
+    const row = db.prepare(`SELECT id, generic_name, generic_ar, synonyms, drug_class, interactions FROM drugs
+      WHERE search_norm LIKE ? OR generic_name LIKE ? OR generic_ar LIKE ? ORDER BY verified DESC, length(generic_name) LIMIT 1`)
+      .get(likePattern(name), likePattern(name), likePattern(name));
+    if (row) picked.push(row);
+  }
+  if (picked.length < 2) {
+    return res.status(422).json({
+      error: 'لم يُعرف دواوان على الأقل من المدخلات / Fewer than two drugs could be resolved',
+      resolved: picked.map((d) => ({ id: d.id, generic_name: d.generic_name })),
+    });
+  }
+  const result = checkInteractions(picked);
+  res.json({
+    ...result,
+    drugs: picked.map((d) => ({ id: d.id, generic_name: d.generic_name, generic_ar: d.generic_ar, drug_class: d.drug_class })),
+    resolved_from: { ids: ids.length, names: names.length },
+  });
+});
+
+/* Search used by the picker: generic names only, so the checker cannot be fed a trade name
+   that silently resolves to a different active ingredient. */
+router.get('/interactions/search', (req, res) => {
+  const q = String(req.query.q || '').trim();
+  if (q.length < 2) return res.json({ data: [] });
+  const rows = db.prepare(`SELECT id, generic_name, generic_ar, drug_class, verified,
+      (SELECT COUNT(*) FROM products p WHERE p.drug_id=drugs.id AND p.active=1) AS products_count
+    FROM drugs WHERE search_norm LIKE ? OR generic_name LIKE ? OR generic_ar LIKE ?
+    ORDER BY verified DESC, length(generic_name), generic_name LIMIT 20`)
+    .all(likePattern(q), likePattern(q), likePattern(q));
+  res.json({ data: rows });
 });
 
 /* Generated pack artwork for products without a real photo */
