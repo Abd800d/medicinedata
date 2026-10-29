@@ -5,6 +5,7 @@ import communityRoutes from './community.js';
 import prescriptionRoutes from './prescriptions.js';
 import aiRoutes from './ai.js';
 import adminRoutes from './admin.js';
+import verificationRoutes from './verification.js';
 import pharmacyRoutes from './pharmacy.js';
 import submissionRoutes from './submissions.js';
 import prescriptionAiRoutes from './prescription-ai.js';
@@ -88,6 +89,8 @@ router.use('/community', communityRoutes);
 router.use('/prescriptions', prescriptionRoutes);
 router.use('/rx', prescriptionAiRoutes);
 router.use('/ai', aiRoutes);
+/* before /admin so the reviewer role gets in: the admin router is admin-only by default. */
+router.use('/admin/verification', verificationRoutes);
 router.use('/admin', adminRoutes);
 router.use('/pharmacy', pharmacyRoutes);
 router.use('/submissions', submissionRoutes);

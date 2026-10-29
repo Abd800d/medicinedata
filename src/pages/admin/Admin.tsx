@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, BarChart3, Boxes, Briefcase, CheckCircle2, ChevronLeft, ChevronRight, Database, Download,
   FileSpreadsheet, Inbox, LayoutDashboard, Loader2, MessageSquare, Package, RefreshCw, Save, Search,
-  Settings, ShieldAlert, ShieldCheck, Sparkles, TrendingUp, Upload, Users, Wrench, AlertTriangle, ExternalLink, Plug,
+  Settings, ShieldAlert, ShieldCheck, Sparkles, TrendingUp, Upload, Users, Wrench, AlertTriangle, ExternalLink, Plug, BadgeCheck,
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { useI18n } from '../../lib/i18n';
@@ -22,14 +22,16 @@ import Submissions from './Submissions';
 import AIQuality from './AIQuality';
 import AuditLog from './AuditLog';
 import Overview from './Overview';
+import Verification from './Verification';
 
-type Tab = 'overview' | 'dashboard' | 'ai' | 'catalog' | 'media' | 'data' | 'submissions' | 'people' | 'audit' | 'integrations' | 'settings';
+type Tab = 'overview' | 'dashboard' | 'ai' | 'catalog' | 'verification' | 'media' | 'data' | 'submissions' | 'people' | 'audit' | 'integrations' | 'settings';
 
 const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: 'overview', label: 'خلاصة التطبيق', icon: LayoutDashboard },
   { id: 'dashboard', label: 'التفاصيل والإحصاءات', icon: BarChart3 },
   { id: 'ai', label: 'جودة التحليل', icon: Sparkles },
   { id: 'catalog', label: 'قاعدة الأدوية', icon: Boxes },
+  { id: 'verification', label: 'التوثيق والمراجعة', icon: BadgeCheck },
   { id: 'media', label: 'الاستيراد والصور', icon: Upload },
   { id: 'data', label: 'التصدير والنسخ', icon: Database },
   { id: 'people', label: 'المستخدمون والرسائل', icon: Users },
@@ -94,6 +96,7 @@ export default function Admin() {
         {tab === 'dashboard' && <Dashboard />}
         {tab === 'ai' && <AIQuality />}
         {tab === 'catalog' && <Catalog />}
+        {tab === 'verification' && <Verification />}
         {tab === 'media' && <Media />}
           {tab === 'data' && <DataTools />}
         {tab === 'people' && <People />}

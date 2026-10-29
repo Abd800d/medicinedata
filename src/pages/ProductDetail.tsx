@@ -12,6 +12,7 @@ import { api, assetUrl } from '../lib/api';
 import { Badge, EmptyState, ErrorState, PageLoader, SmartImage, useToast } from '../components/ui';
 import { ProductCard, ProductRecord } from '../components/catalog';
 import ProductImages from '../components/ProductImages';
+import { VerificationBadge, VerificationPanel } from '../components/Verification';
 import { copyText, cx, fmt, shareItem } from '../lib/utils';
 
 export default function ProductDetail() {
@@ -69,11 +70,11 @@ export default function ProductDetail() {
             <img src={shown} alt={p.trade_name} className="h-full w-full object-contain drop-shadow-[0_22px_36px_rgba(8,35,86,.28)]" />
 
             <div className="absolute start-3 top-3 flex flex-col items-start gap-1.5">
-              {p.verified ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-ink-950/85 px-2 py-1 text-[9.5px] font-bold text-brand-200 shadow-sm backdrop-blur">
-                  <BadgeCheck className="h-3 w-3" />{t('common.verified')}
-                </span>
-              ) : null}
+              {/* Six states, not a boolean: «مُقدَّم من مستخدم» must never look like «موثّق». */}
+              <span className="rounded-full bg-ink-950/80 p-0.5 shadow-sm">
+                <VerificationBadge state={p.verification_detail?.state || p.verification} review={p.review_status}
+                  lang={lang as 'ar' | 'en'} />
+              </span>
               <span className="rounded-full bg-ink-950/75 px-2 py-1 text-[9.5px] font-bold text-white backdrop-blur">{p.dosage_form || '—'}</span>
             </div>
 
@@ -176,6 +177,9 @@ export default function ProductDetail() {
           ))}
         </div>
       )}
+
+      {/* The review trail, on the page a pharmacist actually reads. */}
+      <VerificationPanel detail={p.verification_detail} lang={lang as 'ar' | 'en'} />
 
       {p.barcode && (
         <div className="space-y-1">

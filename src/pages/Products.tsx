@@ -21,12 +21,14 @@ import { api } from '../lib/api';
 import { useApi } from '../lib/useApi';
 import { useDebounced } from '../lib/utils';
 import { SmartImage, EmptyState, Spinner } from '../components/ui';
+import { VerificationBadge } from '../components/Verification';
 import { useI18n } from '../lib/i18n';
 
 type Product = {
   id: number; trade_name: string; trade_name_ar: string | null; strength: string | null;
   dosage_form: string | null; country: string | null; barcode: string | null;
-  image_url: string | null; verified: number; verification: 'verified' | 'unverified' | 'incomplete';
+  image_url: string | null; verified: number; review_status?: string | null;
+  verification: 'verified' | 'manufacturer_confirmed' | 'supplier_submitted' | 'user_submitted' | 'incomplete' | 'unverified';
   missing_fields: string[]; generic_name: string | null; generic_ar: string | null; drug_id: number | null;
   manufacturer_name: string | null; agent_name: string | null; agent_city: string | null;
   system_ar: string | null; system_en: string | null;
@@ -37,6 +39,7 @@ type Facets = {
   manufacturers: { value: number; label: string; n: number }[];
   agents: { value: number; label: string; city: string | null; n: number }[];
   systems: { value: string; label_ar: string; label_en: string; n: number }[];
+  states?: { value: string; n: number }[];
   totals: { products: number; verified: number; with_image: number };
 };
 
@@ -55,6 +58,7 @@ export default function Products() {
     agent: params.get('agent') || '',
     system: params.get('system') || '',
     verified: params.get('verified') === '1',
+    state: params.get('state') || '',
     has_image: params.get('has_image') === '1',
   });
   const [rows, setRows] = useState<Product[]>([]);
@@ -74,6 +78,7 @@ export default function Products() {
     if (filters.agent) p.set('agent', filters.agent);
     if (filters.system) p.set('system', filters.system);
     if (filters.verified) p.set('verified', '1');
+    if (filters.state) p.set('state', filters.state);
     if (filters.has_image) p.set('has_image', '1');
     return p;
   }, [text, filters]);
@@ -109,12 +114,6 @@ export default function Products() {
 
   const activeCount = Object.values(filters).filter(Boolean).length;
   const set = (k: keyof typeof filters, v: string | boolean) => setFilters((f) => ({ ...f, [k]: v }));
-
-  const badge = (p: Product) => {
-    if (p.verification === 'verified') return { icon: ShieldCheck, cls: 'bg-emerald-500/15 text-emerald-300', label: ar ? 'موثّق' : 'Verified' };
-    if (p.verification === 'incomplete') return { icon: ShieldAlert, cls: 'bg-amber-500/15 text-amber-300', label: ar ? 'بيانات ناقصة' : 'Incomplete' };
-    return { icon: ShieldAlert, cls: 'bg-white/[.07] text-ink-400', label: ar ? 'غير موثّق' : 'Unverified' };
-  };
 
   return (
     <div className="space-y-3">
@@ -204,7 +203,7 @@ export default function Products() {
               <Camera className="h-3 w-3" />{ar ? 'له صورة' : 'Has a photo'}
             </button>
             {activeCount > 0 && (
-              <button onClick={() => setFilters({ country: '', manufacturer: '', agent: '', system: '', verified: false, has_image: false })}
+              <button onClick={() => setFilters({ country: '', manufacturer: '', agent: '', system: '', verified: false, state: '', has_image: false })}
                 className="rounded-lg bg-rose-500/15 px-2 py-1 text-[10.5px] font-bold text-rose-300">
                 <X className="me-1 inline h-3 w-3" />{ar ? 'إزالة الفلاتر' : 'Clear filters'}
               </button>
@@ -235,9 +234,7 @@ export default function Products() {
       )}
 
       <div className="grid gap-2 sm:grid-cols-2">
-        {rows.map((p) => {
-          const b = badge(p);
-          return (
+        {rows.map((p) => (
             <Link key={p.id} to={`/products/${p.id}`} className="card flex gap-2.5 p-2.5 transition hover:border-brand-400/30">
               <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white/[.05]">
                 <SmartImage src={p.image_url} alt={p.trade_name} productId={p.id} drugId={p.drug_id ?? undefined} rounded="rounded-xl" className="h-full w-full object-cover" />
@@ -248,9 +245,7 @@ export default function Products() {
                     <div className="truncate text-[12px] font-extrabold text-white" dir="auto">{ar && p.trade_name_ar ? p.trade_name_ar : p.trade_name}</div>
                     <div className="truncate text-[10px] text-brand-300" dir="ltr">{p.generic_name || '—'}</div>
                   </div>
-                  <span className={`shrink-0 rounded-lg px-1.5 py-0.5 text-[9px] font-bold ${b.cls}`}>
-                    <b.icon className="me-0.5 inline h-2.5 w-2.5" />{b.label}
-                  </span>
+                  <VerificationBadge state={p.verification} review={p.review_status} lang={lang as 'ar' | 'en'} className="shrink-0" />
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1 text-[9.5px] text-ink-400">
                   {p.strength && <span className="rounded bg-white/[.06] px-1 py-0.5" dir="ltr">{p.strength}</span>}
@@ -268,8 +263,7 @@ export default function Products() {
                 )}
               </div>
             </Link>
-          );
-        })}
+        ))}
       </div>
 
       {rows.length > 0 && rows.length < total && (
@@ -295,6 +289,11 @@ const chip = (on: boolean) =>
   `inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10.5px] font-bold transition ${
     on ? 'bg-brand-500/25 text-brand-100' : 'bg-white/[.05] text-ink-400 hover:text-ink-200'
   }`;
+
+const stateAr = (s: string) => ({
+  verified: 'موثّق', manufacturer_confirmed: 'مؤكد من الشركة', supplier_submitted: 'من مورّد',
+  user_submitted: 'من مستخدم', incomplete: 'ناقص', unverified: 'غير موثّق',
+}[s] || s);
 
 const cxBtn = (on: boolean) =>
   `icon-btn relative h-9 w-9 ${on ? 'bg-brand-500/25 text-brand-100' : ''}`;

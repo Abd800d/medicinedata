@@ -28,8 +28,8 @@
 | 🔓 GET | `/catalog/categories/:id` | تصنيف + أدويته |
 | 🔓 GET | `/catalog/drugs` | `?q=&system_id=&category_id=&page=&limit=` (≤ 200) |
 | 🔓 GET | `/catalog/drugs/:id` | مونوغراف + منتجاته التجارية |
-| 🔓 GET | `/catalog/products` | `?q=&drug_id=&system_id=&manufacturer_id=&agent=&country=&verified=1&unverified=1&has_image=1&page=&limit=` · كل صف يحمل `verification` ∈ `verified\|unverified\|incomplete` و`missing_fields[]` |
-| 🔓 GET | `/catalog/products/:id` | منتج + صور + بدائل + `verification` و`drug_verification` |
+| 🔓 GET | `/catalog/products` | `?q=&drug_id=&system_id=&manufacturer_id=&agent=&country=&verified=1&unverified=1&has_image=1&state=&review=&page=&limit=` · كل صف يحمل `verification` (إحدى الحالات الست) و`missing_fields[]` |
+| 🔓 GET | `/catalog/products/:id` | منتج + صور + بدائل + `verification` + `verification_detail` (المراجع، التاريخ، المستندات، الأحداث) |
 | 🔓 GET | `/catalog/products-facets` | قيم الفلاتر محسوبة من القاعدة: `countries[], manufacturers[], agents[], systems[], totals{}` |
 | 🔓 POST | `/catalog/interactions/check` | `{ drug_ids?: number[], names?: string[] }` (≤25، والتكرار مسموح) → `{ checked, pairs[], duplications[], max_severity, limits[], disclaimer_ar/en }` |
 | 🔓 GET | `/catalog/interactions/search` | `?q=` (≥2 أحرف) → أسماء علمية فقط للفاحص |
@@ -39,6 +39,21 @@
 | 🔓 GET | `/catalog/trending` | الأكثر مشاهدة/إضافة |
 | 🔓 GET | `/catalog/product-image/:id.svg` | غلاف SVG مولّد (بديل الصورة) |
 | 🔓 GET | `/catalog/drug-image/:id.svg` | غلاف SVG للدواء |
+
+### التوثيق والمراجعة (v1.13.0) — `entity` ∈ `products` | `drugs`
+
+| الطريقة | المسار | الصلاحية | الوظيفة |
+| --- | --- | --- | --- |
+| GET | `/admin/verification/meta` | 🛡️/💊 | الحالات الست + المراجعات + أنواع المستندات |
+| GET | `/admin/verification/summary` | 🛡️/💊 | أعداد كل حالة وكل مراجعة |
+| GET | `/admin/verification/queue` | 🛡️/💊 | `?state=&review=&q=&page=&limit=` |
+| GET | `/admin/verification/:entity/:id` | 🛡️/💊 | الحالة + المراجع + المستندات + آخر 20 قرارًا + الحقول الناقصة |
+| POST | `/admin/verification/:entity/:id` | 🛡️/💊 | `{ state?, review?, note? }` — القواعد في `docs/VERIFICATION.md` |
+| POST | `/admin/verification/:entity/:id/sources` | 🛡️/💊 | `{ kind, title, issuer?, url? }` أو `multipart file` |
+| DELETE | `/admin/verification/sources/:id` | 🛡️/💊 | سحب مستند |
+| POST | `/admin/verification/recompute` | 🛡️ | إعادة اشتقاق `incomplete/unverified` بعد استيراد |
+
+رموز الرفض: `SOURCE_REQUIRED` · `NOTE_REQUIRED` · `CORRECTION_ADMIN_ONLY` · `APPROVE_NEEDS_VERIFIED` · `CONTRADICTION` · `NO_CHANGE`.
 
 ## المصادقة
 

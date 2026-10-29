@@ -56,8 +56,10 @@ router.patch('/:id', adminRequired, (req, res) => {
   let drug = db.prepare('SELECT * FROM drugs WHERE lower(generic_name)=lower(?)').get(s.name_en);
   let created = false;
   if (!drug) {
-    const info = db.prepare(`INSERT INTO drugs(system_id,category_id,generic_name,generic_ar,indications_ar,indications_en,verified,source,search_norm)
-      VALUES(?,?,?,?,?,?,0,'community-submission',?)`).run(
+    /* Provenance is not a quality claim: a record born from a community submission is stored as
+       `user_submitted` and enters the review queue — it must never look pharmacist-reviewed. */
+    const info = db.prepare(`INSERT INTO drugs(system_id,category_id,generic_name,generic_ar,indications_ar,indications_en,verified,source,search_norm,verification_state,review_status)
+      VALUES(?,?,?,?,?,?,0,'community-submission',?,'user_submitted','pending')`).run(
       systemId, categoryId, s.name_en, s.name_ar, s.notes, s.notes,
       searchNorm(s.name_en, s.name_ar, s.notes),
     );
@@ -76,8 +78,8 @@ router.patch('/:id', adminRequired, (req, res) => {
       .get(drug.id, s.name_en, s.strength || '');
     if (existing) productId = existing.id;
     else {
-      productId = db.prepare(`INSERT INTO products(drug_id,trade_name,trade_name_ar,strength,dosage_form,manufacturer_id,country,verified,active,search_norm)
-        VALUES(?,?,?,?,?,?,?,0,1,?)`).run(
+      productId = db.prepare(`INSERT INTO products(drug_id,trade_name,trade_name_ar,strength,dosage_form,manufacturer_id,country,verified,active,search_norm,verification_state,review_status)
+        VALUES(?,?,?,?,?,?,?,0,1,?,'user_submitted','pending')`).run(
         drug.id, s.name_en, s.name_ar, s.strength, s.form, manufacturer.id, s.country,
         searchNorm(s.name_en, s.name_ar, s.strength),
       ).lastInsertRowid;

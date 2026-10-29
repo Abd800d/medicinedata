@@ -393,6 +393,68 @@ ensureColumn('product_images', 'height', 'height INTEGER');
 ensureColumn('product_images', 'updated_at', 'updated_at TEXT');            // last edit (crop/rotate/replace)
 ensureColumn('product_images', 'edited', 'edited INTEGER DEFAULT 0');       // 1 = cropped/rotated/compressed before upload
 ensureColumn('product_images', 'bytes_original', 'bytes_original INTEGER'); // size before compression
+/* ---- v1.13.0: six verification states with a real reviewer trail -------------------
+   The plan asks every record to say WHO confirmed it, WHEN, and WHICH document backs it.
+   `verified` (0/1) cannot express that, so the state itself moves to its own column and
+   `verified` is kept as a mirror for older queries. Source documents and the full
+   transition history live in their own tables (never overwritten). */
+for (const table of ['products', 'drugs']) {
+  ensureColumn(table, 'verification_state', 'verification_state TEXT');       // one of STATES in lib/verification.js
+  ensureColumn(table, 'review_status', "review_status TEXT DEFAULT 'none'");  // none | pending | approved | rejected
+  ensureColumn(table, 'reviewer_id', 'reviewer_id INTEGER');                  // who took the decision
+  ensureColumn(table, 'reviewed_at', 'reviewed_at TEXT');                     // when
+  ensureColumn(table, 'review_note', 'review_note TEXT');                     // why (mandatory for reject/correct)
+}
+db.exec(`CREATE TABLE IF NOT EXISTS source_documents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  entity TEXT NOT NULL,                 -- products | drugs
+  entity_id INTEGER NOT NULL,
+  kind TEXT NOT NULL,                   -- manufacturer_letter | authorization | regulatory | invoice | leaflet | photo | other
+  title TEXT NOT NULL,
+  issuer TEXT,
+  url TEXT,
+  file_path TEXT,
+  issued_at TEXT,
+  added_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+)`);
+db.exec(`CREATE TABLE IF NOT EXISTS verification_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  entity TEXT NOT NULL,
+  entity_id INTEGER NOT NULL,
+  from_state TEXT,
+  to_state TEXT NOT NULL,
+  from_review TEXT,
+  to_review TEXT,
+  actor_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  note TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+)`);
+/* One-time backfill: a record marked verified before this release keeps that meaning, but now
+   carries the date of its last edit as the review date (the only timestamp we can honestly
+   attribute). Rows are otherwise left NULL so the effective state is derived from their fields. */
+db.prepare(`UPDATE products SET verification_state='verified', review_status='approved', reviewed_at=COALESCE(reviewed_at, updated_at)
+            WHERE verified=1 AND verification_state IS NULL`).run();
+db.prepare(`UPDATE drugs SET verification_state='verified', review_status='approved'
+            WHERE verified=1 AND verification_state IS NULL`).run();
+
+/* Records nobody has claimed yet get the *derived* state written once, so that filtering by
+   state in SQL matches what the UI shows. Re-derived on every boot for the two open states
+   only: if a record later gains its missing fields, it must stop saying "incomplete", and a
+   newly-emptied record must start saying it. Claimed states are never touched here. */
+const PRODUCT_INCOMPLETE = `(TRIM(COALESCE(trade_name,''))='' OR TRIM(COALESCE(strength,''))=''
+  OR TRIM(COALESCE(dosage_form,''))='' OR TRIM(COALESCE(country,''))=''
+  OR TRIM(COALESCE(barcode,''))='' OR manufacturer_id IS NULL)`;
+const DRUG_INCOMPLETE = `(TRIM(COALESCE(generic_name,''))='' OR TRIM(COALESCE(indications_en,''))=''
+  OR TRIM(COALESCE(dosage_adult,''))='' OR TRIM(COALESCE(warnings,''))='')`;
+db.exec(`UPDATE products SET verification_state = CASE WHEN ${PRODUCT_INCOMPLETE} THEN 'incomplete' ELSE 'unverified' END
+         WHERE verification_state IS NULL OR verification_state IN ('incomplete','unverified')`);
+db.exec(`UPDATE drugs SET verification_state = CASE WHEN ${DRUG_INCOMPLETE} THEN 'incomplete' ELSE 'unverified' END
+         WHERE verification_state IS NULL OR verification_state IN ('incomplete','unverified')`);
+db.exec("CREATE INDEX IF NOT EXISTS idx_sources_entity ON source_documents(entity, entity_id)");
+db.exec("CREATE INDEX IF NOT EXISTS idx_verif_events_entity ON verification_events(entity, entity_id, created_at)");
+db.exec("CREATE INDEX IF NOT EXISTS idx_products_state ON products(verification_state)");
+db.exec("CREATE INDEX IF NOT EXISTS idx_drugs_state ON drugs(verification_state)");
 db.exec("CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode)");
 db.exec("CREATE INDEX IF NOT EXISTS idx_ai_runs_user ON ai_runs(user_id, created_at)");
 db.exec("CREATE INDEX IF NOT EXISTS idx_rx_items ON prescription_items(prescription_id)");
