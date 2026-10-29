@@ -9,6 +9,7 @@ import Products from '../src/pages/Products';
 import Interactions from '../src/pages/Interactions';
 import { VerificationPanel, VerificationBadge } from '../src/components/Verification';
 import AdminVerification from '../src/pages/admin/Verification';
+import { loadLocal, localServe } from '../src/lib/localcatalog';
 
 export { act, createRoot };
 
@@ -32,6 +33,12 @@ export function mountVerificationPanel(detail: any, lang: 'ar' | 'en' = 'ar') {
   return { host, root };
 }
 export const mountAdminVerification = () => mount(<AdminVerification />);
+
+/** The bundled catalogue, answered without any network. */
+export async function offlineLoad() { return loadLocal(); }
+export function offlineAnswer(path: string, params?: Record<string, unknown>) {
+  return localServe(path, params as any);
+}
 
 export function mountVerificationBadge(state: string, review: string) {
   const host = document.createElement('div');

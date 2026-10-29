@@ -1,6 +1,6 @@
 /* Seed the real MDA reference catalogue (18 systems, classes, generics, commercial products). */
 import 'dotenv/config';
-import { db, setSetting } from './db.js';
+import { db, setSetting, syncVerificationStates } from './db.js';
 import { ensureAdmin } from './auth.js';
 import { SYSTEMS } from './data/systems.js';
 import { AGENTS } from './data/refs.js';
@@ -151,6 +151,10 @@ applyProductImages();
 // Every product gets a scannable EAN-13 (internal block) unless it already has a manufacturer code.
 assignBarcodes();
 
+/* Seeded rows were inserted after db.js ran its boot sync — run it again so every record has a
+   real state (and the bundle that ships inside the APK carries it). */
+syncVerificationStates();
+
 const counts = db.prepare(`SELECT
   (SELECT COUNT(*) FROM systems) systems,
   (SELECT COUNT(*) FROM categories) categories,
@@ -163,7 +167,11 @@ console.log('[seed] done →', counts);
 /* Keep the catalogue that ships inside the APK in sync with this database. */
 try {
   const { execFileSync } = await import('node:child_process');
-  execFileSync(process.execPath, ['scripts/build-offline-bundle.mjs'], { stdio: 'inherit' });
+  /* Point the bundler at the database this seed actually wrote (DATA_DIR / DB_FILE), otherwise
+     a non-default data directory refreshes a stale bundle or fails outright. */
+  const dbFile = process.env.DB_FILE
+    || `${process.env.DATA_DIR || 'data'}/mda.db`.replace(/^data\//, 'data/');
+  execFileSync(process.execPath, ['scripts/build-offline-bundle.mjs', '--db', dbFile], { stdio: 'inherit' });
 } catch (e) {
   console.warn('[seed] could not refresh public/data/catalog.json:', e.message);
 }

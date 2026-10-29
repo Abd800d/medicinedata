@@ -87,10 +87,13 @@ export default function Products() {
     const mine = ++requestId.current;
     setBusy(true); setError('');
     try {
-      const p = new URLSearchParams(query);
-      p.set('limit', String(PAGE));
-      p.set('page', String(nextPage));
-      const res = await api.get<{ data: Product[]; total: number; pages: number }>(`/api/catalog/products?${p.toString()}`);
+      /* Params go to the API layer as an object, never glued onto the path: the offline
+         fallback matches on the path alone, and a query string in it silently disabled the
+         whole bundled catalogue (the screen showed "cannot reach the server" while the data
+         sat inside the APK). */
+      const params: Record<string, string | number> = { limit: PAGE, page: nextPage };
+      query.forEach((v, k) => { params[k] = v; });
+      const res = await api.get<{ data: Product[]; total: number; pages: number }>('/api/catalog/products', params);
       if (mine !== requestId.current) return; /* a newer keystroke already replaced this request */
       setRows((prev) => (append ? [...prev, ...res.data] : res.data));
       setTotal(res.total);
