@@ -206,6 +206,44 @@ function categoryOf(drug: Row | undefined) {
   return drug?.category_id ? state.catById.get(drug.category_id) : undefined;
 }
 
+/* ── verification, offline ──────────────────────────────────────────────────
+   The six states are stored in the bundle, but older bundles only carry `verified`; both are
+   handled here with the same derivation the server uses, so a record can never read «موثّق»
+   online and «غير موثّق» offline. */
+const CORE_PRODUCT = ['trade_name', 'strength', 'dosage_form', 'country', 'barcode', 'manufacturer_id'];
+const CORE_DRUG = ['generic_name', 'indications_en', 'dosage_adult', 'warnings'];
+const FIELD_AR: Record<string, string> = {
+  trade_name: 'الاسم التجاري', strength: 'القوة', dosage_form: 'الشكل الصيدلاني',
+  country: 'بلد التسويق', barcode: 'الباركود', manufacturer_id: 'الشركة المصنعة',
+  generic_name: 'الاسم العلمي', indications_en: 'الدواعي', dosage_adult: 'جرعة البالغين', warnings: 'التحذيرات',
+};
+
+export function missingFieldsOf(row: Row, entity: 'products' | 'drugs' = 'products') {
+  return (entity === 'drugs' ? CORE_DRUG : CORE_PRODUCT)
+    .filter((f) => row?.[f] === undefined || row?.[f] === null || String(row[f]).trim() === '');
+}
+
+export function offlineState(row: Row, entity: 'products' | 'drugs' = 'products') {
+  const missing = missingFieldsOf(row, entity);
+  const stored = row?.verification_state;
+  if (typeof stored === 'string' && stored) {
+    if (stored === 'incomplete') return missing.length ? 'incomplete' : 'unverified';
+    if (stored === 'unverified') return missing.length ? 'incomplete' : 'unverified';
+    return stored;
+  }
+  if (missing.length) return 'incomplete';
+  return Number(row?.verified) === 1 ? 'verified' : 'unverified';
+}
+
+function verificationPatch(row: Row, entity: 'products' | 'drugs' = 'products') {
+  const missing = missingFieldsOf(row, entity);
+  return {
+    verification: offlineState(row, entity),
+    review_status: (row?.review_status as string) || 'none',
+    missing_fields: missing,
+  };
+}
+
 function drugCard(d: Row) {
   const sys = systemOf(d);
   const cat = categoryOf(d);
@@ -228,6 +266,7 @@ function drugCard(d: Row) {
     category_ar: cat?.name_ar ?? null,
     products_count: products.length,
     image_url: withPhoto?.image_url ?? null,
+    ...verificationPatch(d, 'drugs'),
   };
 }
 
@@ -240,6 +279,7 @@ function productCard(p: Row) {
     drug_class: d?.drug_class ?? null,
     manufacturer_name: mfrName(p.manufacturer_id),
     agent_name: agentRow(p.agent_id)?.name ?? null,
+    ...verificationPatch(p, 'products'),
   };
 }
 
@@ -389,6 +429,7 @@ const handlers: ((path: string, params: Params, b: Bundle) => any | undefined)[]
           agent_phone: agent?.phone ?? null,
           agent_city: agent?.city ?? null,
           images: state.imagesByProduct.get(p.id) || [],
+          ...verificationPatch(p, 'products'),
         };
       });
     const related = b.drugs
@@ -411,6 +452,16 @@ const handlers: ((path: string, params: Params, b: Bundle) => any | undefined)[]
       category_ar: cat?.name_ar ?? null,
       products,
       related,
+      ...verificationPatch(d, 'drugs'),
+      verification_detail: {
+        entity: 'drugs', id: d.id, title: d.generic_name,
+        state: offlineState(d, 'drugs'),
+        review: (d.review_status as string) || 'none',
+        reviewer: null, reviewed_at: null, review_note: null,
+        missing_fields: missingFieldsOf(d, 'drugs'),
+        missing_labels_ar: missingFieldsOf(d, 'drugs').map((f) => FIELD_AR[f] || f),
+        sources: [], events: [], offline: true,
+      },
     };
   },
 
@@ -428,6 +479,18 @@ const handlers: ((path: string, params: Params, b: Bundle) => any | undefined)[]
     if (p?.country) rows = rows.filter((r) => r.country === p.country);
     if (String(p?.verified) === '1') rows = rows.filter((r) => r.verified);
     if (String(p?.has_image) === '1') rows = rows.filter((r) => r.image_url && r.image_url !== '');
+    if (p?.agent) rows = rows.filter((r) => String(r.agent_id || '') === String(p.agent));
+    if (p?.manufacturer) rows = rows.filter((r) => String(r.manufacturer_id || '') === String(p.manufacturer));
+    if (p?.drug) rows = rows.filter((r) => String(r.drug_id || '') === String(p.drug));
+    if (p?.system) {
+      rows = rows.filter((r) => {
+        const d = state.drugById.get(r.drug_id);
+        return d && String(systemOf(d)?.slug || '') === String(p.system);
+      });
+    }
+    /* the six states — the filter must never silently return unrelated rows offline */
+    if (p?.state) rows = rows.filter((r) => offlineState(r, 'products') === String(p.state));
+    if (p?.review) rows = rows.filter((r) => ((r.review_status as string) || 'none') === String(p.review));
     const sorted = [...rows].sort((a, c) => (c.verified - a.verified) || String(a.trade_name).localeCompare(String(c.trade_name)));
     return {
       data: sorted.slice((page - 1) * limit, (page - 1) * limit + limit).map(productCard),
@@ -471,6 +534,18 @@ const handlers: ((path: string, params: Params, b: Bundle) => any | undefined)[]
       agent_city: agent?.city ?? null,
       images: state.imagesByProduct.get(p.id) || [],
       alternatives,
+      ...verificationPatch(p, 'products'),
+      /* the same envelope the server sends; `offline` tells the panel that the reviewer and
+         the document list are not available without a connection — never "no reviewer". */
+      verification_detail: {
+        entity: 'products', id: p.id, title: p.trade_name,
+        state: offlineState(p, 'products'),
+        review: (p.review_status as string) || 'none',
+        reviewer: null, reviewed_at: null, review_note: null,
+        missing_fields: missingFieldsOf(p, 'products'),
+        missing_labels_ar: missingFieldsOf(p, 'products').map((f) => FIELD_AR[f] || f),
+        sources: [], events: [], offline: true,
+      },
     };
   },
 

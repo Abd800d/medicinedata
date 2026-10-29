@@ -22,6 +22,7 @@ export type VerDetail = {
   missing_fields?: string[];
   missing_labels_ar?: string[];
   sources?: { id: number; kind: string; title: string; issuer?: string | null; url?: string | null; file_path?: string | null; created_at?: string }[];
+  offline?: boolean;
   events?: { id: number; from_state?: string | null; to_state: string; from_review?: string | null; to_review?: string | null; actor_name?: string | null; note?: string | null; created_at: string }[];
 };
 
@@ -96,6 +97,13 @@ export function VerificationPanel({ detail, lang, compact = false }: { detail?: 
 
       {/* who + when — the question the plan says must always be answerable */}
       <div className="grid gap-1 text-[10px] text-ink-400">
+        {detail.offline && (
+          <div className="rounded-lg bg-white/[.04] px-2 py-1 text-[9.5px] leading-4 text-ink-400">
+            {ar
+              ? 'تعرض الحزمة المدمجة الحالة فقط؛ سجل المراجعة (اسم المراجع والمستندات) يحتاج اتصالًا بالخادم.'
+              : 'The bundled catalogue carries the state only; the review trail (reviewer and documents) needs a connection.'}
+          </div>
+        )}
         <div className="flex items-center gap-1.5">
           <UserRound className="h-3 w-3 shrink-0 text-ink-500" />
           {detail.reviewer
@@ -131,7 +139,9 @@ export function VerificationPanel({ detail, lang, compact = false }: { detail?: 
           {ar ? `المستندات (${sources.length})` : `Documents (${sources.length})`}
         </div>
         {sources.length === 0
-          ? <p className="text-[9.5px] text-ink-500">{ar ? 'لا مستندات مرفقة. أي ادعاء «مؤكد من الشركة» بلا مستند مرفوض من الخادم.' : 'No documents attached. A "manufacturer confirmed" claim without one is refused by the server.'}</p>
+          ? <p className="text-[9.5px] text-ink-500">{detail.offline
+              ? (ar ? 'قائمة المستندات غير متاحة دون اتصال.' : 'The document list is not available offline.')
+              : (ar ? 'لا مستندات مرفقة. أي ادعاء «مؤكد من الشركة» بلا مستند مرفوض من الخادم.' : 'No documents attached. A "manufacturer confirmed" claim without one is refused by the server.')}</p>
           : (
             <ul className="space-y-1">
               {sources.map((s) => (

@@ -36,12 +36,12 @@ const drugs = pick(db.prepare('SELECT * FROM drugs ORDER BY generic_name').all()
   'id', 'system_id', 'category_id', 'generic_name', 'generic_ar', 'synonyms', 'drug_class', 'atc_code',
   'prescription_required', 'pregnancy', 'indications_en', 'indications_ar', 'dosage_adult', 'dosage_child',
   'contraindications', 'side_effects', 'warnings', 'interactions', 'mechanism_en', 'mechanism_ar',
-  'half_life', 'storage', 'notes', 'source', 'verified',
+  'half_life', 'storage', 'notes', 'source', 'verified', 'verification_state', 'review_status',
 ]);
 const products = pick(db.prepare('SELECT * FROM products WHERE active=1 ORDER BY trade_name').all(), [
   'id', 'drug_id', 'trade_name', 'trade_name_ar', 'strength', 'dosage_form', 'pack_size', 'manufacturer_id',
   'agent_id', 'country', 'barcode', 'price', 'currency', 'image_url', 'image_source', 'description_en',
-  'description_ar', 'verified', 'barcode_verified',
+  'description_ar', 'verified', 'verification_state', 'review_status', 'barcode_verified',
 ]);
 const manufacturers = pick(db.prepare('SELECT * FROM manufacturers ORDER BY name').all(), ['id', 'name', 'country', 'website']);
 const agents = pick(db.prepare('SELECT * FROM agents ORDER BY name').all(), ['id', 'name', 'name_ar', 'country', 'city', 'phone', 'email', 'website']);

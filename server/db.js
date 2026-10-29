@@ -430,27 +430,32 @@ db.exec(`CREATE TABLE IF NOT EXISTS verification_events (
   note TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 )`);
-/* One-time backfill: a record marked verified before this release keeps that meaning, but now
-   carries the date of its last edit as the review date (the only timestamp we can honestly
-   attribute). Rows are otherwise left NULL so the effective state is derived from their fields. */
-db.prepare(`UPDATE products SET verification_state='verified', review_status='approved', reviewed_at=COALESCE(reviewed_at, updated_at)
-            WHERE verified=1 AND verification_state IS NULL`).run();
-db.prepare(`UPDATE drugs SET verification_state='verified', review_status='approved'
-            WHERE verified=1 AND verification_state IS NULL`).run();
+/* Verification state sync — a reusable function, because seeding writes rows *after* the
+   module was imported: without calling it again the fresh rows would ship with a NULL state
+   and the offline bundle would claim every record is «unverified». */
+export function syncVerificationStates() {
+  /* A record marked verified before this release keeps that meaning; the date of its last edit
+     is the only timestamp we can honestly attribute. */
+  db.prepare(`UPDATE products SET verification_state='verified', review_status='approved', reviewed_at=COALESCE(reviewed_at, updated_at)
+              WHERE verified=1 AND verification_state IS NULL`).run();
+  db.prepare(`UPDATE drugs SET verification_state='verified', review_status='approved'
+              WHERE verified=1 AND verification_state IS NULL`).run();
+  /* Records nobody has claimed get the *derived* state written, so filtering by state in SQL
+     matches what the UI shows. Re-derived on every call for the two open states only: filling a
+     missing field must stop saying "incomplete", and a newly-emptied record must start saying
+     it. Claimed states are never touched here. */
+  const PRODUCT_INCOMPLETE = `(TRIM(COALESCE(trade_name,''))='' OR TRIM(COALESCE(strength,''))=''
+    OR TRIM(COALESCE(dosage_form,''))='' OR TRIM(COALESCE(country,''))=''
+    OR TRIM(COALESCE(barcode,''))='' OR manufacturer_id IS NULL)`;
+  const DRUG_INCOMPLETE = `(TRIM(COALESCE(generic_name,''))='' OR TRIM(COALESCE(indications_en,''))=''
+    OR TRIM(COALESCE(dosage_adult,''))='' OR TRIM(COALESCE(warnings,''))='')`;
+  db.exec(`UPDATE products SET verification_state = CASE WHEN ${PRODUCT_INCOMPLETE} THEN 'incomplete' ELSE 'unverified' END
+           WHERE verification_state IS NULL OR verification_state IN ('incomplete','unverified')`);
+  db.exec(`UPDATE drugs SET verification_state = CASE WHEN ${DRUG_INCOMPLETE} THEN 'incomplete' ELSE 'unverified' END
+           WHERE verification_state IS NULL OR verification_state IN ('incomplete','unverified')`);
+}
+syncVerificationStates();
 
-/* Records nobody has claimed yet get the *derived* state written once, so that filtering by
-   state in SQL matches what the UI shows. Re-derived on every boot for the two open states
-   only: if a record later gains its missing fields, it must stop saying "incomplete", and a
-   newly-emptied record must start saying it. Claimed states are never touched here. */
-const PRODUCT_INCOMPLETE = `(TRIM(COALESCE(trade_name,''))='' OR TRIM(COALESCE(strength,''))=''
-  OR TRIM(COALESCE(dosage_form,''))='' OR TRIM(COALESCE(country,''))=''
-  OR TRIM(COALESCE(barcode,''))='' OR manufacturer_id IS NULL)`;
-const DRUG_INCOMPLETE = `(TRIM(COALESCE(generic_name,''))='' OR TRIM(COALESCE(indications_en,''))=''
-  OR TRIM(COALESCE(dosage_adult,''))='' OR TRIM(COALESCE(warnings,''))='')`;
-db.exec(`UPDATE products SET verification_state = CASE WHEN ${PRODUCT_INCOMPLETE} THEN 'incomplete' ELSE 'unverified' END
-         WHERE verification_state IS NULL OR verification_state IN ('incomplete','unverified')`);
-db.exec(`UPDATE drugs SET verification_state = CASE WHEN ${DRUG_INCOMPLETE} THEN 'incomplete' ELSE 'unverified' END
-         WHERE verification_state IS NULL OR verification_state IN ('incomplete','unverified')`);
 db.exec("CREATE INDEX IF NOT EXISTS idx_sources_entity ON source_documents(entity, entity_id)");
 db.exec("CREATE INDEX IF NOT EXISTS idx_verif_events_entity ON verification_events(entity, entity_id, created_at)");
 db.exec("CREATE INDEX IF NOT EXISTS idx_products_state ON products(verification_state)");
