@@ -10,6 +10,7 @@ import compression from 'compression';
 import { fileURLToPath } from 'node:url';
 import { db } from './db.js';
 import api from './routes/index.js';
+import { UPLOAD_DIR as uploadDir } from './db.js';
 import { privacyHtml, termsHtml, legalUrls } from './lib/legal.js';
 import { cors } from './lib/cors.js';
 
@@ -26,8 +27,10 @@ app.use(cors);
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
-// Static uploads (product images, prescription photos, avatars)
-const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(ROOT, 'data', 'uploads');
+/* Static uploads (product images, prescription photos, avatars). The directory must be the
+   same one the API writes to — db.js derives it from DATA_DIR, so ask it instead of
+   recomputing here (which silently broke uploads whenever DATA_DIR was set). */
+const UPLOAD_DIR = uploadDir;
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '30d', immutable: true }));
 

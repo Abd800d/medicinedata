@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Camera, CheckCircle2, ClipboardList, Fingerprint, ImageIcon, Info, LayoutDashboard,
-  Moon, Palette, RefreshCw, ShieldCheck, Smartphone, Sparkles, Sun, Upload, X,
+  Moon, Package, Palette, Pill, RefreshCw, ShieldAlert, ShieldCheck, Smartphone, Sparkles, Sun, Upload, X,
 } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
 import { useAuth } from '../lib/auth';
@@ -25,6 +25,34 @@ type Release = {
 };
 
 const RELEASES: Release[] = [
+  {
+    version: '1.12.0',
+    date: '2026-10-29',
+    headline: 'فاحص تداخلات صادق، ومتصفّح منتجات بالبلد والوكيل المحلي',
+    items: [
+      {
+        icon: Pill,
+        title: 'فاحص التداخلات',
+        body: 'أضف من 2 إلى 25 دواءً بالاسم العلمي، فيُظهر التطبيق كل تداخل مذكور في بياناته مع الخطورة إن كانت مذكورة. ما لا يُذكر يُقال صراحةً: «مذكور بلا تصنيف» أو «غير موجود في بيانات MDA»، ولا يُكتب أبدًا «آمن».',
+        to: '/interactions',
+        cta: 'افحص أدويتك',
+      },
+      {
+        icon: ShieldAlert,
+        title: 'تكرار المادة الفعالة والتكرار العلاجي',
+        body: 'نفس المادة الفعالة مرتين (جرعة مضاعفة) أو دواءان من نفس الفئة (مثل اثنين مضاد التهاب NSAID) — يُكتشفان بلا أي مرجع خارجي، لأنهما خطأ شائع ومحسوم من البيانات نفسها.',
+        to: '/interactions',
+        cta: 'جرّب التكرار',
+      },
+      {
+        icon: Package,
+        title: 'متصفّح المنتجات التجارية',
+        body: '493 منتجًا بفلاتر: بلد التسويق، الشركة المصنعة، الوكيل المحلي ومدينته، جهاز الجسم، وجود صورة — وشارة توثيق على كل بطاقة مع الحقول الناقصة مكتوبة بالاسم.',
+        to: '/products',
+        cta: 'تصفّح المنتجات',
+      },
+    ],
+  },
   {
     version: '1.11.0',
     date: '2026-10-28',

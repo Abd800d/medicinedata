@@ -1,8 +1,8 @@
 {
   "name": "medicinedata",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "private": true,
-  "description": "MDA \u2014 MedicineData: pharmaceutical reference, Yemen/Arab market products, prescriptions and pharmacy management.",
+  "description": "MDA — MedicineData: pharmaceutical reference, Yemen/Arab market products, prescriptions and pharmacy management.",
   "type": "module",
   "author": "Dr. Abdulmajeed Abdullah Almakhedhi",
   "license": "SEE LICENSE IN LICENSE",
@@ -28,6 +28,7 @@
     "test:sync": "node scripts/test-sync.mjs",
     "test:data": "node scripts/test-data.mjs",
     "test:ui": "node scripts/test-ui.mjs",
+    "test:plan": "node scripts/test-plan.mjs",
     "test:native": "node scripts/test-native.mjs",
     "test:e2e": "node scripts/test-e2e.mjs",
     "keystore": "node scripts/make-keystore.mjs",

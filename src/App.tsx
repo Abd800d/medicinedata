@@ -20,6 +20,8 @@ const SystemDetail = lazy(() => import('./pages/SystemDetail'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
 const DrugDetail = lazy(() => import('./pages/DrugDetail'));
 const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const Products = lazy(() => import('./pages/Products'));
+const Interactions = lazy(() => import('./pages/Interactions'));
 const Prescriptions = lazy(() => import('./pages/Prescriptions'));
 const SyncCenter = lazy(() => import('./pages/SyncCenter'));
 const Legal = lazy(() => import('./pages/Legal'));
@@ -121,7 +123,9 @@ export default function App() {
                     <Route path="systems/:slug" element={<SystemDetail />} />
                     <Route path="search" element={<SearchPage />} />
                     <Route path="drugs/:id" element={<DrugDetail />} />
+                    <Route path="products" element={<Products />} />
                     <Route path="products/:id" element={<ProductDetail />} />
+                    <Route path="interactions" element={<Interactions />} />
                     <Route path="prescriptions" element={<Prescriptions />} />
                     <Route path="scan" element={<ScanPage />} />
                     <Route path="ai" element={<AiAssistant />} />
